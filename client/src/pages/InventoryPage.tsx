@@ -451,6 +451,119 @@ const InventoryPage: React.FC = () => {
               </div>
             </div>
 
+            {/* Vista de Tarjetas */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {productos.map((producto) => (
+                <div 
+                  key={producto.id} 
+                  className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                >
+                  {/* Badge de descuento/oferta en esquina superior izquierda */}
+                  {Math.random() > 0.6 && (
+                    <div className="absolute top-2 left-2 z-10">
+                      <div className="bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded">
+                        20% OFF
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Imagen del producto */}
+                  <div className="h-48 w-full bg-gray-100 relative flex items-center justify-center">
+                    <Package className="h-16 w-16 text-gray-300" />
+                  </div>
+                  
+                  {/* Detalles del producto */}
+                  <div className="p-4">
+                    {/* Título y categoría */}
+                    <div className="mb-2">
+                      <h3 className="font-medium truncate">{producto.nombre}</h3>
+                      <p className="text-xs text-gray-500">{producto.categoria}</p>
+                    </div>
+                    
+                    {/* Precio y badge */}
+                    <div className="flex justify-between items-center mb-3">
+                      <div>
+                        <p className="font-bold text-green-600">{formatCurrency(producto.precioVenta)}</p>
+                        {producto.precioVenta < producto.precioCompra * 1.3 && (
+                          <p className="text-xs text-gray-400 line-through">{formatCurrency(producto.precioCompra * 1.5)}</p>
+                        )}
+                      </div>
+                      <div>
+                        <Badge 
+                          variant={producto.categoria === "Hamburguesas" ? "outline" : "default"}
+                          className={producto.categoria === "Hamburguesas" ? "bg-red-100 hover:bg-red-100 text-red-800 border-red-400" : ""}
+                        >
+                          {producto.categoria === "Hamburguesas" ? "Non-Veg" : "Veg"}
+                        </Badge>
+                      </div>
+                    </div>
+                    
+                    {/* Controles y botones */}
+                    <div className="flex items-center justify-between mt-2">
+                      {/* Selector de cantidad */}
+                      <div className="flex items-center border rounded-md">
+                        <button className="px-2 py-1 text-primary">-</button>
+                        <span className="px-3 py-1 border-x">1</span>
+                        <button className="px-2 py-1 text-primary">+</button>
+                      </div>
+                      
+                      {/* Botón de añadir */}
+                      <Button 
+                        variant="outline" 
+                        className="text-white bg-primary hover:bg-primary/90 border-primary rounded-md"
+                      >
+                        Editar
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Paginación */}
+            <div className="flex justify-between items-center mt-6">
+              <div className="text-sm text-gray-500">
+                Mostrando 1-5 de 125 productos
+              </div>
+              <div className="flex gap-1">
+                <Button variant="outline" size="sm" disabled>Anterior</Button>
+                <Button variant="outline" size="sm">Siguiente</Button>
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <Button 
+                variant="outline" 
+                className="flex items-center gap-1"
+                onClick={() => {
+                  setActiveTab("table");
+                }}
+              >
+                <Eye className="h-4 w-4" />
+                <span>Ver como tabla</span>
+              </Button>
+            </div>
+          </TabsContent>
+
+          {/* PRODUCTOS (VISTA TABLA) */}
+          <TabsContent value="table" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-xl font-semibold">Productos (Vista de Tabla)</h2>
+                <p className="text-gray-500 text-sm">Visualización detallada del inventario</p>
+              </div>
+              <Button 
+                variant="outline" 
+                className="flex items-center gap-1"
+                onClick={() => {
+                  setActiveTab("products");
+                }}
+              >
+                <Eye className="h-4 w-4" />
+                <span>Ver como tarjetas</span>
+              </Button>
+            </div>
+
             <Card>
               <CardContent className="p-0">
                 <div className="overflow-x-auto">
