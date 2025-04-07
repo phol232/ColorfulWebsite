@@ -9,6 +9,8 @@ import ProductsPage from "@/pages/ProductsPage";
 import InventoryPage from "@/pages/InventoryPage";
 import POSPage from "@/pages/POSPage";
 import OrdersPage from "@/pages/OrdersPage";
+import SalesPage from "@/pages/SalesPage";
+import InvoicesPage from "@/pages/InvoicesPage";
 import { CartProvider } from "@/context/CartContext";
 
 function Router() {
@@ -20,6 +22,8 @@ function Router() {
       <Route path="/inventory" component={InventoryPage}/>
       <Route path="/pos" component={POSPage}/>
       <Route path="/orders" component={OrdersPage}/>
+      <Route path="/sales" component={SalesPage}/>
+      <Route path="/invoices" component={InvoicesPage}/>
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>

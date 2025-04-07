@@ -164,81 +164,13 @@ const POSPage: React.FC = () => {
   return (
     <MainLayout>
       <div className="container mx-auto px-4 py-6">
-        <div className="mb-8">
+        <div className="mb-6">
           <h1 className="text-3xl font-bold mb-2">Punto de Venta</h1>
           <p className="text-gray-500">Registra ventas, imprime facturas y gestiona el flujo de caja</p>
         </div>
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Panel izquierdo - Productos */}
-          <div className="lg:col-span-2 space-y-6">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-              <div className="flex-1 relative">
-                <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input type="text" placeholder="Buscar productos por nombre, código o descripción..." className="pl-9" />
-              </div>
-              <Button className="flex items-center gap-1">
-                <ScanBarcode className="h-4 w-4" />
-                <span>Escanear Código</span>
-              </Button>
-            </div>
-            
-            <div className="flex gap-2 overflow-x-auto pb-2">
-              <Button 
-                variant={activeCategory === "" ? "default" : "outline"} 
-                className="whitespace-nowrap"
-                onClick={() => setActiveCategory("")}
-              >
-                Todos
-              </Button>
-              {categorias.map(cat => (
-                <Button 
-                  key={cat.id} 
-                  variant={activeCategory === cat.nombre ? "default" : "outline"} 
-                  className="whitespace-nowrap"
-                  onClick={() => setActiveCategory(cat.nombre)}
-                >
-                  {cat.nombre}
-                </Button>
-              ))}
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {filteredProducts.map((producto) => (
-                <div 
-                  key={producto.id} 
-                  className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                  onClick={() => addToCart(producto)}
-                >
-                  {/* Imagen del producto */}
-                  <div className="h-40 w-full bg-gray-100 relative flex items-center justify-center">
-                    <Package className="h-12 w-12 text-gray-300" />
-                    {producto.stock < producto.stockMinimo && (
-                      <Badge 
-                        variant={producto.stock < producto.stockMinimo / 2 ? "destructive" : "outline"}
-                        className="absolute top-2 right-2"
-                      >
-                        {producto.stock < producto.stockMinimo / 2 ? "Stock Crítico" : "Stock Bajo"}
-                      </Badge>
-                    )}
-                  </div>
-                  
-                  {/* Detalles del producto */}
-                  <div className="p-3">
-                    <h3 className="font-medium truncate">{producto.nombre}</h3>
-                    <div className="flex justify-between items-center mt-2">
-                      <p className="font-bold text-green-600">{formatCurrency(producto.precioVenta)}</p>
-                      <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-400">
-                        Stock: {producto.stock}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          
-          {/* Panel derecho - Carrito */}
+        {/* Ticket actual - Ahora está en la parte superior */}
+        <div className="mb-6">
           <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
             <div className="p-4 border-b">
               <h3 className="text-lg font-semibold">Ticket Actual</h3>
@@ -246,9 +178,9 @@ const POSPage: React.FC = () => {
             </div>
             
             {/* Lista de productos en el carrito */}
-            <div className="p-4 flex-1 overflow-auto max-h-[calc(100vh-400px)]">
+            <div className="p-4 flex-1 overflow-auto max-h-[calc(100vh-500px)]">
               {cart.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-10 text-center">
+                <div className="flex flex-col items-center justify-center py-6 text-center">
                   <ShoppingBag className="h-12 w-12 text-gray-300 mb-3" />
                   <p className="text-gray-500">El carrito está vacío</p>
                   <p className="text-sm text-gray-400">Agrega productos para iniciar la venta</p>
@@ -265,14 +197,20 @@ const POSPage: React.FC = () => {
                         <div className="flex items-center border rounded">
                           <button 
                             className="p-1 text-gray-500 hover:text-gray-700"
-                            onClick={() => updateQuantity(item.id, item.cantidad - 1)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateQuantity(item.id, item.cantidad - 1);
+                            }}
                           >
                             <Minus className="h-4 w-4" />
                           </button>
                           <span className="px-2 py-1 border-x">{item.cantidad}</span>
                           <button 
                             className="p-1 text-gray-500 hover:text-gray-700"
-                            onClick={() => updateQuantity(item.id, item.cantidad + 1)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateQuantity(item.id, item.cantidad + 1);
+                            }}
                           >
                             <Plus className="h-4 w-4" />
                           </button>
@@ -282,7 +220,10 @@ const POSPage: React.FC = () => {
                         </p>
                         <button 
                           className="text-red-500 hover:text-red-700"
-                          onClick={() => removeFromCart(item.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeFromCart(item.id);
+                          }}
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -311,7 +252,7 @@ const POSPage: React.FC = () => {
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-3 mt-6">
+              <div className="grid grid-cols-2 gap-3 mt-4">
                 <Button variant="outline" className="w-full" disabled={cart.length === 0}>
                   <Receipt className="h-4 w-4 mr-2" />
                   Guardar
@@ -391,6 +332,115 @@ const POSPage: React.FC = () => {
                 </Button>
               </div>
             </div>
+          </div>
+        </div>
+        
+        {/* Sección de productos y búsqueda */}
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+            <div className="flex-1 relative">
+              <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Input type="text" placeholder="Buscar productos por nombre, código o descripción..." className="pl-9" />
+            </div>
+            <Button className="flex items-center gap-1">
+              <ScanBarcode className="h-4 w-4" />
+              <span>Escanear Código</span>
+            </Button>
+          </div>
+          
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            <Button 
+              variant={activeCategory === "" ? "default" : "outline"} 
+              className="whitespace-nowrap"
+              onClick={() => setActiveCategory("")}
+            >
+              Todos
+            </Button>
+            {categorias.map(cat => (
+              <Button 
+                key={cat.id} 
+                variant={activeCategory === cat.nombre ? "default" : "outline"} 
+                className="whitespace-nowrap"
+                onClick={() => setActiveCategory(cat.nombre)}
+              >
+                {cat.nombre}
+              </Button>
+            ))}
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {filteredProducts.map((producto) => (
+              <div 
+                key={producto.id} 
+                className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => addToCart(producto)}
+              >
+                {/* Imagen del producto */}
+                <div className="h-36 w-full bg-gray-100 relative">
+                  {/* Mostraremos imágenes referenciales por ahora */}
+                  <div className="w-full h-full flex items-center justify-center bg-gray-100 overflow-hidden">
+                    {producto.categoria === "Hamburguesas" && (
+                      <img 
+                        src="https://placehold.co/400x300/e91e63/fff?text=Hamburguesa" 
+                        alt={producto.nombre}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                    {producto.categoria === "Pizzas" && (
+                      <img 
+                        src="https://placehold.co/400x300/ff9800/fff?text=Pizza" 
+                        alt={producto.nombre}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                    {producto.categoria === "Bebidas" && (
+                      <img 
+                        src="https://placehold.co/400x300/2196f3/fff?text=Bebida" 
+                        alt={producto.nombre}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                    {producto.categoria === "Postres" && (
+                      <img 
+                        src="https://placehold.co/400x300/9c27b0/fff?text=Postre" 
+                        alt={producto.nombre}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                    {producto.categoria === "Ensaladas" && (
+                      <img 
+                        src="https://placehold.co/400x300/4caf50/fff?text=Ensalada" 
+                        alt={producto.nombre}
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                    {!["Hamburguesas", "Pizzas", "Bebidas", "Postres", "Ensaladas"].includes(producto.categoria) && (
+                      <Package className="h-12 w-12 text-gray-300" />
+                    )}
+                  </div>
+                  
+                  {producto.stock < producto.stockMinimo && (
+                    <Badge 
+                      variant={producto.stock < producto.stockMinimo / 2 ? "destructive" : "outline"}
+                      className="absolute top-2 right-2"
+                    >
+                      {producto.stock < producto.stockMinimo / 2 ? "Stock Crítico" : "Stock Bajo"}
+                    </Badge>
+                  )}
+                </div>
+                
+                {/* Detalles del producto */}
+                <div className="p-3">
+                  <h3 className="font-medium truncate">{producto.nombre}</h3>
+                  <div className="flex justify-between items-center mt-2">
+                    <p className="font-bold text-green-600">{formatCurrency(producto.precioVenta)}</p>
+                    <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-400">
+                      Stock: {producto.stock}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
