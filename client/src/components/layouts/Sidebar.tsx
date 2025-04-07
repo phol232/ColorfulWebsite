@@ -10,7 +10,11 @@ import {
   Settings,
   Search,
   Grid3X3,
-  LogOut
+  LogOut,
+  Boxes,
+  ShoppingCart,
+  Truck,
+  ClipboardList
 } from "lucide-react";
 import Logo from "../ui/Logo";
 
@@ -28,7 +32,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
   const menuItems = [
     { name: "Dashboard", icon: <LayoutDashboard className="h-5 w-5" />, path: "/dashboard" },
     { name: "Productos", icon: <Package className="h-5 w-5" />, path: "/products" },
-    { name: "Ventas", icon: <UtensilsCrossed className="h-5 w-5" />, path: "/" },
+    { name: "Ventas", icon: <ShoppingCart className="h-5 w-5" />, path: "/sales" },
     { name: "Clientes", icon: <Users className="h-5 w-5" />, path: "/customers" },
     { name: "Estadísticas", icon: <BarChart2 className="h-5 w-5" />, path: "/statistics" },
     { name: "Pagos", icon: <CreditCard className="h-5 w-5" />, path: "/payments" },
@@ -36,8 +40,10 @@ const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
 
   const toolsItems = [
     { name: "Configuración", icon: <Settings className="h-5 w-5" />, path: "/settings" },
-    { name: "Búsqueda", icon: <Search className="h-5 w-5" />, path: "/search" },
-    { name: "Categorías", icon: <Grid3X3 className="h-5 w-5" />, path: "/categories" },
+    { name: "Inventario", icon: <Boxes className="h-5 w-5" />, path: "/inventory" },
+    { name: "Pedidos", icon: <ClipboardList className="h-5 w-5" />, path: "/orders" },
+    { name: "Proveedores", icon: <Truck className="h-5 w-5" />, path: "/suppliers" },
+    { name: "Reportes", icon: <BarChart2 className="h-5 w-5" />, path: "/reports" },
   ];
 
   const renderMenuItem = (item: any) => {
