@@ -1,0 +1,55 @@
+Estructura y Módulos Principales:
+
+Dashboard (Panel de Control):
+
+Vista General: Resumen rápido de métricas clave: ventas del día/semana/mes, pedidos pendientes, niveles bajos de stock, productos más vendidos, últimos clientes.
+Accesos Rápidos: Enlaces a las funciones más usadas (crear producto, registrar venta, ver pedidos).
+Gestión de Productos:
+
+Listado de Productos: Ver todos los productos con información básica (nombre, SKU, precio, stock). Búsqueda y filtros (por categoría, marca, stock).
+Crear/Editar Producto: Formulario para añadir o modificar productos detalladamente:
+Nombre, Descripción, SKU (Código único de producto).
+Precio de costo y Precio de venta.
+Categorías y Etiquetas.
+Gestión de Stock (cantidad actual, umbral de stock bajo).
+Imágenes del producto.
+Variantes (talla, color, material) con precios y stock individuales si es necesario.
+Proveedor asociado.
+Estado (activo, inactivo, borrador).
+Gestión de Inventario:
+
+Control de Stock: Visualización detallada del stock por producto/variante.
+Ajustes de Stock: Funcionalidad para registrar entradas (compras a proveedor), salidas (mermas, retiros) o ajustes manuales por inventario físico. Historial de movimientos.
+Alertas de Stock Bajo: Notificaciones automáticas cuando el stock de un producto alcanza el umbral mínimo definido.
+Transferencias de Stock (si hay varias sucursales/almacenes): Registrar movimientos entre ubicaciones.
+Gestión de Ventas/Pedidos:
+
+Registro de Ventas (POS - Punto de Venta): Si se usa también en tienda física, una interfaz simple para seleccionar productos, aplicar descuentos, calcular totales, registrar el método de pago y generar un recibo/factura.
+Listado de Pedidos (para Ventas Online o a Crédito): Ver todos los pedidos con su estado (pendiente, procesando, enviado, entregado, cancelado). Filtros por estado, fecha, cliente.
+Detalle del Pedido: Ver información completa del pedido: productos, cliente, dirección de envío, método de pago, historial de estados.
+Actualizar Estado del Pedido: Cambiar el estado manualmente (ej: marcar como enviado).
+Gestión de Clientes (CRM Básico):
+
+Listado de Clientes: Base de datos de clientes con información de contacto.
+Historial de Compras: Ver qué ha comprado cada cliente.
+Segmentación Básica: Poder agrupar clientes (ej: por frecuencia de compra).
+Gestión de Proveedores:
+
+Listado de Proveedores: Base de datos con información de contacto y productos asociados.
+Órdenes de Compra: Funcionalidad para generar y gestionar pedidos a proveedores.
+Reportes y Analíticas:
+
+Reportes de Ventas: Por período, por producto, por categoría, por cliente, por vendedor. Margen de beneficio.
+Reportes de Inventario: Valor del inventario, productos sin movimiento, rotación de stock.
+Reportes Financieros Básicos: Ingresos, costos, ganancias.
+Gestión de Usuarios y Roles:
+
+Crear/Editar Usuarios: Añadir empleados que usarán el sistema.
+Asignar Roles: Definir qué puede hacer cada tipo de usuario (Administrador: todo; Vendedor: solo POS y ver pedidos; Encargado de Inventario: solo módulo de inventario y productos).
+Configuración:
+
+Datos de la Tienda: Nombre, dirección, moneda, impuestos.
+Métodos de Pago Aceptados.
+Opciones de Envío (si aplica).
+Configuración de Notificaciones.
+Gestión de Roles y Permisos.

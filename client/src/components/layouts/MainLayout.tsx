@@ -1,8 +1,8 @@
-import React, { ReactNode } from "react";
+import React, { ReactNode, useState } from "react";
 import { useLocation } from "wouter";
 import Sidebar from "./Sidebar";
 import Logo from "../ui/Logo";
-import { Search, Filter, ShoppingBasket, Bell } from "lucide-react";
+import { Search, Filter, ShoppingBasket, Bell, Menu, ChevronLeft, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -15,23 +15,62 @@ interface MainLayoutProps {
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const isMobile = useIsMobile();
   const [location] = useLocation();
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
+  };
+
+  const toggleMobileMenu = () => {
+    setMobileMenuOpen(!mobileMenuOpen);
+  };
 
   return (
     <div className="min-h-screen flex bg-[#F5F7FA]">
-      {/* Sidebar - hidden on mobile */}
-      {!isMobile && <Sidebar />}
+      {/* Sidebar - hidden on mobile or when closed */}
+      {(!isMobile && sidebarOpen) && (
+        <Sidebar className="sidebar-visible" />
+      )}
+      
+      {/* Mobile menu overlay */}
+      {isMobile && mobileMenuOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={toggleMobileMenu}>
+          <div className="absolute left-0 top-0 h-full w-64 z-50" onClick={(e) => e.stopPropagation()}>
+            <Sidebar className="h-full" />
+          </div>
+        </div>
+      )}
       
       <div className="flex-grow flex flex-col">
         {/* Header */}
-        <header className="bg-white py-3 px-4 shadow-sm flex items-center justify-between">
-          {/* Left side - hamburger menu on mobile, search on desktop */}
+        <header className="bg-white py-3 px-4 shadow-sm flex items-center justify-between z-30">
+          {/* Left side - hamburger menu on mobile, toggle button on desktop */}
           <div className="flex items-center">
-            {isMobile && (
-              <button className="mr-3">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
+            {isMobile ? (
+              <button onClick={toggleMobileMenu} className="mr-3 p-1 hover:bg-gray-100 rounded-md">
+                <Menu className="h-6 w-6 text-gray-700" />
               </button>
+            ) : (
+              <button 
+                onClick={toggleSidebar} 
+                className="mr-3 p-1 hover:bg-gray-100 rounded-md"
+                aria-label={sidebarOpen ? "Ocultar menú" : "Mostrar menú"}
+                title={sidebarOpen ? "Ocultar menú" : "Mostrar menú"}
+              >
+                {sidebarOpen ? (
+                  <ChevronLeft className="h-5 w-5 text-gray-700" />
+                ) : (
+                  <ChevronRight className="h-5 w-5 text-gray-700" />
+                )}
+              </button>
+            )}
+            
+            {/* Logo when sidebar is collapsed */}
+            {!sidebarOpen && !isMobile && (
+              <div className="mr-4">
+                <Logo />
+              </div>
             )}
             
             {/* Search bar */}

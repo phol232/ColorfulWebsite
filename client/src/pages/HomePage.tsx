@@ -17,12 +17,12 @@ const HomePage: React.FC = () => {
   const isMobile = useIsMobile();
 
   // Fetch categories
-  const { data: categories = [], isLoading: isLoadingCategories } = useQuery({
+  const { data: categories = [], isLoading: isLoadingCategories } = useQuery<any[]>({
     queryKey: ["/api/categories"],
   });
 
   // Fetch products based on active tab and selected category
-  const { data: products = [], isLoading: isLoadingProducts } = useQuery({
+  const { data: products = [], isLoading: isLoadingProducts } = useQuery<any[]>({
     queryKey: ["/api/products", activeTab, selectedCategory],
   });
 

@@ -150,6 +150,149 @@ export class MemStorage implements IStorage {
         isPopular: true, 
         isRecent: false 
       },
+      { 
+        name: "Pepperoni Pizza", 
+        description: "Classic pepperoni pizza with mozzarella cheese", 
+        price: 18.99, 
+        originalPrice: 24.99, 
+        image: "pepperoni_pizza.jpg", 
+        rating: "4.7k", 
+        categoryId: 7, 
+        isPopular: true, 
+        isRecent: false 
+      },
+      { 
+        name: "Margherita Pizza", 
+        description: "Traditional Italian pizza with tomato, mozzarella and basil", 
+        price: 16.5, 
+        originalPrice: 19.99, 
+        image: "margherita_pizza.jpg", 
+        rating: "3.2k", 
+        categoryId: 7, 
+        isPopular: false, 
+        isRecent: false 
+      },
+      { 
+        name: "Vanilla Ice Cream", 
+        description: "Creamy vanilla ice cream with real vanilla beans", 
+        price: 5.99, 
+        originalPrice: 7.99, 
+        image: "vanilla_ice_cream.jpg", 
+        rating: "2.1k", 
+        categoryId: 3, 
+        isPopular: true, 
+        isRecent: false 
+      },
+      { 
+        name: "Chocolate Milkshake", 
+        description: "Rich chocolate milkshake topped with whipped cream", 
+        price: 7.50, 
+        originalPrice: 8.99, 
+        image: "chocolate_milkshake.jpg", 
+        rating: "1.8k", 
+        categoryId: 3, 
+        isPopular: false, 
+        isRecent: true 
+      },
+      { 
+        name: "Caesar Salad", 
+        description: "Fresh romaine lettuce with caesar dressing and croutons", 
+        price: 12.99, 
+        originalPrice: 14.99, 
+        image: "caesar_salad.jpg", 
+        rating: "1.9k", 
+        categoryId: 6, 
+        isPopular: false, 
+        isRecent: true 
+      },
+      { 
+        name: "BBQ Chicken Wings", 
+        description: "Spicy BBQ chicken wings with blue cheese dip", 
+        price: 14.99, 
+        originalPrice: 18.50, 
+        image: "bbq_wings.jpg", 
+        rating: "3.5k", 
+        categoryId: 9, 
+        isPopular: true, 
+        isRecent: false 
+      },
+      { 
+        name: "Strawberry Donut", 
+        description: "Sweet donut with strawberry glaze and sprinkles", 
+        price: 3.99, 
+        originalPrice: 4.99, 
+        image: "strawberry_donut.jpg", 
+        rating: "2.2k", 
+        categoryId: 1, 
+        isPopular: true, 
+        isRecent: true 
+      },
+      { 
+        name: "Vegetable Pizza", 
+        description: "Healthy pizza with fresh seasonal vegetables", 
+        price: 17.99, 
+        originalPrice: 21.50, 
+        image: "vegetable_pizza.jpg", 
+        rating: "1.7k", 
+        categoryId: 7, 
+        isPopular: false, 
+        isRecent: true 
+      },
+      { 
+        name: "Pasta Carbonara", 
+        description: "Authentic Italian pasta with crispy bacon and parmesan", 
+        price: 15.50, 
+        originalPrice: 18.99, 
+        image: "pasta_carbonara.jpg", 
+        rating: "2.9k", 
+        categoryId: 6, 
+        isPopular: true, 
+        isRecent: false 
+      },
+      { 
+        name: "Chicken Burger", 
+        description: "Juicy chicken burger with special sauce", 
+        price: 22.99, 
+        originalPrice: 26.99, 
+        image: "chicken_burger.jpg", 
+        rating: "3.8k", 
+        categoryId: 2, 
+        isPopular: true, 
+        isRecent: false 
+      },
+      { 
+        name: "Hot Dog", 
+        description: "Classic hot dog with mustard and ketchup", 
+        price: 8.99, 
+        originalPrice: 10.99, 
+        image: "hot_dog.jpg", 
+        rating: "2.4k", 
+        categoryId: 8, 
+        isPopular: false, 
+        isRecent: true 
+      },
+      { 
+        name: "French Fries", 
+        description: "Crispy golden french fries with sea salt", 
+        price: 5.99, 
+        originalPrice: 7.50, 
+        image: "french_fries.jpg", 
+        rating: "3.7k", 
+        categoryId: 4, 
+        isPopular: true, 
+        isRecent: false 
+      },
+      { 
+        name: "Chocolate Cake", 
+        description: "Rich chocolate cake with ganache topping", 
+        price: 9.50, 
+        originalPrice: 12.99, 
+        image: "chocolate_cake.jpg", 
+        rating: "2.8k", 
+        categoryId: 3, 
+        isPopular: false, 
+        isRecent: true 
+      },
     ];
 
     productSamples.forEach(product => {
@@ -217,9 +360,18 @@ export class MemStorage implements IStorage {
   async createProduct(product: InsertProduct): Promise<Product> {
     const id = this.productId++;
     const now = new Date();
+    // Ensure all required fields are present with defaults if needed
     const newProduct: Product = { 
       id, 
-      ...product, 
+      name: product.name,
+      description: product.description ?? null,
+      price: product.price,
+      originalPrice: product.originalPrice,
+      image: product.image,
+      rating: product.rating,
+      categoryId: product.categoryId,
+      isPopular: product.isPopular ?? null,
+      isRecent: product.isRecent ?? null,
       createdAt: now 
     };
     this.products.set(id, newProduct);
@@ -230,9 +382,14 @@ export class MemStorage implements IStorage {
   async createOrder(order: InsertOrder): Promise<Order> {
     const id = this.orderId++;
     const now = new Date();
+    // Ensure all required fields are present with defaults if needed
     const newOrder: Order = { 
       id, 
-      ...order, 
+      userId: order.userId ?? null,
+      total: order.total,
+      tax: order.tax,
+      status: order.status || 'pending',
+      paymentMethod: order.paymentMethod,
       createdAt: now 
     };
     this.orders.set(id, newOrder);

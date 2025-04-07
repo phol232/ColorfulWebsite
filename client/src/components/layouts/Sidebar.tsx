@@ -14,7 +14,11 @@ import {
 } from "lucide-react";
 import Logo from "../ui/Logo";
 
-const Sidebar: React.FC = () => {
+interface SidebarProps {
+  className?: string;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
   const [location] = useLocation();
 
   const isActive = (path: string) => {
@@ -36,8 +40,31 @@ const Sidebar: React.FC = () => {
     { name: "Categorías", icon: <Grid3X3 className="h-5 w-5" />, path: "/categories" },
   ];
 
+  const renderMenuItem = (item: any) => {
+    const active = isActive(item.path);
+    return (
+      <Link href={item.path}>
+        <div className={`flex items-center p-2.5 rounded-md transition-colors cursor-pointer ${
+          active 
+            ? 'bg-primary/10 text-primary' 
+            : 'text-gray-700 hover:bg-gray-100'
+        }`}>
+          <span className={`${active ? 'text-primary' : 'text-gray-500'}`}>
+            {item.icon}
+          </span>
+          <span className="ml-3 text-sm">{item.name}</span>
+          {active && <span className="ml-auto">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </span>}
+        </div>
+      </Link>
+    );
+  };
+
   return (
-    <aside className="w-64 bg-white border-r border-gray-200 hidden md:flex flex-col h-screen">
+    <aside className={`w-64 bg-white border-r border-gray-200 flex flex-col h-screen ${className}`}>
       {/* Logo */}
       <div className="flex px-5 py-5">
         <Logo />
@@ -50,23 +77,7 @@ const Sidebar: React.FC = () => {
           <ul className="space-y-1">
             {menuItems.map((item) => (
               <li key={item.name}>
-                <Link href={item.path}>
-                  <a className={`flex items-center p-2.5 rounded-md transition-colors ${
-                    isActive(item.path) 
-                      ? 'bg-primary/10 text-primary' 
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}>
-                    <span className={`${isActive(item.path) ? 'text-primary' : 'text-gray-500'}`}>
-                      {item.icon}
-                    </span>
-                    <span className="ml-3 text-sm">{item.name}</span>
-                    {isActive(item.path) && <span className="ml-auto">
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </span>}
-                  </a>
-                </Link>
+                {renderMenuItem(item)}
               </li>
             ))}
           </ul>
@@ -78,23 +89,7 @@ const Sidebar: React.FC = () => {
           <ul className="space-y-1">
             {toolsItems.map((item) => (
               <li key={item.name}>
-                <Link href={item.path}>
-                  <a className={`flex items-center p-2.5 rounded-md transition-colors ${
-                    isActive(item.path) 
-                      ? 'bg-primary/10 text-primary' 
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}>
-                    <span className={`${isActive(item.path) ? 'text-primary' : 'text-gray-500'}`}>
-                      {item.icon}
-                    </span>
-                    <span className="ml-3 text-sm">{item.name}</span>
-                    {isActive(item.path) && <span className="ml-auto">
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </span>}
-                  </a>
-                </Link>
+                {renderMenuItem(item)}
               </li>
             ))}
           </ul>
@@ -104,10 +99,10 @@ const Sidebar: React.FC = () => {
       {/* Logout */}
       <div className="px-3 pt-4 pb-5 border-t border-gray-200">
         <Link href="/logout">
-          <a className="flex items-center p-2.5 text-red-500 hover:bg-red-50 rounded-md transition-colors">
+          <div className="flex items-center p-2.5 text-red-500 hover:bg-red-50 rounded-md transition-colors cursor-pointer">
             <LogOut className="h-5 w-5" />
             <span className="ml-3 text-sm">Cerrar Sesión</span>
-          </a>
+          </div>
         </Link>
       </div>
     </aside>
