@@ -38,6 +38,8 @@ import {
   Boxes,
   Pencil,
   Truck,
+  FileText,
+  CalendarDays,
 } from "lucide-react";
 
 // Datos de ejemplo para la interfaz
@@ -507,13 +509,22 @@ const InventoryPage: React.FC = () => {
                         <button className="px-2 py-1 text-primary">+</button>
                       </div>
                       
-                      {/* Botón de añadir */}
-                      <Button 
-                        variant="outline" 
-                        className="text-white bg-primary hover:bg-primary/90 border-primary rounded-md"
-                      >
-                        Editar
-                      </Button>
+                      {/* Botones de acción */}
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          className="text-white bg-primary hover:bg-primary/90 border-primary rounded-md"
+                          onClick={() => handleEditProduct(producto)}
+                        >
+                          Editar
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          className="text-white bg-red-500 hover:bg-red-600 border-red-500 rounded-md"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -531,115 +542,6 @@ const InventoryPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="mt-6">
-              <Button 
-                variant="outline" 
-                className="flex items-center gap-1"
-                onClick={() => {
-                  setActiveTab("table");
-                }}
-              >
-                <Eye className="h-4 w-4" />
-                <span>Ver como tabla</span>
-              </Button>
-            </div>
-          </TabsContent>
-
-          {/* PRODUCTOS (VISTA TABLA) */}
-          <TabsContent value="table" className="space-y-6">
-            <div className="flex justify-between items-center">
-              <div>
-                <h2 className="text-xl font-semibold">Productos (Vista de Tabla)</h2>
-                <p className="text-gray-500 text-sm">Visualización detallada del inventario</p>
-              </div>
-              <Button 
-                variant="outline" 
-                className="flex items-center gap-1"
-                onClick={() => {
-                  setActiveTab("products");
-                }}
-              >
-                <Eye className="h-4 w-4" />
-                <span>Ver como tarjetas</span>
-              </Button>
-            </div>
-
-            <Card>
-              <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-3 px-4 font-medium">Producto</th>
-                        <th className="text-left py-3 px-4 font-medium">SKU</th>
-                        <th className="text-left py-3 px-4 font-medium">Precio Compra</th>
-                        <th className="text-left py-3 px-4 font-medium">Precio Venta</th>
-                        <th className="text-left py-3 px-4 font-medium">Categoría</th>
-                        <th className="text-left py-3 px-4 font-medium">Stock</th>
-                        <th className="text-left py-3 px-4 font-medium">Estado</th>
-                        <th className="text-left py-3 px-4 font-medium">Acciones</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {productos.map((producto) => (
-                        <tr key={producto.id} className="border-b hover:bg-muted/50">
-                          <td className="py-3 px-4">
-                            <div className="flex items-center">
-                              <div className="w-10 h-10 rounded-md bg-gray-100 mr-3 flex items-center justify-center">
-                                <Package className="h-6 w-6 text-gray-400" />
-                              </div>
-                              <div>
-                                <div className="font-medium">{producto.nombre}</div>
-                                <div className="text-xs text-muted-foreground truncate max-w-[200px]">{producto.descripcion}</div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4">{producto.sku}</td>
-                          <td className="py-3 px-4">{formatCurrency(producto.precioCompra)}</td>
-                          <td className="py-3 px-4">{formatCurrency(producto.precioVenta)}</td>
-                          <td className="py-3 px-4">{producto.categoria}</td>
-                          <td className="py-3 px-4">
-                            <Badge 
-                              variant={producto.stock < producto.stockMinimo ? (producto.stock < producto.stockMinimo / 2 ? "destructive" : "outline") : "default"} 
-                              className={producto.stock < producto.stockMinimo && producto.stock >= producto.stockMinimo / 2 ? "bg-yellow-100 hover:bg-yellow-100 text-yellow-800 border-yellow-400" : ""}
-                            >
-                              {producto.stock}
-                            </Badge>
-                          </td>
-                          <td className="py-3 px-4">
-                            <Badge variant="outline" className="bg-green-100 hover:bg-green-100 text-green-800 border-green-400">
-                              {producto.estado}
-                            </Badge>
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="flex gap-1">
-                              <Button variant="ghost" size="sm" onClick={() => handleEditProduct(producto)}>
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="sm" onClick={() => handleAdjustStock(producto)}>
-                                <Boxes className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="sm">
-                                <Trash2 className="h-4 w-4 text-red-500" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                <div className="flex justify-between items-center p-4">
-                  <div className="text-sm text-gray-500">
-                    Mostrando 1-5 de 125 productos
-                  </div>
-                  <div className="flex gap-1">
-                    <Button variant="outline" size="sm" disabled>Anterior</Button>
-                    <Button variant="outline" size="sm">Siguiente</Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
 
           {/* MOVIMIENTOS DE INVENTARIO */}
@@ -697,56 +599,77 @@ const InventoryPage: React.FC = () => {
                     <Input type="date" className="h-9 w-auto" />
                   </div>
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-3 px-4 font-medium">Fecha</th>
-                        <th className="text-left py-3 px-4 font-medium">Tipo</th>
-                        <th className="text-left py-3 px-4 font-medium">Producto</th>
-                        <th className="text-left py-3 px-4 font-medium">SKU</th>
-                        <th className="text-left py-3 px-4 font-medium">Cantidad</th>
-                        <th className="text-left py-3 px-4 font-medium">Usuario</th>
-                        <th className="text-left py-3 px-4 font-medium">Referencia</th>
-                        <th className="text-left py-3 px-4 font-medium">Nota</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {movimientosInventario.map((movimiento) => (
-                        <tr key={movimiento.id} className="border-b hover:bg-muted/50">
-                          <td className="py-3 px-4">{movimiento.fecha}</td>
-                          <td className="py-3 px-4">
-                            <Badge 
-                              variant="outline" 
-                              className={
-                                movimiento.tipo === "Entrada" ? "bg-green-100 hover:bg-green-100 text-green-800 border-green-400" :
-                                movimiento.tipo === "Salida" ? "bg-red-100 hover:bg-red-100 text-red-800 border-red-400" :
-                                movimiento.tipo === "Ajuste" ? "bg-blue-100 hover:bg-blue-100 text-blue-800 border-blue-400" :
-                                "bg-purple-100 hover:bg-purple-100 text-purple-800 border-purple-400"
-                              }
-                            >
-                              {movimiento.tipo}
-                            </Badge>
-                          </td>
-                          <td className="py-3 px-4">{movimiento.producto}</td>
-                          <td className="py-3 px-4">{movimiento.sku}</td>
-                          <td className="py-3 px-4">
-                            <div className="flex items-center">
-                              {movimiento.tipo === "Entrada" || (movimiento.tipo === "Ajuste" && movimiento.cantidad > 0) ? (
-                                <ArrowUp className="h-4 w-4 text-green-500 mr-1" />
-                              ) : (
-                                <ArrowDown className="h-4 w-4 text-red-500 mr-1" />
-                              )}
-                              {Math.abs(movimiento.cantidad)}
+                <div className="p-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    {movimientosInventario.map((movimiento) => (
+                      <div key={movimiento.id} className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                        {/* Cabecera con fecha y tipo */}
+                        <div className="p-3 border-b flex justify-between items-center">
+                          <div className="text-sm text-gray-500">
+                            <CalendarDays className="h-4 w-4 inline-block mr-1" /> 
+                            {movimiento.fecha}
+                          </div>
+                          <Badge 
+                            variant="outline" 
+                            className={
+                              movimiento.tipo === "Entrada" ? "bg-green-100 hover:bg-green-100 text-green-800 border-green-400" :
+                              movimiento.tipo === "Salida" ? "bg-red-100 hover:bg-red-100 text-red-800 border-red-400" :
+                              movimiento.tipo === "Ajuste" ? "bg-blue-100 hover:bg-blue-100 text-blue-800 border-blue-400" :
+                              "bg-purple-100 hover:bg-purple-100 text-purple-800 border-purple-400"
+                            }
+                          >
+                            {movimiento.tipo}
+                          </Badge>
+                        </div>
+                        
+                        {/* Contenido */}
+                        <div className="p-4">
+                          <div className="mb-3">
+                            <h3 className="font-medium truncate">{movimiento.producto}</h3>
+                            <p className="text-xs text-gray-500">SKU: {movimiento.sku}</p>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-2 mb-3">
+                            <div>
+                              <p className="text-xs text-gray-500">Cantidad</p>
+                              <div className="flex items-center font-medium">
+                                {movimiento.tipo === "Entrada" || (movimiento.tipo === "Ajuste" && movimiento.cantidad > 0) ? (
+                                  <ArrowUp className="h-4 w-4 text-green-500 mr-1" />
+                                ) : (
+                                  <ArrowDown className="h-4 w-4 text-red-500 mr-1" />
+                                )}
+                                {Math.abs(movimiento.cantidad)}
+                              </div>
                             </div>
-                          </td>
-                          <td className="py-3 px-4">{movimiento.usuario}</td>
-                          <td className="py-3 px-4">{movimiento.referencia}</td>
-                          <td className="py-3 px-4">{movimiento.nota}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                            <div>
+                              <p className="text-xs text-gray-500">Usuario</p>
+                              <p className="font-medium">{movimiento.usuario}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="mb-3">
+                            <p className="text-xs text-gray-500">Referencia</p>
+                            <p className="text-sm">{movimiento.referencia}</p>
+                          </div>
+                          
+                          {movimiento.nota && (
+                            <div className="bg-gray-50 p-2 rounded-md text-sm">
+                              <p className="text-xs text-gray-500 mb-1">Nota:</p>
+                              <p className="text-xs">{movimiento.nota}</p>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Footer con acciones */}
+                        <div className="p-3 border-t flex justify-end">
+                          <Button variant="ghost" size="sm" className="text-primary">
+                            <FileText className="h-4 w-4 mr-1" />
+                            Ver detalles
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
                 <div className="flex justify-between items-center p-4">
                   <div className="text-sm text-gray-500">
@@ -790,49 +713,70 @@ const InventoryPage: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-3 px-4 font-medium">Producto</th>
-                        <th className="text-left py-3 px-4 font-medium">SKU</th>
-                        <th className="text-left py-3 px-4 font-medium">Stock Actual</th>
-                        <th className="text-left py-3 px-4 font-medium">Stock Mínimo</th>
-                        <th className="text-left py-3 px-4 font-medium">Proveedor</th>
-                        <th className="text-left py-3 px-4 font-medium">Última Compra</th>
-                        <th className="text-left py-3 px-4 font-medium">Estado</th>
-                        <th className="text-left py-3 px-4 font-medium">Acciones</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {productos.filter(p => p.stock < p.stockMinimo).map((producto) => (
-                        <tr key={producto.id} className="border-b hover:bg-muted/50">
-                          <td className="py-3 px-4">
-                            <div className="font-medium">{producto.nombre}</div>
-                          </td>
-                          <td className="py-3 px-4">{producto.sku}</td>
-                          <td className="py-3 px-4">{producto.stock}</td>
-                          <td className="py-3 px-4">{producto.stockMinimo}</td>
-                          <td className="py-3 px-4">{producto.proveedor}</td>
-                          <td className="py-3 px-4">05 Abr 2025</td>
-                          <td className="py-3 px-4">
-                            <Badge 
-                              variant={producto.stock < producto.stockMinimo / 2 ? "destructive" : "outline"} 
-                              className={producto.stock >= producto.stockMinimo / 2 ? "bg-yellow-100 hover:bg-yellow-100 text-yellow-800 border-yellow-400" : ""}
-                            >
-                              {producto.stock < producto.stockMinimo / 2 ? "Crítico" : "Bajo"}
-                            </Badge>
-                          </td>
-                          <td className="py-3 px-4">
-                            <Button variant="outline" size="sm" className="flex items-center gap-1">
+                <div className="p-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {productos.filter(p => p.stock < p.stockMinimo).map((producto) => (
+                      <div key={producto.id} className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                        {/* Header con nivel de alerta */}
+                        <div className={`p-2 flex justify-between items-center ${producto.stock < producto.stockMinimo / 2 ? 'bg-red-50' : 'bg-yellow-50'}`}>
+                          <Badge 
+                            variant={producto.stock < producto.stockMinimo / 2 ? "destructive" : "outline"} 
+                            className={producto.stock >= producto.stockMinimo / 2 ? "bg-yellow-100 hover:bg-yellow-100 text-yellow-800 border-yellow-400" : ""}
+                          >
+                            {producto.stock < producto.stockMinimo / 2 ? "Crítico" : "Bajo"}
+                          </Badge>
+                          {producto.stock < producto.stockMinimo / 2 && (
+                            <AlertTriangle className="h-4 w-4 text-red-500" />
+                          )}
+                        </div>
+                        
+                        {/* Imagen del producto */}
+                        <div className="h-36 w-full bg-gray-100 relative flex items-center justify-center">
+                          <Package className="h-12 w-12 text-gray-300" />
+                        </div>
+                        
+                        {/* Detalles del producto */}
+                        <div className="p-4">
+                          <div className="mb-3">
+                            <h3 className="font-medium truncate">{producto.nombre}</h3>
+                            <p className="text-xs text-gray-500">SKU: {producto.sku}</p>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-4 mb-4">
+                            <div>
+                              <p className="text-xs text-gray-500">Stock Actual</p>
+                              <p className={`font-bold ${producto.stock < producto.stockMinimo / 2 ? 'text-red-600' : 'text-yellow-600'}`}>{producto.stock}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500">Stock Mínimo</p>
+                              <p className="font-medium">{producto.stockMinimo}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="mb-3">
+                            <p className="text-xs text-gray-500">Proveedor</p>
+                            <p className="text-sm font-medium">{producto.proveedor}</p>
+                          </div>
+                          
+                          <div className="mb-4">
+                            <p className="text-xs text-gray-500">Última Compra</p>
+                            <p className="text-sm">05 Abr 2025</p>
+                          </div>
+                          
+                          {/* Botones de acción */}
+                          <div className="flex gap-2">
+                            <Button variant="outline" className="flex-1 flex items-center justify-center gap-1">
                               <Truck className="h-4 w-4" />
                               <span>Reabastecer</span>
                             </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                            <Button variant="ghost" className="p-2">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </CardContent>
             </Card>
