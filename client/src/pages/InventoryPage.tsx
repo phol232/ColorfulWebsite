@@ -454,8 +454,8 @@ const InventoryPage: React.FC = () => {
             </div>
 
             {/* Vista de Tarjetas */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {productos.map((producto) => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {[...productos, ...productos, ...productos].map((producto, index) => (
                 <div 
                   key={producto.id} 
                   className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
@@ -470,22 +470,22 @@ const InventoryPage: React.FC = () => {
                   )}
                   
                   {/* Imagen del producto */}
-                  <div className="h-48 w-full bg-gray-100 relative flex items-center justify-center">
-                    <Package className="h-16 w-16 text-gray-300" />
+                  <div className="h-36 w-full bg-gray-100 relative flex items-center justify-center">
+                    <Package className="h-12 w-12 text-gray-300" />
                   </div>
                   
                   {/* Detalles del producto */}
-                  <div className="p-4">
+                  <div className="p-3">
                     {/* Título y categoría */}
-                    <div className="mb-2">
-                      <h3 className="font-medium truncate">{producto.nombre}</h3>
+                    <div className="mb-1.5">
+                      <h3 className="font-medium text-sm truncate">{producto.nombre}</h3>
                       <p className="text-xs text-gray-500">{producto.categoria}</p>
                     </div>
                     
                     {/* Precio y badge */}
-                    <div className="flex justify-between items-center mb-3">
+                    <div className="flex justify-between items-center mb-2">
                       <div>
-                        <p className="font-bold text-green-600">{formatCurrency(producto.precioVenta)}</p>
+                        <p className="font-bold text-sm text-green-600">{formatCurrency(producto.precioVenta)}</p>
                         {producto.precioVenta < producto.precioCompra * 1.3 && (
                           <p className="text-xs text-gray-400 line-through">{formatCurrency(producto.precioCompra * 1.5)}</p>
                         )}
@@ -493,7 +493,7 @@ const InventoryPage: React.FC = () => {
                       <div>
                         <Badge 
                           variant={producto.categoria === "Hamburguesas" ? "outline" : "default"}
-                          className={producto.categoria === "Hamburguesas" ? "bg-red-100 hover:bg-red-100 text-red-800 border-red-400" : ""}
+                          className={`text-xs px-1.5 py-0.5 ${producto.categoria === "Hamburguesas" ? "bg-red-100 hover:bg-red-100 text-red-800 border-red-400" : ""}`}
                         >
                           {producto.categoria === "Hamburguesas" ? "Non-Veg" : "Veg"}
                         </Badge>
@@ -503,26 +503,28 @@ const InventoryPage: React.FC = () => {
                     {/* Controles y botones */}
                     <div className="flex items-center justify-between mt-2">
                       {/* Selector de cantidad */}
-                      <div className="flex items-center border rounded-md">
-                        <button className="px-2 py-1 text-primary">-</button>
-                        <span className="px-3 py-1 border-x">1</span>
-                        <button className="px-2 py-1 text-primary">+</button>
+                      <div className="flex items-center border rounded-md text-sm">
+                        <button className="px-1 py-0.5 text-primary">-</button>
+                        <span className="px-2 py-0.5 border-x text-xs">1</span>
+                        <button className="px-1 py-0.5 text-primary">+</button>
                       </div>
                       
                       {/* Botones de acción */}
-                      <div className="flex gap-2">
+                      <div className="flex gap-1">
                         <Button 
                           variant="outline" 
+                          size="sm"
                           className="text-white bg-primary hover:bg-primary/90 border-primary rounded-md"
                           onClick={() => handleEditProduct(producto)}
                         >
-                          Editar
+                          <Pencil className="h-3.5 w-3.5 mr-1" /> Editar
                         </Button>
                         <Button 
                           variant="outline" 
+                          size="sm"
                           className="text-white bg-red-500 hover:bg-red-600 border-red-500 rounded-md"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
                     </div>
