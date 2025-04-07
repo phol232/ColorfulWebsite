@@ -7,6 +7,8 @@ import HomePage from "@/pages/HomePage";
 import DashboardPage from "@/pages/DashboardPage";
 import ProductsPage from "@/pages/ProductsPage";
 import InventoryPage from "@/pages/InventoryPage";
+import POSPage from "@/pages/POSPage";
+import OrdersPage from "@/pages/OrdersPage";
 import { CartProvider } from "@/context/CartContext";
 
 function Router() {
@@ -16,6 +18,8 @@ function Router() {
       <Route path="/dashboard" component={DashboardPage}/>
       <Route path="/products" component={ProductsPage}/>
       <Route path="/inventory" component={InventoryPage}/>
+      <Route path="/pos" component={POSPage}/>
+      <Route path="/orders" component={OrdersPage}/>
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>

@@ -14,7 +14,11 @@ import {
   Boxes,
   ShoppingCart,
   Truck,
-  ClipboardList
+  ClipboardList,
+  Receipt,
+  Store,
+  ScanBarcode,
+  ShoppingBag
 } from "lucide-react";
 import Logo from "../ui/Logo";
 
@@ -32,17 +36,22 @@ const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
   const menuItems = [
     { name: "Dashboard", icon: <LayoutDashboard className="h-5 w-5" />, path: "/dashboard" },
     { name: "Inventario", icon: <Boxes className="h-5 w-5" />, path: "/inventory" },
-    { name: "Ventas", icon: <ShoppingCart className="h-5 w-5" />, path: "/sales" },
     { name: "Clientes", icon: <Users className="h-5 w-5" />, path: "/customers" },
     { name: "Estadísticas", icon: <BarChart2 className="h-5 w-5" />, path: "/statistics" },
-    { name: "Pagos", icon: <CreditCard className="h-5 w-5" />, path: "/payments" },
+  ];
+
+  const salesItems = [
+    { name: "Punto de Venta", icon: <Store className="h-5 w-5" />, path: "/pos" },
+    { name: "Pedidos", icon: <ClipboardList className="h-5 w-5" />, path: "/orders" },
+    { name: "Ventas", icon: <ShoppingCart className="h-5 w-5" />, path: "/sales" },
+    { name: "Facturas", icon: <Receipt className="h-5 w-5" />, path: "/invoices" },
   ];
 
   const toolsItems = [
-    { name: "Configuración", icon: <Settings className="h-5 w-5" />, path: "/settings" },
-    { name: "Pedidos", icon: <ClipboardList className="h-5 w-5" />, path: "/orders" },
     { name: "Proveedores", icon: <Truck className="h-5 w-5" />, path: "/suppliers" },
+    { name: "Pagos", icon: <CreditCard className="h-5 w-5" />, path: "/payments" },
     { name: "Reportes", icon: <BarChart2 className="h-5 w-5" />, path: "/reports" },
+    { name: "Configuración", icon: <Settings className="h-5 w-5" />, path: "/settings" },
   ];
 
   const renderMenuItem = (item: any) => {
@@ -81,6 +90,18 @@ const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
           <h3 className="text-gray-500 font-medium text-xs uppercase tracking-wider px-3 mb-3">Menú Principal</h3>
           <ul className="space-y-1">
             {menuItems.map((item) => (
+              <li key={item.name}>
+                {renderMenuItem(item)}
+              </li>
+            ))}
+          </ul>
+        </div>
+        
+        {/* Gestión de Ventas */}
+        <div className="mb-6">
+          <h3 className="text-gray-500 font-medium text-xs uppercase tracking-wider px-3 mb-3">Gestión de Ventas</h3>
+          <ul className="space-y-1">
+            {salesItems.map((item) => (
               <li key={item.name}>
                 {renderMenuItem(item)}
               </li>
