@@ -18,7 +18,8 @@ import {
   Receipt,
   Store,
   ScanBarcode,
-  ShoppingBag
+  ShoppingBag,
+  Tags
 } from "lucide-react";
 import Logo from "../ui/Logo";
 
@@ -49,6 +50,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
   ];
 
   const toolsItems = [
+    { name: "Categorías", icon: <Tags className="h-5 w-5" />, path: "/categories" },
     { name: "Pagos", icon: <CreditCard className="h-5 w-5" />, path: "/payments" },
     { name: "Configuración", icon: <Settings className="h-5 w-5" />, path: "/settings" },
   ];

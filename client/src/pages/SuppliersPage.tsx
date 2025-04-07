@@ -674,34 +674,7 @@ const SuppliersPage: React.FC = () => {
             </div>
           )}
         </div>
-        
-        {/* Sección de Categorías */}
-        <div className="mb-6">
-          <h2 className="text-lg font-semibold mb-4">Categorías de Proveedores</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {categorias.map(categoria => (
-              <Card key={categoria.id} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <Badge variant="outline" className={categoria.color}>
-                        {categoria.nombre}
-                      </Badge>
-                      <h3 className="text-xl font-bold mt-2">{categoria.proveedores}</h3>
-                      <p className="text-xs text-gray-500">proveedores</p>
-                    </div>
-                    <div className="bg-gray-100 p-2 rounded-md">
-                      <Building className="h-5 w-5 text-gray-600" />
-                    </div>
-                  </div>
-                  <Button variant="ghost" size="sm" className="w-full mt-3 text-primary">
-                    Ver Proveedores
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
+
       </div>
     </MainLayout>
   );

@@ -19,7 +19,7 @@ import { CartProvider } from "@/context/CartContext";
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={HomePage}/>
+      <Route path="/" component={DashboardPage}/>
       <Route path="/dashboard" component={DashboardPage}/>
       <Route path="/products" component={ProductsPage}/>
       <Route path="/inventory" component={InventoryPage}/>
@@ -30,6 +30,7 @@ function Router() {
       <Route path="/orders" component={OrdersPage}/>
       <Route path="/sales" component={SalesPage}/>
       <Route path="/invoices" component={InvoicesPage}/>
+      <Route path="/categories" component={DashboardPage}/> {/* Placeholder para futura página de categorías */}
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>
