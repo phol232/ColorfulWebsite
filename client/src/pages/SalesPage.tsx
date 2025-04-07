@@ -127,6 +127,33 @@ const getEstadoColor = (estado: string) => {
   }
 };
 
+// Función para generar códigos de referencia aleatorios
+const generarReferencia = (venta: any) => {
+  const prefijos = {
+    'Completada': 'OC',
+    'Pendiente': 'PED',
+    'Anulada': 'AJ'
+  };
+  const prefijo = prefijos[venta.estado as keyof typeof prefijos] || 'REF';
+  return `${prefijo}-${Math.floor(1000 + Math.random() * 9000)}`;
+};
+
+// Función para generar SKUs
+const generarSKU = (venta: any) => {
+  const productos = {
+    'Hamburguesa Clásica': 'BURG',
+    'Pizza Margarita': 'PIZ',
+    'Pizza Pepperoni': 'PIZ',
+    'Hamburguesa Doble': 'BURG',
+    'Pizza Familiar': 'PIZ',
+    'Brownie de Chocolate': 'POS'
+  };
+  
+  const producto = venta.detalles[0].producto;
+  const prefijo = (productos as any)[producto] || 'PROD';
+  return `${prefijo}-${(venta.id + 100).toString().padStart(3, '0')}`;
+};
+
 const SalesPage: React.FC = () => {
   const [currentTab, setCurrentTab] = useState("todas");
   const [searchQuery, setSearchQuery] = useState("");
@@ -152,11 +179,11 @@ const SalesPage: React.FC = () => {
       return false;
     }
     
-    // TODO: Implementar filtro por fecha
+    // Filtro por fecha se implementaría aquí
     
     return true;
   });
-  
+
   // Función para anular venta
   const handleAnular = (id: number) => {
     toast({
@@ -244,232 +271,135 @@ const SalesPage: React.FC = () => {
           </div>
         </div>
         
-        {/* Tabla de ventas */}
-        <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <div className="flex items-center gap-1 cursor-pointer">
-                      <span>ID Venta</span>
-                      <ArrowUpDown className="h-3 w-3" />
-                    </div>
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <div className="flex items-center gap-1 cursor-pointer">
-                      <span>Fecha</span>
-                      <ArrowUpDown className="h-3 w-3" />
-                    </div>
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Cliente
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <div className="flex items-center gap-1 cursor-pointer">
-                      <span>Total</span>
-                      <ArrowUpDown className="h-3 w-3" />
-                    </div>
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Método de pago
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Estado
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Acciones
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredVentas.map((venta) => {
-                  return (
-                    <React.Fragment key={venta.id}>
-                      <tr className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          #{venta.id.toString().padStart(4, '0')}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <div className="flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-gray-400" />
-                            {formatDate(venta.fecha)}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <div className="flex items-center gap-2">
-                            <User className="h-4 w-4 text-gray-400" />
-                            {venta.cliente}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          <div className="flex items-center gap-1">
-                            <DollarSign className="h-4 w-4 text-green-500" />
-                            {formatCurrency(venta.total)}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <div className="flex items-center gap-2">
-                            {venta.metodoPago === "Tarjeta" ? 
-                              <CreditCard className="h-4 w-4 text-blue-500" /> : 
-                              <DollarSign className="h-4 w-4 text-green-500" />
-                            }
-                            {venta.metodoPago}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <Badge variant="outline" className={getEstadoColor(venta.estado)}>
-                            {venta.estado === "Completada" && <CheckCircle className="h-3 w-3 mr-1" />}
-                            {venta.estado === "Pendiente" && <AlertCircle className="h-3 w-3 mr-1" />}
-                            {venta.estado === "Anulada" && <XCircle className="h-3 w-3 mr-1" />}
-                            {venta.estado}
-                          </Badge>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <div className="flex items-center justify-end gap-2">
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-8 px-2 text-gray-500"
-                              onClick={() => setDetailsOpen(detailsOpen === venta.id ? null : venta.id)}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-8 px-2 text-blue-500"
-                              onClick={() => handleReimprimir(venta.id)}
-                            >
-                              <Printer className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-8 px-2 text-green-500"
-                              onClick={() => handleDescargar(venta.id)}
-                            >
-                              <Download className="h-4 w-4" />
-                            </Button>
-                            {venta.estado !== "Anulada" && (
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="h-8 px-2 text-red-500"
-                                onClick={() => handleAnular(venta.id)}
-                              >
-                                <XCircle className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                      
-                      {/* Detalles de la venta */}
-                      {detailsOpen === venta.id && (
-                        <tr>
-                          <td colSpan={7} className="px-6 py-4 bg-gray-50">
-                            <div className="border-t border-b border-gray-200 py-3">
-                              <h4 className="font-medium mb-2">Detalles de la venta #{venta.id.toString().padStart(4, '0')}</h4>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-3">
-                                <div>
-                                  <div className="text-xs text-gray-500">Tipo de Venta</div>
-                                  <div className="font-medium">{venta.tipoVenta}</div>
-                                </div>
-                                <div>
-                                  <div className="text-xs text-gray-500">Cliente</div>
-                                  <div className="font-medium">{venta.cliente}</div>
-                                </div>
-                                <div>
-                                  <div className="text-xs text-gray-500">Método de Pago</div>
-                                  <div className="font-medium">{venta.metodoPago}</div>
-                                </div>
-                                <div>
-                                  <div className="text-xs text-gray-500">Estado</div>
-                                  <Badge variant="outline" className={getEstadoColor(venta.estado)}>
-                                    {venta.estado}
-                                  </Badge>
-                                </div>
-                              </div>
-                              
-                              <table className="min-w-full divide-y divide-gray-200 text-sm">
-                                <thead className="bg-gray-100">
-                                  <tr>
-                                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                      Producto
-                                    </th>
-                                    <th scope="col" className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                      Cantidad
-                                    </th>
-                                    <th scope="col" className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                      Precio Unitario
-                                    </th>
-                                    <th scope="col" className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                      Subtotal
-                                    </th>
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-200">
-                                  {venta.detalles.map((detalle, index) => (
-                                    <tr key={index} className="hover:bg-gray-50">
-                                      <td className="px-4 py-2 whitespace-nowrap">{detalle.producto}</td>
-                                      <td className="px-4 py-2 whitespace-nowrap text-center">{detalle.cantidad}</td>
-                                      <td className="px-4 py-2 whitespace-nowrap text-right">{formatCurrency(detalle.precio)}</td>
-                                      <td className="px-4 py-2 whitespace-nowrap text-right font-medium">{formatCurrency(detalle.precio * detalle.cantidad)}</td>
-                                    </tr>
-                                  ))}
-                                  <tr className="bg-gray-50">
-                                    <td colSpan={3} className="px-4 py-2 text-right font-medium">Total</td>
-                                    <td className="px-4 py-2 text-right font-bold">{formatCurrency(venta.total)}</td>
-                                  </tr>
-                                </tbody>
-                              </table>
-                              
-                              <div className="flex justify-end gap-2 mt-4">
-                                <Button variant="outline" size="sm" className="flex items-center gap-2" onClick={() => handleReimprimir(venta.id)}>
-                                  <Printer className="h-4 w-4" />
-                                  <span>Imprimir Comprobante</span>
-                                </Button>
-                                {venta.estado !== "Anulada" && (
-                                  <Button variant="outline" size="sm" className="flex items-center gap-2 text-red-500 border-red-200 hover:bg-red-50" onClick={() => handleAnular(venta.id)}>
-                                    <XCircle className="h-4 w-4" />
-                                    <span>Anular Venta</span>
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-                
-                {filteredVentas.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="px-6 py-10 text-center text-gray-500">
-                      <div className="flex flex-col items-center">
-                        <ShoppingBag className="h-12 w-12 text-gray-300 mb-2" />
-                        <p>No se encontraron ventas con los filtros aplicados</p>
-                        <Button 
-                          variant="link" 
-                          className="mt-2"
-                          onClick={() => {
-                            setSearchQuery("");
-                            setDateFilter("");
-                            setPaymentFilter("");
-                            setCurrentTab("todas");
-                          }}
-                        >
-                          Limpiar filtros
-                        </Button>
+        {/* Tarjetas de ventas - Estilo similar a la imagen proporcionada */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredVentas.map((venta) => {
+            const fechaParts = formatDate(venta.fecha).split(',');
+            const fechaDia = fechaParts[0];
+            const fechaHora = fechaParts[1];
+            const sku = generarSKU(venta);
+            const referencia = generarReferencia(venta);
+            
+            // Mapeo de estados a tipos de movimiento para la UI
+            const tipoMovimiento = venta.estado === "Completada" ? "Entrada" : 
+                                venta.estado === "Anulada" ? "Salida" : "Ajuste";
+            
+            // Notas según el tipo de movimiento
+            const nota = tipoMovimiento === "Entrada" ? "Recepción de pedido semanal" : 
+                        tipoMovimiento === "Salida" ? "Venta a cliente" : 
+                        "Merma por caducidad";
+                        
+            return (
+              <Card key={venta.id} className="overflow-hidden">
+                <CardContent className="p-0">
+                  <div className="p-4 border-b flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-8 rounded-full ${
+                        tipoMovimiento === 'Entrada' ? 'bg-green-500' : 
+                        tipoMovimiento === 'Salida' ? 'bg-red-500' : 
+                        'bg-blue-500'
+                      }`}></div>
+                      <div>
+                        <div className="text-sm text-gray-500">
+                          {fechaDia}
+                        </div>
+                        <div className="font-semibold text-base">
+                          {fechaHora}
+                        </div>
                       </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                    </div>
+                    
+                    <Badge variant="outline" className={
+                      tipoMovimiento === 'Entrada' ? 'bg-green-100 text-green-800 border-green-300' :
+                      tipoMovimiento === 'Salida' ? 'bg-red-100 text-red-800 border-red-300' :
+                      'bg-blue-100 text-blue-800 border-blue-300'
+                    }>
+                      {tipoMovimiento}
+                    </Badge>
+                  </div>
+                  
+                  <div className="p-4">
+                    <div className="mb-3">
+                      <h3 className="text-lg font-semibold">
+                        {venta.detalles[0].producto}
+                      </h3>
+                      <div className="text-sm text-gray-500">
+                        SKU: {sku}
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <div className="text-sm text-gray-500">Cantidad</div>
+                        <div className={`flex items-center gap-1 font-semibold 
+                          ${tipoMovimiento === 'Entrada' ? 'text-green-600' : 
+                            tipoMovimiento === 'Salida' ? 'text-red-600' : 
+                            'text-blue-600'}`
+                        }>
+                          {tipoMovimiento === 'Entrada' ? '↑' : 
+                           tipoMovimiento === 'Salida' ? '↓' : ''} 
+                          {venta.detalles[0].cantidad}
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <div className="text-sm text-gray-500">Usuario</div>
+                        <div className="font-semibold">
+                          {venta.cliente}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="mb-4">
+                      <div className="text-sm text-gray-500">Referencia</div>
+                      <div className="font-semibold">
+                        {referencia}
+                      </div>
+                    </div>
+                    
+                    <div className="mb-2">
+                      <div className="text-sm text-gray-500">Nota:</div>
+                      <div className="text-sm">
+                        {nota}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 border-t flex justify-center">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-orange-500 hover:text-orange-600"
+                      onClick={() => setDetailsOpen(detailsOpen === venta.id ? null : venta.id)}
+                    >
+                      <Eye className="h-4 w-4 mr-2" /> Ver detalles
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+        
+        {/* Paginación */}
+        <div className="mt-6 flex justify-center">
+          <nav className="inline-flex rounded-md shadow">
+            <Button variant="outline" size="sm" className="rounded-l-md">
+              Anterior
+            </Button>
+            <Button variant="outline" size="sm" className="rounded-none border-l-0 border-r-0 bg-primary text-primary-foreground">
+              1
+            </Button>
+            <Button variant="outline" size="sm" className="rounded-none border-r-0">
+              2
+            </Button>
+            <Button variant="outline" size="sm" className="rounded-none border-r-0">
+              3
+            </Button>
+            <Button variant="outline" size="sm" className="rounded-r-md">
+              Siguiente
+            </Button>
+          </nav>
         </div>
       </div>
     </MainLayout>

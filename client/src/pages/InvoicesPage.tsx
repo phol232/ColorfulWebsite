@@ -22,12 +22,14 @@ import {
   ArrowUpDown,
   RefreshCcw,
   Filter,
-  Mail
+  Mail,
+  Building
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
 
 const facturas = [
   {
@@ -146,6 +148,37 @@ const getEstadoColor = (estado: string) => {
   }
 };
 
+// Obtén el primer producto del detalle de la factura
+const getPrimerProducto = (factura: any) => {
+  if (factura.venta && factura.venta.detalles && factura.venta.detalles.length > 0) {
+    return factura.venta.detalles[0].producto;
+  }
+  return "Producto no especificado";
+};
+
+// Genera un SKU para el producto
+const generarSKU = (factura: any) => {
+  const producto = getPrimerProducto(factura);
+  let prefijo = "PROD";
+  
+  if (producto.includes("Servicio")) prefijo = "SERV";
+  else if (producto.includes("Desarrollo")) prefijo = "DEV";
+  else if (producto.includes("Mantenimiento")) prefijo = "MANT";
+  else if (producto.includes("Hosting")) prefijo = "HOST";
+  else if (producto.includes("Transporte")) prefijo = "TRANS";
+  
+  return `${prefijo}-${factura.id.split('-')[1].padStart(3, '0')}`;
+};
+
+// Genera una referencia para la factura
+const generarReferencia = (factura: any) => {
+  let prefijo = "FAC";
+  if (factura.estado === "Anulada") prefijo = "AJ";
+  else if (factura.estado === "Pendiente") prefijo = "PED";
+  
+  return `${prefijo}-${Math.floor(1000 + Math.random() * 9000)}`;
+};
+
 const InvoicesPage: React.FC = () => {
   const [currentTab, setCurrentTab] = useState("todas");
   const [searchQuery, setSearchQuery] = useState("");
@@ -174,7 +207,7 @@ const InvoicesPage: React.FC = () => {
       return false;
     }
     
-    // TODO: Implementar filtro por fecha
+    // Filtro por fecha se implementaría aquí
     
     return true;
   });
@@ -281,287 +314,248 @@ const InvoicesPage: React.FC = () => {
           </div>
         </div>
         
-        {/* Tabla de facturas */}
-        <div className="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <div className="flex items-center gap-1 cursor-pointer">
-                      <span>Número</span>
-                      <ArrowUpDown className="h-3 w-3" />
-                    </div>
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <div className="flex items-center gap-1 cursor-pointer">
-                      <span>Fecha</span>
-                      <ArrowUpDown className="h-3 w-3" />
-                    </div>
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Cliente
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <div className="flex items-center gap-1 cursor-pointer">
-                      <span>Total</span>
-                      <ArrowUpDown className="h-3 w-3" />
-                    </div>
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Estado
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Enviado
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Acciones
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredFacturas.map((factura) => (
-                  <tr key={factura.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-blue-500" />
-                        {factura.correlativo}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-gray-400" />
-                        {formatDate(factura.fecha)}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+        {/* Tarjetas de facturas - Estilo similar a la imagen proporcionada */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredFacturas.map((factura) => {
+            const fechaParts = formatDate(factura.fecha).split(',');
+            const fechaDia = fechaParts[0];
+            const fechaHora = fechaParts[1];
+            const sku = generarSKU(factura);
+            const referencia = generarReferencia(factura);
+            
+            // Mapeo de estados a tipos de movimiento para la UI
+            const tipoMovimiento = factura.estado === "Emitida" ? "Entrada" : 
+                                factura.estado === "Anulada" ? "Salida" : "Ajuste";
+            
+            // Notas según el tipo de movimiento
+            const nota = tipoMovimiento === "Entrada" ? "Venta a cliente" : 
+                        tipoMovimiento === "Salida" ? "Anulación de factura" : 
+                        "Factura pendiente";
+                        
+            return (
+              <Card key={factura.id} className="overflow-hidden">
+                <CardContent className="p-0">
+                  <div className="p-4 border-b flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-8 rounded-full ${
+                        tipoMovimiento === 'Entrada' ? 'bg-green-500' : 
+                        tipoMovimiento === 'Salida' ? 'bg-red-500' : 
+                        'bg-blue-500'
+                      }`}></div>
                       <div>
-                        <div className="font-medium">{factura.cliente}</div>
-                        <div className="text-xs text-gray-500">RUC: {factura.ruc}</div>
+                        <div className="text-sm text-gray-500">
+                          {fechaDia}
+                        </div>
+                        <div className="font-semibold text-base">
+                          {fechaHora}
+                        </div>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      <div className="flex items-center gap-1">
-                        <DollarSign className="h-4 w-4 text-green-500" />
-                        {formatCurrency(factura.total)}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <Badge variant="outline" className={getEstadoColor(factura.estado)}>
-                        {factura.estado === "Emitida" && <CheckCircle className="h-3 w-3 mr-1" />}
-                        {factura.estado === "Pendiente" && <AlertCircle className="h-3 w-3 mr-1" />}
-                        {factura.estado === "Anulada" && <XCircle className="h-3 w-3 mr-1" />}
-                        {factura.estado}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <Badge variant={factura.enviado ? "default" : "outline"} className={
-                        factura.enviado ? "bg-blue-100 text-blue-800 border-blue-300" : "bg-gray-100 text-gray-800"
-                      }>
-                        {factura.enviado ? "Enviado" : "Pendiente"}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 px-2 text-gray-500"
-                          onClick={() => handleVistaPrevia(factura)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 px-2 text-blue-500"
-                          onClick={() => handleReimprimir(factura.id)}
-                        >
-                          <Printer className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 px-2 text-green-500"
-                          onClick={() => handleDescargar(factura.id)}
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
-                        {!factura.enviado && factura.estado !== "Anulada" && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-8 px-2 text-indigo-500"
-                            onClick={() => handleEnviar(factura.id)}
-                          >
-                            <Mail className="h-4 w-4" />
-                          </Button>
-                        )}
-                        {factura.estado !== "Anulada" && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-8 px-2 text-red-500"
-                            onClick={() => handleAnular(factura.id)}
-                          >
-                            <XCircle className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                
-                {filteredFacturas.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="px-6 py-10 text-center text-gray-500">
-                      <div className="flex flex-col items-center">
-                        <FileText className="h-12 w-12 text-gray-300 mb-2" />
-                        <p>No se encontraron facturas con los filtros aplicados</p>
-                        <Button 
-                          variant="link" 
-                          className="mt-2"
-                          onClick={() => {
-                            setSearchQuery("");
-                            setDateFilter("");
-                            setStatusFilter("");
-                            setCurrentTab("todas");
-                          }}
-                        >
-                          Limpiar filtros
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-        
-        {/* Modal de vista previa de factura */}
-        {selectedInvoice && (
-          <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-            <DialogContent className="sm:max-w-3xl">
-              <DialogHeader>
-                <DialogTitle>Vista Previa de Factura</DialogTitle>
-                <DialogDescription>
-                  Detalles de la factura {selectedInvoice.correlativo}
-                </DialogDescription>
-              </DialogHeader>
-              
-              <div className="p-4 border rounded-md bg-white">
-                <div className="flex justify-between items-start border-b pb-4 mb-4">
-                  <div>
-                    <h3 className="text-lg font-bold text-blue-700">FACTURA ELECTRÓNICA</h3>
-                    <p className="text-lg font-bold">{selectedInvoice.correlativo}</p>
-                    <p className="text-sm text-gray-500">Fecha de emisión: {formatDate(selectedInvoice.fecha)}</p>
-                  </div>
-                  <div className="text-right">
-                    <h3 className="font-bold">EMPRESA S.A.C.</h3>
-                    <p className="text-sm">RUC: 20123456789</p>
-                    <p className="text-sm">Av. Principal 123, Lima</p>
-                    <p className="text-sm">Teléfono: (01) 123-4567</p>
-                  </div>
-                </div>
-                
-                <div className="mb-4">
-                  <h4 className="font-medium mb-2">Datos del Cliente:</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p><span className="font-medium">Razón Social:</span> {selectedInvoice.cliente}</p>
-                      <p><span className="font-medium">RUC:</span> {selectedInvoice.ruc}</p>
                     </div>
-                    <div>
-                      <p><span className="font-medium">Dirección:</span> {selectedInvoice.direccion}</p>
-                      <p><span className="font-medium">Venta Ref:</span> #{selectedInvoice.venta.id}</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="mb-4">
-                  <h4 className="font-medium mb-2">Detalle:</h4>
-                  <table className="min-w-full divide-y divide-gray-200 border">
-                    <thead className="bg-gray-100">
-                      <tr>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Descripción</th>
-                        <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Cantidad</th>
-                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Precio Unit.</th>
-                        <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Subtotal</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {selectedInvoice.venta.detalles.map((detalle: any, index: number) => (
-                        <tr key={index} className="hover:bg-gray-50">
-                          <td className="px-4 py-2">{detalle.producto}</td>
-                          <td className="px-4 py-2 text-center">{detalle.cantidad}</td>
-                          <td className="px-4 py-2 text-right">{formatCurrency(detalle.precio)}</td>
-                          <td className="px-4 py-2 text-right">{formatCurrency(detalle.precio * detalle.cantidad)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot className="bg-gray-50">
-                      <tr>
-                        <td colSpan={2} className="px-4 py-2"></td>
-                        <td className="px-4 py-2 text-right font-medium">Subtotal:</td>
-                        <td className="px-4 py-2 text-right">{formatCurrency(selectedInvoice.total / 1.18)}</td>
-                      </tr>
-                      <tr>
-                        <td colSpan={2} className="px-4 py-2"></td>
-                        <td className="px-4 py-2 text-right font-medium">IGV (18%):</td>
-                        <td className="px-4 py-2 text-right">{formatCurrency(selectedInvoice.total - (selectedInvoice.total / 1.18))}</td>
-                      </tr>
-                      <tr>
-                        <td colSpan={2} className="px-4 py-2"></td>
-                        <td className="px-4 py-2 text-right font-bold">TOTAL:</td>
-                        <td className="px-4 py-2 text-right font-bold">{formatCurrency(selectedInvoice.total)}</td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-                
-                <div className="flex justify-between items-center mt-6 pt-4 border-t">
-                  <div>
-                    <Badge variant="outline" className={getEstadoColor(selectedInvoice.estado)}>
-                      {selectedInvoice.estado}
+                    
+                    <Badge variant="outline" className={
+                      tipoMovimiento === 'Entrada' ? 'bg-green-100 text-green-800 border-green-300' :
+                      tipoMovimiento === 'Salida' ? 'bg-red-100 text-red-800 border-red-300' :
+                      'bg-blue-100 text-blue-800 border-blue-300'
+                    }>
+                      {tipoMovimiento}
                     </Badge>
                   </div>
-                  <div className="flex gap-2">
+                  
+                  <div className="p-4">
+                    <div className="mb-3">
+                      <h3 className="text-lg font-semibold">
+                        {getPrimerProducto(factura)}
+                      </h3>
+                      <div className="text-sm text-gray-500">
+                        SKU: {sku}
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <div className="text-sm text-gray-500">Cantidad</div>
+                        <div className={`flex items-center gap-1 font-semibold 
+                          ${tipoMovimiento === 'Entrada' ? 'text-green-600' : 
+                            tipoMovimiento === 'Salida' ? 'text-red-600' : 
+                            'text-blue-600'}`
+                        }>
+                          {tipoMovimiento === 'Entrada' ? '↑' : 
+                           tipoMovimiento === 'Salida' ? '↓' : ''} 
+                          {factura.venta.detalles[0].cantidad}
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <div className="text-sm text-gray-500">Usuario</div>
+                        <div className="font-semibold">
+                          {factura.cliente.split(' ')[0]}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="mb-4">
+                      <div className="text-sm text-gray-500">Referencia</div>
+                      <div className="font-semibold">
+                        {referencia}
+                      </div>
+                    </div>
+                    
+                    <div className="mb-2">
+                      <div className="text-sm text-gray-500">Nota:</div>
+                      <div className="text-sm">
+                        {nota}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 border-t flex justify-center">
                     <Button 
-                      variant="outline" 
+                      variant="ghost" 
                       size="sm" 
-                      className="flex items-center gap-2"
-                      onClick={() => handleReimprimir(selectedInvoice.id)}
+                      className="text-orange-500 hover:text-orange-600"
+                      onClick={() => handleVistaPrevia(factura)}
                     >
-                      <Printer className="h-4 w-4" />
-                      <span>Imprimir</span>
+                      <Eye className="h-4 w-4 mr-2" /> Ver detalles
                     </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="flex items-center gap-2"
-                      onClick={() => handleDescargar(selectedInvoice.id)}
-                    >
-                      <Download className="h-4 w-4" />
-                      <span>Descargar PDF</span>
-                    </Button>
-                    {!selectedInvoice.enviado && selectedInvoice.estado !== "Anulada" && (
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="flex items-center gap-2"
-                        onClick={() => handleEnviar(selectedInvoice.id)}
-                      >
-                        <Mail className="h-4 w-4" />
-                        <span>Enviar por Email</span>
-                      </Button>
-                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+        
+        {/* Diálogo de vista previa de factura */}
+        <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+          <DialogContent className="sm:max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>Vista Previa de Factura</DialogTitle>
+              <DialogDescription>
+                {selectedInvoice && `Factura Electrónica ${selectedInvoice.correlativo}`}
+              </DialogDescription>
+            </DialogHeader>
+            
+            {selectedInvoice && (
+              <div className="space-y-6">
+                <div className="flex flex-col md:flex-row md:justify-between gap-4">
+                  <div>
+                    <h3 className="font-bold text-lg">FACTURA ELECTRÓNICA</h3>
+                    <p className="text-lg text-primary font-bold">{selectedInvoice.correlativo}</p>
+                    <p className="text-sm text-gray-500">Fecha de emisión: {formatDate(selectedInvoice.fecha)}</p>
+                  </div>
+                  
+                  <div className="text-right">
+                    <h4 className="font-medium">Empresa Emisora S.A.</h4>
+                    <p className="text-sm">RUC: 20555123456</p>
+                    <p className="text-sm">Av. Principal 123, Lima</p>
+                    <p className="text-sm">Teléfono: (01) 555-1234</p>
                   </div>
                 </div>
+                
+                <Separator />
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="font-medium mb-2">Cliente</h4>
+                    <div className="space-y-1">
+                      <p><span className="font-medium">Razón social:</span> {selectedInvoice.cliente}</p>
+                      <p><span className="font-medium">RUC:</span> {selectedInvoice.ruc}</p>
+                      <p><span className="font-medium">Dirección:</span> {selectedInvoice.direccion}</p>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-medium mb-2">Detalles</h4>
+                    <div className="space-y-1">
+                      <p><span className="font-medium">Estado:</span> <Badge variant="outline" className={getEstadoColor(selectedInvoice.estado)}>{selectedInvoice.estado}</Badge></p>
+                      <p><span className="font-medium">Venta Ref:</span> #{selectedInvoice.venta.id}</p>
+                      <p><span className="font-medium">Enviado:</span> {selectedInvoice.enviado ? "Sí" : "No"}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div>
+                  <h4 className="font-medium mb-2">Detalle de Productos/Servicios</h4>
+                  <div className="border rounded-md overflow-hidden">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Descripción</th>
+                          <th scope="col" className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Cant.</th>
+                          <th scope="col" className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Precio Unit.</th>
+                          <th scope="col" className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Subtotal</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {selectedInvoice.venta.detalles.map((detalle: any, index: number) => (
+                          <tr key={index}>
+                            <td className="px-4 py-2 text-sm">{detalle.producto}</td>
+                            <td className="px-4 py-2 text-sm text-center">{detalle.cantidad}</td>
+                            <td className="px-4 py-2 text-sm text-right">{formatCurrency(detalle.precio)}</td>
+                            <td className="px-4 py-2 text-sm text-right font-medium">{formatCurrency(detalle.precio * detalle.cantidad)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr className="bg-gray-50">
+                          <td colSpan={3} className="px-4 py-2 text-sm font-medium text-right">Subtotal:</td>
+                          <td className="px-4 py-2 text-sm text-right">{formatCurrency(selectedInvoice.total / 1.18)}</td>
+                        </tr>
+                        <tr className="bg-gray-50">
+                          <td colSpan={3} className="px-4 py-2 text-sm font-medium text-right">IGV (18%):</td>
+                          <td className="px-4 py-2 text-sm text-right">{formatCurrency(selectedInvoice.total - (selectedInvoice.total / 1.18))}</td>
+                        </tr>
+                        <tr className="bg-gray-50">
+                          <td colSpan={3} className="px-4 py-2 text-sm font-medium text-right">Total:</td>
+                          <td className="px-4 py-2 text-sm font-bold text-right">{formatCurrency(selectedInvoice.total)}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </div>
+                
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" size="sm" onClick={() => handleReimprimir(selectedInvoice.id)}>
+                    <Printer className="h-4 w-4 mr-2" /> Imprimir
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => handleDescargar(selectedInvoice.id)}>
+                    <Download className="h-4 w-4 mr-2" /> Descargar PDF
+                  </Button>
+                  {!selectedInvoice.enviado && selectedInvoice.estado !== "Anulada" && (
+                    <Button variant="outline" size="sm" onClick={() => handleEnviar(selectedInvoice.id)}>
+                      <Mail className="h-4 w-4 mr-2" /> Enviar
+                    </Button>
+                  )}
+                  {selectedInvoice.estado !== "Anulada" && (
+                    <Button variant="destructive" size="sm" onClick={() => {
+                      handleAnular(selectedInvoice.id);
+                      setIsPreviewOpen(false);
+                    }}>
+                      <XCircle className="h-4 w-4 mr-2" /> Anular
+                    </Button>
+                  )}
+                </div>
               </div>
-            </DialogContent>
-          </Dialog>
-        )}
+            )}
+          </DialogContent>
+        </Dialog>
+        
+        {/* Paginación */}
+        <div className="mt-6 flex justify-center">
+          <nav className="inline-flex rounded-md shadow">
+            <Button variant="outline" size="sm" className="rounded-l-md">
+              Anterior
+            </Button>
+            <Button variant="outline" size="sm" className="rounded-none border-l-0 border-r-0 bg-primary text-primary-foreground">
+              1
+            </Button>
+            <Button variant="outline" size="sm" className="rounded-none border-r-0">
+              2
+            </Button>
+            <Button variant="outline" size="sm" className="rounded-r-md">
+              Siguiente
+            </Button>
+          </nav>
+        </div>
       </div>
     </MainLayout>
   );
