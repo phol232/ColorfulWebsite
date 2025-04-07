@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { 
   Search,
   User,
@@ -22,8 +22,14 @@ import {
   Users,
   UserCheck,
   Filter,
-  RefreshCcw
+  RefreshCcw,
+  MapPin,
+  Clock,
+  Calendar,
+  Tag,
+  X
 } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 
 // Datos de muestra para clientes
 const clientes = [
@@ -162,12 +168,19 @@ const formatCurrency = (amount: number) => {
   });
 };
 
+// Obtener color de segmento
+const getSegmentColor = (segmento: string) => {
+  const segment = segmentos.find(s => s.nombre === segmento);
+  return segment ? segment.color : "bg-gray-100 text-gray-800 border-gray-400";
+};
+
 const CustomersPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [segmentFilter, setSegmentFilter] = useState("");
   const [currentTab, setCurrentTab] = useState("todos");
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [expandedCustomerId, setExpandedCustomerId] = useState<number | null>(null);
+  const [showPurchaseHistory, setShowPurchaseHistory] = useState(false);
   
   // Filtrar clientes según los criterios actuales
   const filteredClientes = clientes.filter(cliente => {
@@ -405,205 +418,247 @@ const CustomersPage: React.FC = () => {
         {/* Lista de clientes */}
         <div className="mb-8">
           <h2 className="text-lg font-semibold mb-4">Listado de Clientes</h2>
-          <div className="bg-white shadow-sm rounded-lg overflow-hidden border border-gray-200">
-            {filteredClientes.length === 0 ? (
-              <div className="p-8 text-center">
-                <User className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500">No se encontraron clientes con los filtros aplicados</p>
-                <Button 
-                  variant="link" 
-                  className="mt-2"
-                  onClick={() => {
-                    setSearchQuery("");
-                    setSegmentFilter("");
-                    setCurrentTab("todos");
-                  }}
-                >
-                  Limpiar filtros
-                </Button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-4 p-4">
-                {filteredClientes.map(cliente => (
-                  <Card key={cliente.id} className="overflow-hidden">
-                    <div 
-                      className="p-4 flex flex-col md:flex-row md:items-center justify-between cursor-pointer hover:bg-gray-50"
-                      onClick={() => toggleExpandCustomer(cliente.id)}
-                    >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3">
-                          <div className="bg-gray-100 rounded-full p-2">
-                            <User className="h-5 w-5 text-gray-600" />
-                          </div>
+          
+          {filteredClientes.length === 0 ? (
+            <div className="p-8 text-center bg-white rounded-lg border border-gray-200">
+              <User className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500">No se encontraron clientes con los filtros aplicados</p>
+              <Button 
+                variant="link" 
+                className="mt-2"
+                onClick={() => {
+                  setSearchQuery("");
+                  setSegmentFilter("");
+                  setCurrentTab("todos");
+                }}
+              >
+                Limpiar filtros
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredClientes.map(cliente => {
+                const segmentoColor = getSegmentColor(cliente.segmento);
+                
+                return (
+                  <Card key={cliente.id} className="overflow-hidden hover:shadow-md transition-shadow">
+                    <CardContent className="p-0">
+                      {/* Cabecera de la tarjeta */}
+                      <div className="p-4 border-b flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2 h-8 rounded-full ${
+                            cliente.segmento === "VIP" ? 'bg-purple-500' : 
+                            cliente.segmento === "Frecuente" ? 'bg-blue-500' :
+                            cliente.segmento === "Ocasional" ? 'bg-green-500' :
+                            cliente.segmento === "Nuevo" ? 'bg-yellow-500' :
+                            'bg-gray-500'
+                          }`}></div>
                           <div>
-                            <h3 className="font-medium">{cliente.nombre}</h3>
-                            <div className="flex items-center gap-3 text-sm text-gray-500 mt-1">
-                              <span className="flex items-center gap-1">
-                                <Mail className="h-3 w-3" />
-                                {cliente.email}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Phone className="h-3 w-3" />
-                                {cliente.telefono}
-                              </span>
+                            <div className="text-sm text-gray-500">
+                              Cliente #{cliente.id}
+                            </div>
+                            <div className="font-semibold text-base truncate max-w-[200px]">
+                              {cliente.nombre}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <Badge variant="outline" className={segmentoColor}>
+                          {cliente.segmento}
+                        </Badge>
+                      </div>
+                      
+                      {/* Información principal */}
+                      <div className="p-4">
+                        <div className="mb-3">
+                          <div className="text-sm text-gray-500 flex items-center gap-1">
+                            <Mail className="h-3 w-3" />
+                            {cliente.email}
+                          </div>
+                          <div className="text-sm text-gray-500 flex items-center gap-1 mt-1">
+                            <Phone className="h-3 w-3" />
+                            {cliente.telefono}
+                          </div>
+                          <div className="text-sm text-gray-500 flex items-center gap-1 mt-1">
+                            <MapPin className="h-3 w-3" />
+                            {cliente.direccion}
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4 mb-4">
+                          <div>
+                            <div className="text-sm text-gray-500">Desde</div>
+                            <div className="font-semibold text-sm">
+                              {formatDate(cliente.fechaRegistro)}
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <div className="text-sm text-gray-500">Últ. Compra</div>
+                            <div className="font-semibold text-sm">
+                              {formatDate(cliente.ultimaCompra)}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4 mb-4">
+                          <div>
+                            <div className="text-sm text-gray-500">Total Compras</div>
+                            <div className="font-semibold">
+                              {cliente.totalCompras}
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <div className="text-sm text-gray-500">Monto Total</div>
+                            <div className="font-semibold">
+                              {formatCurrency(cliente.montoTotal)}
                             </div>
                           </div>
                         </div>
                       </div>
                       
-                      <div className="flex items-center gap-4 mt-3 md:mt-0">
-                        <div className="text-right">
-                          <div className="text-xs text-gray-500">Compras</div>
-                          <div className="font-semibold">{cliente.totalCompras}</div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-xs text-gray-500">Total</div>
-                          <div className="font-semibold">{formatCurrency(cliente.montoTotal)}</div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-xs text-gray-500">Última compra</div>
-                          <div className="font-semibold">{formatDate(cliente.ultimaCompra)}</div>
-                        </div>
-                        <Badge 
-                          variant="outline" 
-                          className={
-                            cliente.segmento === "VIP" ? "bg-purple-100 text-purple-800 border-purple-400" :
-                            cliente.segmento === "Frecuente" ? "bg-blue-100 text-blue-800 border-blue-400" :
-                            cliente.segmento === "Ocasional" ? "bg-green-100 text-green-800 border-green-400" :
-                            cliente.segmento === "Nuevo" ? "bg-yellow-100 text-yellow-800 border-yellow-400" :
-                            "bg-gray-100 text-gray-800 border-gray-400"
-                          }
+                      {/* Acciones */}
+                      <div className="p-4 border-t flex justify-between">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-orange-500 hover:text-orange-600"
+                          onClick={() => toggleExpandCustomer(cliente.id)}
                         >
-                          {cliente.segmento}
-                        </Badge>
-                        <Button variant="ghost" size="sm" className="ml-2">
-                          {expandedCustomerId === cliente.id ? 
-                            <ChevronUp className="h-4 w-4" /> : 
-                            <ChevronDown className="h-4 w-4" />
-                          }
+                          {expandedCustomerId === cliente.id ? (
+                            <>
+                              <ChevronUp className="h-4 w-4 mr-2" /> Ocultar detalles
+                            </>
+                          ) : (
+                            <>
+                              <ChevronDown className="h-4 w-4 mr-2" /> Ver detalles
+                            </>
+                          )}
+                        </Button>
+                        
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          className="text-primary"
+                          onClick={() => {
+                            setSelectedCustomer(cliente);
+                            setShowPurchaseHistory(true);
+                          }}
+                        >
+                          <ShoppingBag className="h-4 w-4 mr-2" /> Compras
                         </Button>
                       </div>
-                    </div>
-                    
-                    {/* Detalles expandidos */}
-                    {expandedCustomerId === cliente.id && (
-                      <div className="px-4 pb-4 border-t border-gray-100 pt-3">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <h4 className="font-semibold mb-3">Datos del Cliente</h4>
-                            <div className="space-y-2 text-sm">
-                              <div className="flex">
-                                <div className="w-24 text-gray-500">Dirección:</div>
-                                <div>{cliente.direccion}</div>
-                              </div>
-                              <div className="flex">
-                                <div className="w-24 text-gray-500">Registro:</div>
-                                <div>{formatDate(cliente.fechaRegistro)}</div>
-                              </div>
-                              <div className="flex">
-                                <div className="w-24 text-gray-500">Segmento:</div>
-                                <div>{cliente.segmento}</div>
-                              </div>
-                              <div className="flex">
-                                <div className="w-24 text-gray-500">Total:</div>
-                                <div>{formatCurrency(cliente.montoTotal)}</div>
-                              </div>
-                            </div>
-                            
-                            <div className="flex gap-2 mt-4">
-                              <Button variant="outline" size="sm">Editar</Button>
-                              <Dialog>
-                                <DialogTrigger asChild>
-                                  <Button size="sm">Ver Historial</Button>
-                                </DialogTrigger>
-                                <DialogContent className="sm:max-w-3xl">
-                                  <DialogHeader>
-                                    <DialogTitle>Historial de Compras</DialogTitle>
-                                    <DialogDescription>
-                                      Cliente: {cliente.nombre}
-                                    </DialogDescription>
-                                  </DialogHeader>
-                                  
-                                  <div className="space-y-4">
-                                    {historialCompras.map(compra => (
-                                      <div key={compra.id} className="border rounded-lg p-4">
-                                        <div className="flex justify-between items-center mb-3">
-                                          <div>
-                                            <h4 className="font-semibold">Pedido #{compra.id}</h4>
-                                            <p className="text-sm text-gray-500">{formatDate(compra.fecha)}</p>
-                                          </div>
-                                          <Badge>{compra.metodoPago}</Badge>
-                                        </div>
-                                        
-                                        <div className="space-y-2">
-                                          {compra.productos.map((prod, idx) => (
-                                            <div key={idx} className="flex justify-between text-sm">
-                                              <div>{prod.cantidad}x {prod.nombre}</div>
-                                              <div>{formatCurrency(prod.precio * prod.cantidad)}</div>
-                                            </div>
-                                          ))}
-                                        </div>
-                                        
-                                        <div className="flex justify-between font-semibold mt-3 pt-2 border-t">
-                                          <div>Total</div>
-                                          <div>{formatCurrency(compra.total)}</div>
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </DialogContent>
-                              </Dialog>
-                            </div>
+                      
+                      {/* Panel expandible con detalles del cliente */}
+                      {expandedCustomerId === cliente.id && (
+                        <div className="border-t p-4 bg-gray-50">
+                          <h4 className="text-sm font-semibold mb-4">Acciones y Opciones</h4>
+                          
+                          <div className="grid grid-cols-2 gap-2">
+                            <Button variant="outline" size="sm" className="w-full">
+                              <User className="h-4 w-4 mr-1" /> Perfil
+                            </Button>
+                            <Button variant="outline" size="sm" className="w-full">
+                              <Mail className="h-4 w-4 mr-1" /> Contactar
+                            </Button>
+                            <Button variant="outline" size="sm" className="w-full">
+                              <Tag className="h-4 w-4 mr-1" /> Cambiar segmento
+                            </Button>
+                            <Button variant="outline" size="sm" className="w-full">
+                              <Calendar className="h-4 w-4 mr-1" /> Agendar
+                            </Button>
                           </div>
                           
-                          <div>
-                            <h4 className="font-semibold mb-3">Estadísticas</h4>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                              <Card className="bg-gray-50">
-                                <CardContent className="p-3">
-                                  <div className="text-xs text-gray-500">Frecuencia de Compra</div>
-                                  <div className="text-lg font-semibold">{clientStats.frecuenciaCompra} días</div>
-                                </CardContent>
-                              </Card>
-                              <Card className="bg-gray-50">
-                                <CardContent className="p-3">
-                                  <div className="text-xs text-gray-500">Ticket Promedio</div>
-                                  <div className="text-lg font-semibold">{formatCurrency(clientStats.ticketPromedio)}</div>
-                                </CardContent>
-                              </Card>
-                              <Card className="bg-gray-50">
-                                <CardContent className="p-3">
-                                  <div className="text-xs text-gray-500">Método Preferido</div>
-                                  <div className="text-lg font-semibold">{clientStats.metodoPagoPreferido}</div>
-                                </CardContent>
-                              </Card>
-                              <Card className="bg-gray-50">
-                                <CardContent className="p-3">
-                                  <div className="text-xs text-gray-500">Hora Frecuente</div>
-                                  <div className="text-lg font-semibold">{clientStats.horaFavorita}</div>
-                                </CardContent>
-                              </Card>
-                            </div>
-                            
-                            <h4 className="font-semibold mt-4 mb-2">Productos Favoritos</h4>
-                            <div className="space-y-2">
-                              {clientStats.productosFavoritos.map((prod, idx) => (
-                                <div key={idx} className="flex items-center gap-2">
-                                  <Package className="h-4 w-4 text-gray-400" />
-                                  <span>{prod}</span>
-                                </div>
-                              ))}
-                            </div>
+                          <div className="mt-4">
+                            <Button variant="default" size="sm" className="w-full">
+                              <ShoppingBag className="h-4 w-4 mr-1" /> Nueva Venta
+                            </Button>
                           </div>
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </CardContent>
                   </Card>
-                ))}
-              </div>
-            )}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
+        
+        {/* Modal de historial de compras */}
+        <Dialog open={showPurchaseHistory} onOpenChange={setShowPurchaseHistory}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <div className="flex items-center justify-between">
+                <DialogTitle>Historial de Compras</DialogTitle>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-6 w-6" 
+                  onClick={() => setShowPurchaseHistory(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <DialogDescription>
+                {selectedCustomer && `Cliente: ${selectedCustomer.nombre}`}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              {historialCompras.map((compra, idx) => (
+                <Card key={idx} className="overflow-hidden">
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <div className="font-medium">{compra.id}</div>
+                        <div className="text-sm text-gray-500">{formatDate(compra.fecha)}</div>
+                      </div>
+                      <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">
+                        Completada
+                      </Badge>
+                    </div>
+                    
+                    <Separator className="my-2" />
+                    
+                    <div className="my-2 text-sm">
+                      {compra.productos.map((producto, i) => (
+                        <div key={i} className="flex justify-between py-1">
+                          <div>
+                            {producto.nombre} x {producto.cantidad}
+                          </div>
+                          <div className="font-semibold">
+                            {formatCurrency(producto.precio * producto.cantidad)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <Separator className="my-2" />
+                    
+                    <div className="flex justify-between pt-2">
+                      <div>
+                        <div className="text-xs text-gray-500">Método de Pago</div>
+                        <div className="text-sm">{compra.metodoPago}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs text-gray-500">Total</div>
+                        <div className="text-lg font-bold">
+                          {formatCurrency(compra.total)}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowPurchaseHistory(false)}>Cerrar</Button>
+              <Button>Ver todas las compras</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </MainLayout>
   );

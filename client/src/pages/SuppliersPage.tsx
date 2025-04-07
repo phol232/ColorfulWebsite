@@ -419,31 +419,6 @@ const SuppliersPage: React.FC = () => {
           </div>
         </div>
         
-        {/* Categorías de proveedores */}
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold mb-4">Categorías de Proveedores</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {categorias.map(cat => (
-              <Card 
-                key={cat.id} 
-                className="border-l-4 cursor-pointer hover:shadow-md transition-shadow"
-                style={{ borderLeftColor: cat.color.split(' ')[2].replace('border-', '') }}
-                onClick={() => setCategoryFilter(cat.nombre)}
-              >
-                <CardContent className="p-4">
-                  <h3 className="font-semibold">{cat.nombre}</h3>
-                  <div className="flex justify-between items-center mt-2">
-                    <p className="text-2xl font-bold">{cat.proveedores}</p>
-                    <Badge variant="outline" className={cat.color}>
-                      Proveedores
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-        
         {/* Lista de proveedores */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-4">
@@ -518,258 +493,213 @@ const SuppliersPage: React.FC = () => {
                 </div>
                 
                 <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setNewPurchaseOrder(false)}>
-                    Cancelar
-                  </Button>
-                  <Button>
-                    Crear Orden
-                  </Button>
+                  <Button variant="outline">Cancelar</Button>
+                  <Button>Generar Orden</Button>
                 </div>
               </DialogContent>
             </Dialog>
           </div>
           
-          <div className="bg-white shadow-sm rounded-lg overflow-hidden border border-gray-200">
-            {filteredProveedores.length === 0 ? (
-              <div className="p-8 text-center">
-                <Building className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500">No se encontraron proveedores con los filtros aplicados</p>
-                <Button 
-                  variant="link" 
-                  className="mt-2"
-                  onClick={() => {
-                    setSearchQuery("");
-                    setCategoryFilter("");
-                    setCurrentTab("todos");
-                  }}
-                >
-                  Limpiar filtros
-                </Button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-4 p-4">
-                {filteredProveedores.map(proveedor => (
-                  <Card key={proveedor.id} className="overflow-hidden">
-                    <div 
-                      className="p-4 flex flex-col md:flex-row md:items-center justify-between cursor-pointer hover:bg-gray-50"
-                      onClick={() => toggleExpandSupplier(proveedor.id)}
-                    >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3">
-                          <div className="bg-gray-100 rounded-full p-2">
-                            <Building className="h-5 w-5 text-gray-600" />
-                          </div>
+          {/* Tarjetas de proveedores */}
+          {filteredProveedores.length === 0 ? (
+            <div className="p-8 text-center bg-white rounded-lg border border-gray-200">
+              <Building className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500">No se encontraron proveedores con los filtros aplicados</p>
+              <Button 
+                variant="link" 
+                className="mt-2"
+                onClick={() => {
+                  setSearchQuery("");
+                  setCategoryFilter("");
+                  setCurrentTab("todos");
+                }}
+              >
+                Limpiar filtros
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredProveedores.map(proveedor => {
+                const tipoColor = proveedor.estado === "Activo" 
+                  ? "bg-green-100 text-green-800 border-green-300" 
+                  : "bg-red-100 text-red-800 border-red-300";
+                  
+                return (
+                  <Card key={proveedor.id} className="overflow-hidden hover:shadow-md transition-shadow">
+                    <CardContent className="p-0">
+                      {/* Cabecera de la tarjeta */}
+                      <div className="p-4 border-b flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2 h-8 rounded-full ${proveedor.estado === "Activo" ? 'bg-green-500' : 'bg-red-500'}`}></div>
                           <div>
-                            <h3 className="font-medium">{proveedor.nombre}</h3>
-                            <div className="flex items-center gap-3 text-sm text-gray-500 mt-1">
-                              <span className="flex items-center gap-1">
-                                <Mail className="h-3 w-3" />
-                                {proveedor.email}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Phone className="h-3 w-3" />
-                                {proveedor.telefono}
-                              </span>
+                            <div className="text-sm text-gray-500">
+                              ID: {proveedor.id}
                             </div>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-4 mt-3 md:mt-0">
-                        <div className="text-right">
-                          <div className="text-xs text-gray-500">Pedidos</div>
-                          <div className="font-semibold">{proveedor.totalPedidos}</div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-xs text-gray-500">Total</div>
-                          <div className="font-semibold">{formatCurrency(proveedor.montoTotal)}</div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-xs text-gray-500">Última orden</div>
-                          <div className="font-semibold">{formatDate(proveedor.ultimaOrden)}</div>
-                        </div>
-                        <Badge 
-                          variant="outline" 
-                          className={
-                            proveedor.estado === "Activo" 
-                              ? "bg-green-100 text-green-800 border-green-400" 
-                              : "bg-gray-100 text-gray-800 border-gray-400"
-                          }
-                        >
-                          {proveedor.estado}
-                        </Badge>
-                        <Badge 
-                          variant="outline" 
-                          className={
-                            proveedor.categoria === "Alimentos" ? "bg-blue-100 text-blue-800 border-blue-400" :
-                            proveedor.categoria === "Bebidas" ? "bg-green-100 text-green-800 border-green-400" :
-                            proveedor.categoria === "Empaques" ? "bg-amber-100 text-amber-800 border-amber-400" :
-                            proveedor.categoria === "Vegetales" ? "bg-purple-100 text-purple-800 border-purple-400" :
-                            "bg-rose-100 text-rose-800 border-rose-400"
-                          }
-                        >
-                          {proveedor.categoria}
-                        </Badge>
-                        <Button variant="ghost" size="sm" className="ml-2">
-                          {expandedSupplierId === proveedor.id ? 
-                            <ChevronUp className="h-4 w-4" /> : 
-                            <ChevronDown className="h-4 w-4" />
-                          }
-                        </Button>
-                      </div>
-                    </div>
-                    
-                    {/* Detalles expandidos */}
-                    {expandedSupplierId === proveedor.id && (
-                      <div className="px-4 pb-4 border-t border-gray-100 pt-3">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <h4 className="font-semibold mb-3">Información del Proveedor</h4>
-                            <div className="space-y-2 text-sm">
-                              <div className="flex">
-                                <div className="w-24 text-gray-500">Contacto:</div>
-                                <div>{proveedor.contacto}</div>
-                              </div>
-                              <div className="flex">
-                                <div className="w-24 text-gray-500">Dirección:</div>
-                                <div>{proveedor.direccion}</div>
-                              </div>
-                              <div className="flex">
-                                <div className="w-24 text-gray-500">Fecha Alta:</div>
-                                <div>{formatDate(proveedor.fechaAlta)}</div>
-                              </div>
-                            </div>
-                            
-                            <div className="flex gap-2 mt-4">
-                              <Button variant="outline" size="sm">Editar</Button>
-                              <Dialog>
-                                <DialogTrigger asChild>
-                                  <Button size="sm">Nueva Orden</Button>
-                                </DialogTrigger>
-                                <DialogContent className="sm:max-w-lg">
-                                  <DialogHeader>
-                                    <DialogTitle>Crear Orden de Compra</DialogTitle>
-                                    <DialogDescription>
-                                      Proveedor: {proveedor.nombre}
-                                    </DialogDescription>
-                                  </DialogHeader>
-                                  
-                                  <div className="space-y-4 py-4">
-                                    <div className="grid grid-cols-4 items-center gap-4">
-                                      <label htmlFor="orderDate" className="text-right text-sm font-medium">
-                                        Fecha
-                                      </label>
-                                      <Input id="orderDate" className="col-span-3" type="date" />
-                                    </div>
-                                    
-                                    <div className="grid grid-cols-4 items-center gap-4">
-                                      <label htmlFor="deliveryDate" className="text-right text-sm font-medium">
-                                        Entrega
-                                      </label>
-                                      <Input id="deliveryDate" className="col-span-3" type="date" />
-                                    </div>
-                                    
-                                    <Separator className="my-4" />
-                                    
-                                    <h4 className="font-medium">Productos</h4>
-                                    <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
-                                      {proveedor.productos.map((producto, idx) => (
-                                        <div key={idx} className="flex justify-between items-center p-2 border rounded-md">
-                                          <div>
-                                            <p className="font-medium">{producto.nombre}</p>
-                                            <p className="text-xs text-gray-500">SKU: {producto.sku}</p>
-                                          </div>
-                                          <div className="flex items-center gap-2">
-                                            <div className="w-20">
-                                              <Input type="number" min="1" placeholder="Cant." className="h-8 text-sm" />
-                                            </div>
-                                            <div className="w-24 text-right font-medium">
-                                              {formatCurrency(producto.precio)}
-                                            </div>
-                                          </div>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                  
-                                  <div className="flex justify-end gap-2">
-                                    <Button variant="outline">
-                                      Cancelar
-                                    </Button>
-                                    <Button>
-                                      Crear Orden
-                                    </Button>
-                                  </div>
-                                </DialogContent>
-                              </Dialog>
-                            </div>
-                          </div>
-                          
-                          <div>
-                            <h4 className="font-semibold mb-3">Productos Suministrados</h4>
-                            <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
-                              {proveedor.productos.map((producto, idx) => (
-                                <div key={idx} className="flex justify-between items-center p-2 border rounded-md">
-                                  <div>
-                                    <p className="font-medium">{producto.nombre}</p>
-                                    <p className="text-xs text-gray-500">SKU: {producto.sku}</p>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <Badge variant="outline" className="bg-gray-50">
-                                      {producto.categoria}
-                                    </Badge>
-                                    <div className="font-medium">
-                                      {formatCurrency(producto.precio)}
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                            
-                            <h4 className="font-semibold mt-4 mb-2">Estadísticas</h4>
-                            <div className="grid grid-cols-2 gap-2">
-                              <div className="p-2 bg-gray-50 rounded-md">
-                                <div className="text-xs text-gray-500">Tiempo de entrega</div>
-                                <div className="font-semibold">{proveedorStats.tiempoEntrega} días</div>
-                              </div>
-                              <div className="p-2 bg-gray-50 rounded-md">
-                                <div className="text-xs text-gray-500">Cumplimiento</div>
-                                <div className="font-semibold">{proveedorStats.cumplimiento}%</div>
-                              </div>
+                            <div className="font-semibold text-base truncate max-w-[200px]">
+                              {proveedor.nombre}
                             </div>
                           </div>
                         </div>
                         
-                        <h4 className="font-semibold mt-4 mb-2">Últimas Órdenes de Compra</h4>
-                        <div className="space-y-2">
-                          {ordenesCompra.map(orden => (
-                            <div key={orden.id} className="p-3 border rounded-md">
-                              <div className="flex justify-between items-center mb-2">
-                                <div>
-                                  <h5 className="font-medium">{orden.id}</h5>
-                                  <p className="text-sm text-gray-500">Fecha: {formatDate(orden.fecha)}</p>
-                                </div>
-                                <Badge variant="outline" className={
-                                  orden.estado === "Entregado" ? "bg-green-100 text-green-800 border-green-400" :
-                                  orden.estado === "Pendiente" ? "bg-amber-100 text-amber-800 border-amber-400" :
-                                  "bg-gray-100 text-gray-800 border-gray-400"
-                                }>
-                                  {orden.estado}
-                                </Badge>
-                              </div>
-                              <div className="text-sm flex justify-between">
-                                <span>{orden.productos.length} productos</span>
-                                <span className="font-semibold">{formatCurrency(orden.total)}</span>
-                              </div>
+                        <Badge variant="outline" className={tipoColor}>
+                          {proveedor.estado}
+                        </Badge>
+                      </div>
+                      
+                      {/* Información principal */}
+                      <div className="p-4">
+                        <div className="mb-3">
+                          <h3 className="text-md font-semibold">{proveedor.contacto}</h3>
+                          <div className="text-sm text-gray-500 flex items-center gap-1">
+                            <Mail className="h-3 w-3" />
+                            {proveedor.email}
+                          </div>
+                          <div className="text-sm text-gray-500 flex items-center gap-1 mt-1">
+                            <Phone className="h-3 w-3" />
+                            {proveedor.telefono}
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4 mb-4">
+                          <div>
+                            <div className="text-sm text-gray-500">Categoría</div>
+                            <Badge variant="outline" className={
+                              categorias.find(c => c.nombre === proveedor.categoria)?.color || "bg-gray-100 text-gray-800"
+                            }>
+                              {proveedor.categoria}
+                            </Badge>
+                          </div>
+                          
+                          <div>
+                            <div className="text-sm text-gray-500">Últ. Orden</div>
+                            <div className="font-semibold text-sm">
+                              {formatDate(proveedor.ultimaOrden)}
                             </div>
-                          ))}
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4 mb-4">
+                          <div>
+                            <div className="text-sm text-gray-500">Total Pedidos</div>
+                            <div className={`font-semibold ${proveedor.estado === "Activo" ? 'text-green-600' : 'text-red-600'}`}>
+                              {proveedor.totalPedidos}
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <div className="text-sm text-gray-500">Monto Total</div>
+                            <div className="font-semibold">
+                              {formatCurrency(proveedor.montoTotal)}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="mb-2">
+                          <div className="text-sm text-gray-500">Dirección:</div>
+                          <div className="text-sm">
+                            {proveedor.direccion}
+                          </div>
                         </div>
                       </div>
-                    )}
+                      
+                      {/* Acciones */}
+                      <div className="p-4 border-t flex justify-between">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-orange-500 hover:text-orange-600"
+                          onClick={() => toggleExpandSupplier(proveedor.id)}
+                        >
+                          {expandedSupplierId === proveedor.id ? (
+                            <>
+                              <ChevronUp className="h-4 w-4 mr-2" /> Ocultar detalles
+                            </>
+                          ) : (
+                            <>
+                              <ChevronDown className="h-4 w-4 mr-2" /> Ver detalles
+                            </>
+                          )}
+                        </Button>
+                        
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          className="text-primary"
+                        >
+                          <FileText className="h-4 w-4 mr-2" /> Órdenes
+                        </Button>
+                      </div>
+                      
+                      {/* Panel expandible con detalles del proveedor */}
+                      {expandedSupplierId === proveedor.id && (
+                        <div className="border-t p-4 bg-gray-50">
+                          <h4 className="text-sm font-semibold mb-4">Productos Principales</h4>
+                          <div className="space-y-2">
+                            {proveedor.productos.map((producto, idx) => (
+                              <div key={idx} className="flex justify-between items-center p-2 border rounded-md bg-white">
+                                <div>
+                                  <p className="font-medium">{producto.nombre}</p>
+                                  <p className="text-xs text-gray-500">SKU: {producto.sku}</p>
+                                </div>
+                                <div className="font-semibold">
+                                  {formatCurrency(producto.precio)}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          
+                          <div className="flex justify-end gap-2 mt-4">
+                            <Button variant="outline" size="sm" className="flex items-center gap-1">
+                              <ShoppingCart className="h-4 w-4" />
+                              <span>Nueva Compra</span>
+                            </Button>
+                            {proveedor.estado === "Activo" ? (
+                              <Button variant="destructive" size="sm" className="flex items-center gap-1">
+                                <XCircle className="h-4 w-4" />
+                                <span>Desactivar</span>
+                              </Button>
+                            ) : (
+                              <Button variant="default" size="sm" className="flex items-center gap-1">
+                                <CheckCircle className="h-4 w-4" />
+                                <span>Activar</span>
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
                   </Card>
-                ))}
-              </div>
-            )}
+                );
+              })}
+            </div>
+          )}
+        </div>
+        
+        {/* Sección de Categorías */}
+        <div className="mb-6">
+          <h2 className="text-lg font-semibold mb-4">Categorías de Proveedores</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {categorias.map(categoria => (
+              <Card key={categoria.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <Badge variant="outline" className={categoria.color}>
+                        {categoria.nombre}
+                      </Badge>
+                      <h3 className="text-xl font-bold mt-2">{categoria.proveedores}</h3>
+                      <p className="text-xs text-gray-500">proveedores</p>
+                    </div>
+                    <div className="bg-gray-100 p-2 rounded-md">
+                      <Building className="h-5 w-5 text-gray-600" />
+                    </div>
+                  </div>
+                  <Button variant="ghost" size="sm" className="w-full mt-3 text-primary">
+                    Ver Proveedores
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </div>
