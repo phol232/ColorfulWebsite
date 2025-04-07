@@ -11,6 +11,9 @@ import POSPage from "@/pages/POSPage";
 import OrdersPage from "@/pages/OrdersPage";
 import SalesPage from "@/pages/SalesPage";
 import InvoicesPage from "@/pages/InvoicesPage";
+import CustomersPage from "@/pages/CustomersPage";
+import SuppliersPage from "@/pages/SuppliersPage";
+import ReportsPage from "@/pages/ReportsPage";
 import { CartProvider } from "@/context/CartContext";
 
 function Router() {
@@ -20,6 +23,9 @@ function Router() {
       <Route path="/dashboard" component={DashboardPage}/>
       <Route path="/products" component={ProductsPage}/>
       <Route path="/inventory" component={InventoryPage}/>
+      <Route path="/customers" component={CustomersPage}/>
+      <Route path="/suppliers" component={SuppliersPage}/>
+      <Route path="/reports" component={ReportsPage}/>
       <Route path="/pos" component={POSPage}/>
       <Route path="/orders" component={OrdersPage}/>
       <Route path="/sales" component={SalesPage}/>

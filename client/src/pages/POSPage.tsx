@@ -169,278 +169,282 @@ const POSPage: React.FC = () => {
           <p className="text-gray-500">Registra ventas, imprime facturas y gestiona el flujo de caja</p>
         </div>
         
-        {/* Ticket actual - Ahora está en la parte superior */}
-        <div className="mb-6">
-          <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
-            <div className="p-4 border-b">
-              <h3 className="text-lg font-semibold">Ticket Actual</h3>
-              <p className="text-sm text-gray-500">Venta #4832</p>
-            </div>
-            
-            {/* Lista de productos en el carrito */}
-            <div className="p-4 flex-1 overflow-auto max-h-[calc(100vh-500px)]">
-              {cart.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-6 text-center">
-                  <ShoppingBag className="h-12 w-12 text-gray-300 mb-3" />
-                  <p className="text-gray-500">El carrito está vacío</p>
-                  <p className="text-sm text-gray-400">Agrega productos para iniciar la venta</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {cart.map((item) => (
-                    <div key={item.id} className="flex justify-between items-center p-2 border-b">
-                      <div className="flex-1">
-                        <p className="font-medium">{item.nombre}</p>
-                        <p className="text-sm text-gray-500">{formatCurrency(item.precioVenta)} c/u</p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center border rounded">
-                          <button 
-                            className="p-1 text-gray-500 hover:text-gray-700"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              updateQuantity(item.id, item.cantidad - 1);
-                            }}
-                          >
-                            <Minus className="h-4 w-4" />
-                          </button>
-                          <span className="px-2 py-1 border-x">{item.cantidad}</span>
-                          <button 
-                            className="p-1 text-gray-500 hover:text-gray-700"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              updateQuantity(item.id, item.cantidad + 1);
-                            }}
-                          >
-                            <Plus className="h-4 w-4" />
-                          </button>
-                        </div>
-                        <p className="font-semibold text-right min-w-[70px]">
-                          {formatCurrency(item.precioVenta * item.cantidad)}
-                        </p>
-                        <button 
-                          className="text-red-500 hover:text-red-700"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            removeFromCart(item.id);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            
-            {/* Resumen y totales */}
-            <div className="p-4 bg-gray-50 border-t">
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Subtotal:</span>
-                  <span>{formatCurrency(subtotal)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Impuestos (16%):</span>
-                  <span>{formatCurrency(tax)}</span>
-                </div>
-                <Separator className="my-2" />
-                <div className="flex justify-between font-bold text-lg">
-                  <span>Total:</span>
-                  <span>{formatCurrency(total)}</span>
-                </div>
+        {/* Grid principal para layout de POS - Productos a la izquierda, Ticket a la derecha */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Columna izquierda - Productos y búsqueda (ocupa 2/3 del ancho) */}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+              <div className="flex-1 relative">
+                <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input type="text" placeholder="Buscar productos por nombre, código o descripción..." className="pl-9" />
               </div>
-              
-              <div className="grid grid-cols-2 gap-3 mt-4">
-                <Button variant="outline" className="w-full" disabled={cart.length === 0}>
-                  <Receipt className="h-4 w-4 mr-2" />
-                  Guardar
-                </Button>
-                <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button 
-                      className="w-full" 
-                      disabled={cart.length === 0}
-                    >
-                      <CreditCard className="h-4 w-4 mr-2" />
-                      Cobrar
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-lg">
-                    <DialogHeader>
-                      <DialogTitle>Finalizar Venta</DialogTitle>
-                      <DialogDescription>
-                        Selecciona el método de pago y completa la venta
-                      </DialogDescription>
-                    </DialogHeader>
-                    
-                    <div className="py-4 space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <Button variant="outline" className="flex flex-col items-center justify-center p-6 h-auto">
-                          <CreditCard className="h-6 w-6 mb-2" />
-                          <span>Tarjeta de Crédito/Débito</span>
-                        </Button>
-                        <Button variant="outline" className="flex flex-col items-center justify-center p-6 h-auto">
-                          <DollarSign className="h-6 w-6 mb-2" />
-                          <span>Efectivo</span>
-                        </Button>
-                      </div>
-                      
-                      <div className="space-y-3 pt-4">
-                        <h4 className="font-medium">Resumen de la venta</h4>
-                        <div className="space-y-1 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Productos:</span>
-                            <span>{cart.reduce((sum, item) => sum + item.cantidad, 0)} items</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Subtotal:</span>
-                            <span>{formatCurrency(subtotal)}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Impuestos:</span>
-                            <span>{formatCurrency(tax)}</span>
-                          </div>
-                          <Separator className="my-2" />
-                          <div className="flex justify-between font-bold">
-                            <span>Total a cobrar:</span>
-                            <span>{formatCurrency(total)}</span>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex gap-3 pt-4">
-                        <Button variant="outline" className="w-full">
-                          <FileText className="h-4 w-4 mr-2" />
-                          Facturar
-                        </Button>
-                        <Button className="w-full">
-                          <Receipt className="h-4 w-4 mr-2" />
-                          Finalizar Venta
-                        </Button>
-                      </div>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              </div>
-              
-              <div className="mt-4">
-                <Button variant="outline" className="w-full text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => setCart([])}>
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Cancelar Venta
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Sección de productos y búsqueda */}
-        <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-            <div className="flex-1 relative">
-              <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input type="text" placeholder="Buscar productos por nombre, código o descripción..." className="pl-9" />
-            </div>
-            <Button className="flex items-center gap-1">
-              <ScanBarcode className="h-4 w-4" />
-              <span>Escanear Código</span>
-            </Button>
-          </div>
-          
-          <div className="flex gap-2 overflow-x-auto pb-2">
-            <Button 
-              variant={activeCategory === "" ? "default" : "outline"} 
-              className="whitespace-nowrap"
-              onClick={() => setActiveCategory("")}
-            >
-              Todos
-            </Button>
-            {categorias.map(cat => (
-              <Button 
-                key={cat.id} 
-                variant={activeCategory === cat.nombre ? "default" : "outline"} 
-                className="whitespace-nowrap"
-                onClick={() => setActiveCategory(cat.nombre)}
-              >
-                {cat.nombre}
+              <Button className="flex items-center gap-1">
+                <ScanBarcode className="h-4 w-4" />
+                <span>Escanear Código</span>
               </Button>
-            ))}
-          </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {filteredProducts.map((producto) => (
-              <div 
-                key={producto.id} 
-                className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => addToCart(producto)}
+            </div>
+            
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              <Button 
+                variant={activeCategory === "" ? "default" : "outline"} 
+                className="whitespace-nowrap"
+                onClick={() => setActiveCategory("")}
               >
-                {/* Imagen del producto */}
-                <div className="h-36 w-full bg-gray-100 relative">
-                  {/* Mostraremos imágenes referenciales por ahora */}
-                  <div className="w-full h-full flex items-center justify-center bg-gray-100 overflow-hidden">
-                    {producto.categoria === "Hamburguesas" && (
-                      <img 
-                        src="https://placehold.co/400x300/e91e63/fff?text=Hamburguesa" 
-                        alt={producto.nombre}
-                        className="w-full h-full object-cover"
-                      />
-                    )}
-                    {producto.categoria === "Pizzas" && (
-                      <img 
-                        src="https://placehold.co/400x300/ff9800/fff?text=Pizza" 
-                        alt={producto.nombre}
-                        className="w-full h-full object-cover"
-                      />
-                    )}
-                    {producto.categoria === "Bebidas" && (
-                      <img 
-                        src="https://placehold.co/400x300/2196f3/fff?text=Bebida" 
-                        alt={producto.nombre}
-                        className="w-full h-full object-cover"
-                      />
-                    )}
-                    {producto.categoria === "Postres" && (
-                      <img 
-                        src="https://placehold.co/400x300/9c27b0/fff?text=Postre" 
-                        alt={producto.nombre}
-                        className="w-full h-full object-cover"
-                      />
-                    )}
-                    {producto.categoria === "Ensaladas" && (
-                      <img 
-                        src="https://placehold.co/400x300/4caf50/fff?text=Ensalada" 
-                        alt={producto.nombre}
-                        className="w-full h-full object-cover"
-                      />
-                    )}
-                    {!["Hamburguesas", "Pizzas", "Bebidas", "Postres", "Ensaladas"].includes(producto.categoria) && (
-                      <Package className="h-12 w-12 text-gray-300" />
+                Todos
+              </Button>
+              {categorias.map(cat => (
+                <Button 
+                  key={cat.id} 
+                  variant={activeCategory === cat.nombre ? "default" : "outline"} 
+                  className="whitespace-nowrap"
+                  onClick={() => setActiveCategory(cat.nombre)}
+                >
+                  {cat.nombre}
+                </Button>
+              ))}
+            </div>
+            
+            {/* Grid de productos */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredProducts.map((producto) => (
+                <div 
+                  key={producto.id} 
+                  className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => addToCart(producto)}
+                >
+                  {/* Imagen del producto */}
+                  <div className="h-36 w-full bg-gray-100 relative">
+                    {/* Mostraremos imágenes referenciales por ahora */}
+                    <div className="w-full h-full flex items-center justify-center bg-gray-100 overflow-hidden">
+                      {producto.categoria === "Hamburguesas" && (
+                        <img 
+                          src="https://placehold.co/400x300/e91e63/fff?text=Hamburguesa" 
+                          alt={producto.nombre}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                      {producto.categoria === "Pizzas" && (
+                        <img 
+                          src="https://placehold.co/400x300/ff9800/fff?text=Pizza" 
+                          alt={producto.nombre}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                      {producto.categoria === "Bebidas" && (
+                        <img 
+                          src="https://placehold.co/400x300/2196f3/fff?text=Bebida" 
+                          alt={producto.nombre}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                      {producto.categoria === "Postres" && (
+                        <img 
+                          src="https://placehold.co/400x300/9c27b0/fff?text=Postre" 
+                          alt={producto.nombre}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                      {producto.categoria === "Ensaladas" && (
+                        <img 
+                          src="https://placehold.co/400x300/4caf50/fff?text=Ensalada" 
+                          alt={producto.nombre}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                      {!["Hamburguesas", "Pizzas", "Bebidas", "Postres", "Ensaladas"].includes(producto.categoria) && (
+                        <Package className="h-12 w-12 text-gray-300" />
+                      )}
+                    </div>
+                    
+                    {producto.stock < producto.stockMinimo && (
+                      <Badge 
+                        variant={producto.stock < producto.stockMinimo / 2 ? "destructive" : "outline"}
+                        className="absolute top-2 right-2"
+                      >
+                        {producto.stock < producto.stockMinimo / 2 ? "Stock Crítico" : "Stock Bajo"}
+                      </Badge>
                     )}
                   </div>
                   
-                  {producto.stock < producto.stockMinimo && (
-                    <Badge 
-                      variant={producto.stock < producto.stockMinimo / 2 ? "destructive" : "outline"}
-                      className="absolute top-2 right-2"
-                    >
-                      {producto.stock < producto.stockMinimo / 2 ? "Stock Crítico" : "Stock Bajo"}
-                    </Badge>
-                  )}
-                </div>
-                
-                {/* Detalles del producto */}
-                <div className="p-3">
-                  <h3 className="font-medium truncate">{producto.nombre}</h3>
-                  <div className="flex justify-between items-center mt-2">
-                    <p className="font-bold text-green-600">{formatCurrency(producto.precioVenta)}</p>
-                    <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-400">
-                      Stock: {producto.stock}
-                    </Badge>
+                  {/* Detalles del producto */}
+                  <div className="p-3">
+                    <h3 className="font-medium truncate">{producto.nombre}</h3>
+                    <div className="flex justify-between items-center mt-2">
+                      <p className="font-bold text-green-600">{formatCurrency(producto.precioVenta)}</p>
+                      <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-400">
+                        Stock: {producto.stock}
+                      </Badge>
+                    </div>
                   </div>
                 </div>
+              ))}
+            </div>
+          </div>
+          
+          {/* Columna derecha - Ticket actual (ocupa 1/3 del ancho) */}
+          <div className="sticky top-0 h-full">
+            <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
+              <div className="p-4 border-b">
+                <h3 className="text-lg font-semibold">Ticket Actual</h3>
+                <p className="text-sm text-gray-500">Venta #4832</p>
               </div>
-            ))}
+              
+              {/* Lista de productos en el carrito */}
+              <div className="p-4 flex-1 overflow-auto max-h-[calc(100vh-400px)]">
+                {cart.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-6 text-center">
+                    <ShoppingBag className="h-12 w-12 text-gray-300 mb-3" />
+                    <p className="text-gray-500">El carrito está vacío</p>
+                    <p className="text-sm text-gray-400">Agrega productos para iniciar la venta</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {cart.map((item) => (
+                      <div key={item.id} className="flex justify-between items-center p-2 border-b">
+                        <div className="flex-1">
+                          <p className="font-medium">{item.nombre}</p>
+                          <p className="text-sm text-gray-500">{formatCurrency(item.precioVenta)} c/u</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center border rounded">
+                            <button 
+                              className="p-1 text-gray-500 hover:text-gray-700"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                updateQuantity(item.id, item.cantidad - 1);
+                              }}
+                            >
+                              <Minus className="h-4 w-4" />
+                            </button>
+                            <span className="px-2 py-1 border-x">{item.cantidad}</span>
+                            <button 
+                              className="p-1 text-gray-500 hover:text-gray-700"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                updateQuantity(item.id, item.cantidad + 1);
+                              }}
+                            >
+                              <Plus className="h-4 w-4" />
+                            </button>
+                          </div>
+                          <p className="font-semibold text-right min-w-[70px]">
+                            {formatCurrency(item.precioVenta * item.cantidad)}
+                          </p>
+                          <button 
+                            className="text-red-500 hover:text-red-700"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeFromCart(item.id);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              {/* Resumen y totales */}
+              <div className="p-4 bg-gray-50 border-t">
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Subtotal:</span>
+                    <span>{formatCurrency(subtotal)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Impuestos (16%):</span>
+                    <span>{formatCurrency(tax)}</span>
+                  </div>
+                  <Separator className="my-2" />
+                  <div className="flex justify-between font-bold text-lg">
+                    <span>Total:</span>
+                    <span>{formatCurrency(total)}</span>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3 mt-4">
+                  <Button variant="outline" className="w-full" disabled={cart.length === 0}>
+                    <Receipt className="h-4 w-4 mr-2" />
+                    Guardar
+                  </Button>
+                  <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button 
+                        className="w-full" 
+                        disabled={cart.length === 0}
+                      >
+                        <CreditCard className="h-4 w-4 mr-2" />
+                        Cobrar
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-lg">
+                      <DialogHeader>
+                        <DialogTitle>Finalizar Venta</DialogTitle>
+                        <DialogDescription>
+                          Selecciona el método de pago y completa la venta
+                        </DialogDescription>
+                      </DialogHeader>
+                      
+                      <div className="py-4 space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <Button variant="outline" className="flex flex-col items-center justify-center p-6 h-auto">
+                            <CreditCard className="h-6 w-6 mb-2" />
+                            <span>Tarjeta de Crédito/Débito</span>
+                          </Button>
+                          <Button variant="outline" className="flex flex-col items-center justify-center p-6 h-auto">
+                            <DollarSign className="h-6 w-6 mb-2" />
+                            <span>Efectivo</span>
+                          </Button>
+                        </div>
+                        
+                        <div className="space-y-3 pt-4">
+                          <h4 className="font-medium">Resumen de la venta</h4>
+                          <div className="space-y-1 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Productos:</span>
+                              <span>{cart.reduce((sum, item) => sum + item.cantidad, 0)} items</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Subtotal:</span>
+                              <span>{formatCurrency(subtotal)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Impuestos:</span>
+                              <span>{formatCurrency(tax)}</span>
+                            </div>
+                            <Separator className="my-2" />
+                            <div className="flex justify-between font-bold">
+                              <span>Total a cobrar:</span>
+                              <span>{formatCurrency(total)}</span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex gap-3 pt-4">
+                          <Button variant="outline" className="w-full">
+                            <FileText className="h-4 w-4 mr-2" />
+                            Facturar
+                          </Button>
+                          <Button className="w-full">
+                            <Receipt className="h-4 w-4 mr-2" />
+                            Finalizar Venta
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+                
+                <div className="mt-4">
+                  <Button variant="outline" className="w-full text-red-500 hover:text-red-700 hover:bg-red-50" onClick={() => setCart([])}>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Cancelar Venta
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
