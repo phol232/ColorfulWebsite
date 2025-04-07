@@ -31,7 +31,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
 
   const menuItems = [
     { name: "Dashboard", icon: <LayoutDashboard className="h-5 w-5" />, path: "/dashboard" },
-    { name: "Productos", icon: <Package className="h-5 w-5" />, path: "/products" },
+    { name: "Inventario", icon: <Boxes className="h-5 w-5" />, path: "/inventory" },
     { name: "Ventas", icon: <ShoppingCart className="h-5 w-5" />, path: "/sales" },
     { name: "Clientes", icon: <Users className="h-5 w-5" />, path: "/customers" },
     { name: "Estadísticas", icon: <BarChart2 className="h-5 w-5" />, path: "/statistics" },
@@ -40,7 +40,6 @@ const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
 
   const toolsItems = [
     { name: "Configuración", icon: <Settings className="h-5 w-5" />, path: "/settings" },
-    { name: "Inventario", icon: <Boxes className="h-5 w-5" />, path: "/inventory" },
     { name: "Pedidos", icon: <ClipboardList className="h-5 w-5" />, path: "/orders" },
     { name: "Proveedores", icon: <Truck className="h-5 w-5" />, path: "/suppliers" },
     { name: "Reportes", icon: <BarChart2 className="h-5 w-5" />, path: "/reports" },

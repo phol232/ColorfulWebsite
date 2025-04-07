@@ -6,6 +6,7 @@ import NotFound from "@/pages/not-found";
 import HomePage from "@/pages/HomePage";
 import DashboardPage from "@/pages/DashboardPage";
 import ProductsPage from "@/pages/ProductsPage";
+import InventoryPage from "@/pages/InventoryPage";
 import { CartProvider } from "@/context/CartContext";
 
 function Router() {
@@ -14,6 +15,7 @@ function Router() {
       <Route path="/" component={HomePage}/>
       <Route path="/dashboard" component={DashboardPage}/>
       <Route path="/products" component={ProductsPage}/>
+      <Route path="/inventory" component={InventoryPage}/>
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>
