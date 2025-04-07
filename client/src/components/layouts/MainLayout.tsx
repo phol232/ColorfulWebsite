@@ -2,7 +2,7 @@ import React, { ReactNode } from "react";
 import { useLocation } from "wouter";
 import Sidebar from "./Sidebar";
 import Logo from "../ui/Logo";
-import { Search, Filter, ChevronDown } from "lucide-react";
+import { Search, Filter, ShoppingBasket, Bell } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -17,48 +17,60 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const [location] = useLocation();
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FEF6F0] bg-gradient-radial-tr-bl">
-      {/* Header */}
-      <header className="bg-white p-4 shadow-sm">
-        <div className="container mx-auto flex justify-between items-center">
-          <Logo />
-          
-          {/* Search bar - hidden on mobile */}
-          <div className="relative w-1/3 hidden md:block">
-            <Input 
-              type="text" 
-              placeholder="Search food" 
-              className="w-full pl-4 pr-10 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
-            />
-            <Button 
-              variant="ghost" 
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 p-0 h-auto"
-            >
-              <Search className="h-5 w-5" />
-            </Button>
-          </div>
-          
-          {/* Filter button */}
-          <Button className="bg-primary hover:bg-primary/90 text-white">
-            Filter
-            <Filter className="h-5 w-5 ml-2" />
-          </Button>
-          
-          {/* User profile */}
-          <div className="flex items-center">
-            <Avatar className="h-8 w-8 bg-gray-100">
-              <AvatarImage src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=50&h=50&q=80" alt="User avatar" />
-              <AvatarFallback>DB</AvatarFallback>
-            </Avatar>
-            <span className="ml-2 font-medium hidden md:inline-block">David Brown</span>
-            <ChevronDown className="h-5 w-5 ml-1 text-gray-400" />
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen flex bg-[#F5F7FA]">
+      {/* Sidebar - hidden on mobile */}
+      {!isMobile && <Sidebar />}
       
-      <div className="flex flex-grow">
-        {/* Sidebar - hidden on mobile */}
-        {!isMobile && <Sidebar />}
+      <div className="flex-grow flex flex-col">
+        {/* Header */}
+        <header className="bg-white py-3 px-4 shadow-sm flex items-center justify-between">
+          {/* Left side - hamburger menu on mobile, search on desktop */}
+          <div className="flex items-center">
+            {isMobile && (
+              <button className="mr-3">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M4 6H20M4 12H20M4 18H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+            )}
+            
+            {/* Search bar */}
+            <div className="relative">
+              <div className="flex items-center bg-gray-100 rounded-md pl-2 pr-4 py-1">
+                <Search className="h-4 w-4 text-gray-500 mr-2" />
+                <input 
+                  type="text" 
+                  placeholder="Buscar producto..." 
+                  className="bg-transparent border-none outline-none text-sm w-60"
+                />
+              </div>
+            </div>
+          </div>
+          
+          {/* Right side - user profile and buttons */}
+          <div className="flex items-center space-x-4">
+            <button className="relative p-2 text-gray-500 hover:text-gray-700">
+              <Bell className="h-5 w-5" />
+              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+            </button>
+            
+            <button className="relative p-2 text-gray-500 hover:text-gray-700">
+              <ShoppingBasket className="h-5 w-5" />
+              <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full"></span>
+            </button>
+            
+            <div className="flex items-center">
+              <div className="mr-2 text-right hidden md:block">
+                <p className="text-sm font-medium">David Brown</p>
+                <p className="text-xs text-gray-500">Administrador</p>
+              </div>
+              <Avatar className="h-8 w-8 border border-gray-300">
+                <AvatarImage src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=50&h=50&q=80" alt="User avatar" />
+                <AvatarFallback>DB</AvatarFallback>
+              </Avatar>
+            </div>
+          </div>
+        </header>
         
         {/* Main content */}
         <main className="flex-grow p-6 overflow-y-auto">

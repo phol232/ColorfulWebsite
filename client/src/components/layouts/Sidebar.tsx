@@ -1,14 +1,18 @@
 import React from "react";
 import { useLocation, Link } from "wouter";
 import { 
-  Home,
-  ShoppingBag, 
-  CheckCircle, 
-  MessageSquare, 
-  ClipboardList, 
+  LayoutDashboard,
+  Package,
+  UtensilsCrossed, 
+  Users,
+  BarChart2, 
   CreditCard, 
-  Settings
+  Settings,
+  Search,
+  Grid3X3,
+  LogOut
 } from "lucide-react";
+import Logo from "../ui/Logo";
 
 const Sidebar: React.FC = () => {
   const [location] = useLocation();
@@ -17,32 +21,95 @@ const Sidebar: React.FC = () => {
     return location === path;
   };
 
-  const navigationItems = [
-    { name: "Dashboard", icon: <Home className="h-5 w-5 mr-3" />, path: "/" },
-    { name: "Food Order", icon: <ShoppingBag className="h-5 w-5 mr-3" />, path: "/food-order" },
-    { name: "Feedback", icon: <CheckCircle className="h-5 w-5 mr-3" />, path: "/feedback" },
-    { name: "Message", icon: <MessageSquare className="h-5 w-5 mr-3" />, path: "/message" },
-    { name: "Order History", icon: <ClipboardList className="h-5 w-5 mr-3" />, path: "/order-history" },
-    { name: "Payment details", icon: <CreditCard className="h-5 w-5 mr-3" />, path: "/payment-details" },
-    { name: "Customization", icon: <Settings className="h-5 w-5 mr-3" />, path: "/customization" },
+  const menuItems = [
+    { name: "Dashboard", icon: <LayoutDashboard className="h-5 w-5" />, path: "/dashboard" },
+    { name: "Productos", icon: <Package className="h-5 w-5" />, path: "/products" },
+    { name: "Ventas", icon: <UtensilsCrossed className="h-5 w-5" />, path: "/" },
+    { name: "Clientes", icon: <Users className="h-5 w-5" />, path: "/customers" },
+    { name: "Estadísticas", icon: <BarChart2 className="h-5 w-5" />, path: "/statistics" },
+    { name: "Pagos", icon: <CreditCard className="h-5 w-5" />, path: "/payments" },
+  ];
+
+  const toolsItems = [
+    { name: "Configuración", icon: <Settings className="h-5 w-5" />, path: "/settings" },
+    { name: "Búsqueda", icon: <Search className="h-5 w-5" />, path: "/search" },
+    { name: "Categorías", icon: <Grid3X3 className="h-5 w-5" />, path: "/categories" },
   ];
 
   return (
-    <aside className="w-64 bg-white shadow-md hidden md:block">
-      <nav className="p-4">
-        <ul className="space-y-2">
-          {navigationItems.map((item) => (
-            <li key={item.name}>
-              <Link href={item.path}>
-                <a className={`flex items-center p-3 rounded-lg ${isActive(item.path) ? 'text-primary bg-[#FEF6F0]' : 'hover:bg-[#FEF6F0]'}`}>
-                  {item.icon}
-                  {item.name}
-                </a>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
+    <aside className="w-64 bg-white border-r border-gray-200 hidden md:flex flex-col h-screen">
+      {/* Logo */}
+      <div className="flex px-5 py-5">
+        <Logo />
+      </div>
+
+      {/* Navegación Principal */}
+      <div className="flex-grow px-3 overflow-y-auto">
+        <div className="mb-6">
+          <h3 className="text-gray-500 font-medium text-xs uppercase tracking-wider px-3 mb-3">Menú Principal</h3>
+          <ul className="space-y-1">
+            {menuItems.map((item) => (
+              <li key={item.name}>
+                <Link href={item.path}>
+                  <a className={`flex items-center p-2.5 rounded-md transition-colors ${
+                    isActive(item.path) 
+                      ? 'bg-primary/10 text-primary' 
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}>
+                    <span className={`${isActive(item.path) ? 'text-primary' : 'text-gray-500'}`}>
+                      {item.icon}
+                    </span>
+                    <span className="ml-3 text-sm">{item.name}</span>
+                    {isActive(item.path) && <span className="ml-auto">
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </span>}
+                  </a>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+        
+        {/* Herramientas */}
+        <div className="mb-6">
+          <h3 className="text-gray-500 font-medium text-xs uppercase tracking-wider px-3 mb-3">Herramientas</h3>
+          <ul className="space-y-1">
+            {toolsItems.map((item) => (
+              <li key={item.name}>
+                <Link href={item.path}>
+                  <a className={`flex items-center p-2.5 rounded-md transition-colors ${
+                    isActive(item.path) 
+                      ? 'bg-primary/10 text-primary' 
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}>
+                    <span className={`${isActive(item.path) ? 'text-primary' : 'text-gray-500'}`}>
+                      {item.icon}
+                    </span>
+                    <span className="ml-3 text-sm">{item.name}</span>
+                    {isActive(item.path) && <span className="ml-auto">
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </span>}
+                  </a>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      {/* Logout */}
+      <div className="px-3 pt-4 pb-5 border-t border-gray-200">
+        <Link href="/logout">
+          <a className="flex items-center p-2.5 text-red-500 hover:bg-red-50 rounded-md transition-colors">
+            <LogOut className="h-5 w-5" />
+            <span className="ml-3 text-sm">Cerrar Sesión</span>
+          </a>
+        </Link>
+      </div>
     </aside>
   );
 };
