@@ -23,11 +23,13 @@ import {
   AlertCircle,
   CreditCard,
   ArrowUpDown,
-  RefreshCcw
+  RefreshCcw,
+  X
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 const ventas = [
   {
@@ -402,6 +404,117 @@ const SalesPage: React.FC = () => {
           </nav>
         </div>
       </div>
+      
+      {/* Modal de Detalles */}
+      {ventas.map((venta) => (
+        <Dialog key={venta.id} open={detailsOpen === venta.id} onOpenChange={() => setDetailsOpen(null)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <div className="flex items-center justify-between">
+                <DialogTitle>Detalles de Venta #{venta.id}</DialogTitle>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-6 w-6" 
+                  onClick={() => setDetailsOpen(null)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <DialogDescription>
+                {formatDate(venta.fecha)}
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              {/* Información general */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-sm text-gray-500">Cliente</div>
+                  <div className="font-medium">{venta.cliente}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500">Método de Pago</div>
+                  <div className="font-medium">{venta.metodoPago}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500">Estado</div>
+                  <Badge variant="outline" className={getEstadoColor(venta.estado)}>
+                    {venta.estado}
+                  </Badge>
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500">Tipo de Venta</div>
+                  <div className="font-medium">{venta.tipoVenta}</div>
+                </div>
+              </div>
+              
+              {/* Detalles de productos */}
+              <div>
+                <h3 className="text-sm font-medium mb-2">Productos</h3>
+                <div className="bg-gray-50 rounded-lg overflow-hidden">
+                  <div className="grid grid-cols-12 gap-2 p-2 text-xs font-medium text-gray-500 border-b">
+                    <div className="col-span-6">Producto</div>
+                    <div className="col-span-2 text-right">Precio</div>
+                    <div className="col-span-2 text-center">Cantidad</div>
+                    <div className="col-span-2 text-right">Subtotal</div>
+                  </div>
+                  {venta.detalles.map((detalle, idx) => (
+                    <div key={idx} className="grid grid-cols-12 gap-2 p-2 text-sm border-b last:border-0">
+                      <div className="col-span-6 font-medium">{detalle.producto}</div>
+                      <div className="col-span-2 text-right">{formatCurrency(detalle.precio)}</div>
+                      <div className="col-span-2 text-center">{detalle.cantidad}</div>
+                      <div className="col-span-2 text-right font-medium">{formatCurrency(detalle.precio * detalle.cantidad)}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Total */}
+              <div className="flex justify-between font-bold pt-2 border-t">
+                <span>Total</span>
+                <span>{formatCurrency(venta.total)}</span>
+              </div>
+              
+              {/* Botones de acción */}
+              <div className="flex justify-between pt-4">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="gap-1"
+                  onClick={() => handleReimprimir(venta.id)}
+                >
+                  <Printer className="h-4 w-4" />
+                  <span>Imprimir</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="gap-1"
+                  onClick={() => handleDescargar(venta.id)}
+                >
+                  <Download className="h-4 w-4" />
+                  <span>Descargar</span>
+                </Button>
+                {venta.estado !== "Anulada" && (
+                  <Button 
+                    variant="destructive" 
+                    size="sm"
+                    className="gap-1"
+                    onClick={() => {
+                      handleAnular(venta.id);
+                      setDetailsOpen(null);
+                    }}
+                  >
+                    <XCircle className="h-4 w-4" />
+                    <span>Anular</span>
+                  </Button>
+                )}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      ))}
     </MainLayout>
   );
 };

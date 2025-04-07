@@ -220,87 +220,187 @@ const POSPage: React.FC = () => {
             ))}
           </div>
           
-          {/* Productos en grid, diseño similar a la imagen */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {filteredProducts.map((producto) => (
-              <Card 
-                key={producto.id}
-                className="overflow-hidden hover:shadow-md transition-all border border-gray-200"
-              >
-                <div className="relative">
-                  {/* Imagen */}
-                  <div className="h-48 overflow-hidden">
-                    <img 
-                      src={producto.imagen} 
-                      alt={producto.nombre}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  
-                  {/* Badges y botones flotantes */}
-                  {producto.descuento > 0 && (
-                    <div className="absolute top-2 left-2 bg-amber-500 text-white text-xs font-bold px-2 py-1 rounded">
-                      {producto.descuento}% OFF
-                    </div>
-                  )}
-                  
-                  <button className="absolute top-2 right-2 bg-white p-1.5 rounded-full shadow hover:bg-gray-100">
-                    <Heart className={`h-4 w-4 ${producto.favorito ? 'text-red-500 fill-red-500' : 'text-gray-400'}`} />
-                  </button>
-                </div>
-                
-                {/* Información del producto */}
-                <CardContent className="p-3">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="font-medium text-sm mb-1 line-clamp-2">{producto.nombre}</h3>
-                      <div className="text-xs text-gray-500 mb-2">{producto.isVeg ? 'Veg' : 'Non-Veg'}</div>
-                      <div className="text-sm font-bold text-green-600">${producto.precioVenta.toFixed(2)}</div>
+          {/* Productos en grid con anidación para categorias como en la imagen de referencia */}
+          <div className="space-y-6">
+            {/* Categoría destacada - Productos más pequeños, anidados  */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-bold">Hamburguesas</h3>
+                <Button variant="ghost" size="sm" className="text-primary">
+                  Ver más
+                </Button>
+              </div>
+              
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                {filteredProducts.filter(p => p.id <= 3).map((producto) => (
+                  <Card 
+                    key={producto.id}
+                    className="overflow-hidden hover:shadow-md transition-all border border-gray-200"
+                  >
+                    <div className="relative">
+                      {/* Imagen */}
+                      <div className="h-28 overflow-hidden">
+                        <img 
+                          src={producto.imagen} 
+                          alt={producto.nombre}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      
+                      {/* Badges y botones flotantes */}
+                      {producto.descuento > 0 && (
+                        <div className="absolute top-2 left-2 bg-amber-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-sm">
+                          {producto.descuento}% OFF
+                        </div>
+                      )}
+                      
+                      <button className="absolute top-2 right-2 bg-white p-1 rounded-full shadow hover:bg-gray-100">
+                        <Heart className={`h-3 w-3 ${producto.favorito ? 'text-red-500 fill-red-500' : 'text-gray-400'}`} />
+                      </button>
                     </div>
                     
-                    {/* Botones de añadir o de cantidad */}
-                    <div>
-                      {cart.find(item => item.id === producto.id) ? (
-                        <div className="flex items-center border rounded bg-primary bg-opacity-10 border-primary">
-                          <button 
-                            className="p-1 text-primary hover:bg-primary hover:bg-opacity-20"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const item = cart.find(i => i.id === producto.id);
-                              if (item) updateQuantity(producto.id, item.cantidad - 1);
-                            }}
-                          >
-                            <Minus className="h-4 w-4" />
-                          </button>
-                          <span className="px-2 py-1 text-sm">
-                            {cart.find(item => item.id === producto.id)?.cantidad || 0}
-                          </span>
-                          <button 
-                            className="p-1 text-primary hover:bg-primary hover:bg-opacity-20"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const item = cart.find(i => i.id === producto.id);
-                              if (item) updateQuantity(producto.id, item.cantidad + 1);
-                            }}
-                          >
-                            <Plus className="h-4 w-4" />
-                          </button>
+                    {/* Información del producto */}
+                    <CardContent className="p-2">
+                      <div>
+                        <h3 className="font-medium text-xs mb-0.5 line-clamp-1">{producto.nombre}</h3>
+                        <div className="text-[11px] text-gray-500">{producto.isVeg ? 'Veg' : 'Non-Veg'}</div>
+                        <div className="flex items-center justify-between mt-1">
+                          <div className="text-xs font-bold text-green-600">${producto.precioVenta.toFixed(2)}</div>
+                          
+                          {/* Botones de añadir o de cantidad */}
+                          {cart.find(item => item.id === producto.id) ? (
+                            <div className="flex items-center border rounded bg-primary bg-opacity-10 border-primary text-xs">
+                              <button 
+                                className="p-0.5 text-primary hover:bg-primary hover:bg-opacity-20"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const item = cart.find(i => i.id === producto.id);
+                                  if (item) updateQuantity(producto.id, item.cantidad - 1);
+                                }}
+                              >
+                                <Minus className="h-3 w-3" />
+                              </button>
+                              <span className="px-1 py-0.5 text-xs">
+                                {cart.find(item => item.id === producto.id)?.cantidad || 0}
+                              </span>
+                              <button 
+                                className="p-0.5 text-primary hover:bg-primary hover:bg-opacity-20"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const item = cart.find(i => i.id === producto.id);
+                                  if (item) updateQuantity(producto.id, item.cantidad + 1);
+                                }}
+                              >
+                                <Plus className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ) : (
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="h-6 text-xs px-1.5 bg-gray-50 hover:bg-primary hover:text-white border-gray-200"
+                              onClick={() => addToCart(producto)}
+                            >
+                              Add
+                            </Button>
+                          )}
                         </div>
-                      ) : (
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="bg-gray-100 hover:bg-primary hover:text-white border-gray-200"
-                          onClick={() => addToCart(producto)}
-                        >
-                          Add to Dish
-                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+            
+            {/* Segunda Categoría */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-bold">Ensaladas</h3>
+                <Button variant="ghost" size="sm" className="text-primary">
+                  Ver más
+                </Button>
+              </div>
+              
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                {filteredProducts.filter(p => p.id >= 4 && p.id <= 7).map((producto) => (
+                  <Card 
+                    key={producto.id}
+                    className="overflow-hidden hover:shadow-md transition-all border border-gray-200"
+                  >
+                    <div className="relative">
+                      {/* Imagen */}
+                      <div className="h-28 overflow-hidden">
+                        <img 
+                          src={producto.imagen} 
+                          alt={producto.nombre}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      
+                      {/* Badges y botones flotantes */}
+                      {producto.descuento > 0 && (
+                        <div className="absolute top-2 left-2 bg-amber-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-sm">
+                          {producto.descuento}% OFF
+                        </div>
                       )}
+                      
+                      <button className="absolute top-2 right-2 bg-white p-1 rounded-full shadow hover:bg-gray-100">
+                        <Heart className={`h-3 w-3 ${producto.favorito ? 'text-red-500 fill-red-500' : 'text-gray-400'}`} />
+                      </button>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    
+                    {/* Información del producto */}
+                    <CardContent className="p-2">
+                      <div>
+                        <h3 className="font-medium text-xs mb-0.5 line-clamp-1">{producto.nombre}</h3>
+                        <div className="text-[11px] text-gray-500">{producto.isVeg ? 'Veg' : 'Non-Veg'}</div>
+                        <div className="flex items-center justify-between mt-1">
+                          <div className="text-xs font-bold text-green-600">${producto.precioVenta.toFixed(2)}</div>
+                          
+                          {/* Botones de añadir o de cantidad */}
+                          {cart.find(item => item.id === producto.id) ? (
+                            <div className="flex items-center border rounded bg-primary bg-opacity-10 border-primary text-xs">
+                              <button 
+                                className="p-0.5 text-primary hover:bg-primary hover:bg-opacity-20"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const item = cart.find(i => i.id === producto.id);
+                                  if (item) updateQuantity(producto.id, item.cantidad - 1);
+                                }}
+                              >
+                                <Minus className="h-3 w-3" />
+                              </button>
+                              <span className="px-1 py-0.5 text-xs">
+                                {cart.find(item => item.id === producto.id)?.cantidad || 0}
+                              </span>
+                              <button 
+                                className="p-0.5 text-primary hover:bg-primary hover:bg-opacity-20"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const item = cart.find(i => i.id === producto.id);
+                                  if (item) updateQuantity(producto.id, item.cantidad + 1);
+                                }}
+                              >
+                                <Plus className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ) : (
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="h-6 text-xs px-1.5 bg-gray-50 hover:bg-primary hover:text-white border-gray-200"
+                              onClick={() => addToCart(producto)}
+                            >
+                              Add
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
         
