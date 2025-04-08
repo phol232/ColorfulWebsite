@@ -22,13 +22,22 @@ app.use((req, res, next) => {
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+        const responseString = JSON.stringify(capturedJsonResponse);
+        const responseLog = ` :: ${responseString}`;
+        if ((logLine.length + responseLog.length) > 80) {
+          const availableLength = 79 - responseLog.length;
+          if (availableLength > 0) {
+            logLine = logLine.slice(0, availableLength) + "…" + responseLog.slice(0, 80 - (availableLength + 1));
+          } else {
+            logLine = logLine.slice(0, 30) + "… Response too long";
+          }
+        } else {
+          logLine += responseLog;
+        }
       }
-
       if (logLine.length > 80) {
         logLine = logLine.slice(0, 79) + "…";
       }
-
       log(logLine);
     }
   });
@@ -38,33 +47,28 @@ app.use((req, res, next) => {
 
 (async () => {
   const server = await registerRoutes(app);
-
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+    console.error("Error capturado:", err); 
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
-
-    res.status(status).json({ message });
-    throw err;
+    res.status(status).json({ message }); 
   });
-
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
+  if (process.env.NODE_ENV === "development") { 
+    log("Setting up Vite middleware for development...");
     await setupVite(app, server);
   } else {
+    log("Serving static files for production...");
     serveStatic(app);
   }
-
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
   const port = 5000;
   server.listen({
     port,
-    host: "0.0.0.0",
-    reusePort: true,
+    host: "127.0.0.1", 
   }, () => {
-    log(`serving on port ${port}`);
+    console.log(`Servidor escuchando en http://localhost:${port}`);
   });
-})();
+
+})().catch(err => {
+  console.error("Error durante el inicio del servidor:", err);
+  process.exit(1); 
+});
