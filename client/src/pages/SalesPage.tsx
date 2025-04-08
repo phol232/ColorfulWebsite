@@ -219,76 +219,58 @@ const SalesPage: React.FC = () => {
   return (
     <MainLayout>
       <div className="container mx-auto px-4 py-6">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Ventas Completadas</h1>
-          <p className="text-gray-500">Registro financiero de todas las transacciones finalizadas</p>
-        </div>
-        
-        {/* Dashboard de métricas */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Total Ventas</CardDescription>
-              <CardTitle className="text-2xl">
-                {formatCurrency(estadisticas.totalVentas)}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pb-2">
-              <div className="flex items-center text-sm text-muted-foreground">
-                <CircleDollarSign className="mr-1 h-4 w-4 text-primary" />
-                <span className="text-xs">{estadisticas.totalTransacciones} transacciones</span>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-bold">Ventas Completadas</h1>
+            <p className="text-gray-500">Registro financiero de todas las transacciones finalizadas</p>
+          </div>
           
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Ganancia Neta</CardDescription>
-              <CardTitle className="text-2xl text-green-600">
-                {formatCurrency(estadisticas.gananciaTotal)}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pb-2">
-              <div className="flex items-center text-sm text-muted-foreground">
-                <TrendingUp className="mr-1 h-4 w-4 text-green-500" />
-                <span className="text-xs">Margen del {estadisticas.margenPromedio.toFixed(2)}%</span>
+          {/* Dashboard de métricas horizontal */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 md:mt-0">
+            <div className="bg-background border rounded-md p-2 shadow-sm">
+              <div className="text-xs text-muted-foreground mb-1">Total Ventas</div>
+              <div className="text-base font-semibold">{formatCurrency(estadisticas.totalVentas)}</div>
+              <div className="flex items-center text-xs text-muted-foreground mt-1">
+                <CircleDollarSign className="mr-1 h-3 w-3 text-primary" />
+                <span>{estadisticas.totalTransacciones} transacciones</span>
               </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Método Principal</CardDescription>
-              <CardTitle className="text-2xl">
+            </div>
+            
+            <div className="bg-background border rounded-md p-2 shadow-sm">
+              <div className="text-xs text-muted-foreground mb-1">Ganancia Neta</div>
+              <div className="text-base font-semibold text-green-600">{formatCurrency(estadisticas.gananciaTotal)}</div>
+              <div className="flex items-center text-xs text-muted-foreground mt-1">
+                <TrendingUp className="mr-1 h-3 w-3 text-green-500" />
+                <span>Margen del {estadisticas.margenPromedio.toFixed(2)}%</span>
+              </div>
+            </div>
+            
+            <div className="bg-background border rounded-md p-2 shadow-sm">
+              <div className="text-xs text-muted-foreground mb-1">Método Principal</div>
+              <div className="text-base font-semibold">
                 {estadisticas.metodosPago.length > 0 ? estadisticas.metodosPago[0].metodo : "N/A"}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pb-2">
-              <div className="flex items-center text-sm text-muted-foreground">
-                <CreditCard className="mr-1 h-4 w-4 text-primary" />
-                <span className="text-xs">
+              </div>
+              <div className="flex items-center text-xs text-muted-foreground mt-1">
+                <CreditCard className="mr-1 h-3 w-3 text-primary" />
+                <span>
                   {estadisticas.metodosPago.length > 0 
                     ? formatCurrency(estadisticas.metodosPago[0].monto)
                     : "Sin datos"}
                 </span>
               </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardDescription>Promedio por Venta</CardDescription>
-              <CardTitle className="text-2xl">
+            </div>
+            
+            <div className="bg-background border rounded-md p-2 shadow-sm">
+              <div className="text-xs text-muted-foreground mb-1">Promedio por Venta</div>
+              <div className="text-base font-semibold">
                 {formatCurrency(estadisticas.totalVentas / Math.max(1, estadisticas.totalTransacciones))}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pb-2">
-              <div className="flex items-center text-sm text-muted-foreground">
-                <Receipt className="mr-1 h-4 w-4 text-primary" />
-                <span className="text-xs">Por transacción</span>
               </div>
-            </CardContent>
-          </Card>
+              <div className="flex items-center text-xs text-muted-foreground mt-1">
+                <Receipt className="mr-1 h-3 w-3 text-primary" />
+                <span>Por transacción</span>
+              </div>
+            </div>
+          </div>
         </div>
         
         {/* Filtros y Buscador */}
