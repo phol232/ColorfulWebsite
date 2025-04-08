@@ -255,7 +255,7 @@ const InvoicesPage: React.FC = () => {
     <MainLayout>
       <div className="container mx-auto px-4 py-6">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Facturas</h1>
+          <h1 className="text-3xl font-bold mb-2">FACTURAS</h1>
           <p className="text-gray-500">Gestión de facturas electrónicas y comprobantes fiscales</p>
         </div>
         

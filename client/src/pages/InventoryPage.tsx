@@ -201,7 +201,7 @@ const InventoryPage: React.FC = () => {
       <div className="container mx-auto px-4 py-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold">Gestión de Inventario</h1>
+            <h1 className="text-3xl font-bold">INVENTARIO</h1>
             <p className="text-sm text-gray-500">Administra tus productos y stock</p>
           </div>
           
