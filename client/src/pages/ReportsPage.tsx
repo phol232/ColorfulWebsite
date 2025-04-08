@@ -263,8 +263,8 @@ const ReportsPage: React.FC = () => {
                     </div>
                   </div>
                   <div className="mt-4 grid grid-cols-3 gap-2">
-                    {ventasMensuales.slice(3).map((mes, index) => (
-                      <div key={index} className="text-center">
+                    {ventasMensuales.slice(3).map((mes) => (
+                      <div key={`ventas-mes-${mes.mes}`} className="text-center">
                         <p className="text-xs text-gray-500">{mes.mes}</p>
                         <p className="font-semibold">{formatCurrency(mes.ventas)}</p>
                       </div>
@@ -286,8 +286,8 @@ const ReportsPage: React.FC = () => {
                     </div>
                   </div>
                   <div className="mt-4 grid grid-cols-3 gap-2">
-                    {ventasPorCategoria.slice(0, 3).map((categoria, index) => (
-                      <div key={index} className="text-center">
+                    {ventasPorCategoria.slice(0, 3).map((categoria) => (
+                      <div key={`distribucion-${categoria.categoria}`} className="text-center">
                         <p className="text-xs text-gray-500">{categoria.categoria}</p>
                         <p className="font-semibold">{categoria.porcentaje}%</p>
                       </div>
@@ -324,7 +324,7 @@ const ReportsPage: React.FC = () => {
                         const randomOrders = Math.floor(20 + Math.random() * 15);
                         
                         return (
-                          <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
+                          <tr key={`daily-sales-${date.toISOString()}`} className="border-b border-gray-100 hover:bg-gray-50">
                             <td className="px-4 py-3 text-sm">
                               <div className="font-medium">
                                 {date.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' })}
@@ -482,7 +482,7 @@ const ReportsPage: React.FC = () => {
                   
                   <div>
                     {ventasPorCategoria.map((categoria, index) => (
-                      <div key={index} className="mb-3">
+                      <div key={`ventas-cat-${categoria.categoria}`} className="mb-3">
                         <div className="flex justify-between items-center mb-1">
                           <span className="text-sm font-medium">{categoria.categoria}</span>
                           <span className="text-sm text-gray-500">{formatCurrency(categoria.ventas)}</span>
@@ -620,7 +620,7 @@ const ReportsPage: React.FC = () => {
                   
                   <div>
                     {ventasPorCategoria.map((categoria, index) => (
-                      <div key={index} className="mb-3">
+                      <div key={`inventario-cat-${categoria.categoria}`} className="mb-3">
                         <div className="flex justify-between items-center mb-1">
                           <span className="text-sm font-medium">{categoria.categoria}</span>
                           <span className="text-sm text-gray-500">{formatCurrency(categoria.ventas * 0.65)}</span>

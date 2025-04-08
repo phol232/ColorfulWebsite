@@ -199,13 +199,50 @@ const InventoryPage: React.FC = () => {
   return (
     <MainLayout>
       <div className="container mx-auto px-4 py-6">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Gestión de Inventario</h1>
-          <p className="text-gray-500">Administra tus productos, stock y movimientos de inventario</p>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-bold">Gestión de Inventario</h1>
+            <p className="text-sm text-gray-500">Administra tus productos y stock</p>
+          </div>
+          
+          {/* Dashboard de métricas horizontal */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 md:mt-0">
+            <div className="bg-background border rounded-md p-2 shadow-sm">
+              <div className="text-xs text-muted-foreground mb-1">Total Productos</div>
+              <div className="text-base font-semibold">125</div>
+              <div className="flex items-center text-xs text-green-600 mt-1">
+                <span>↑ 8 este mes</span>
+              </div>
+            </div>
+            
+            <div className="bg-background border rounded-md p-2 shadow-sm">
+              <div className="text-xs text-muted-foreground mb-1">Valor Inventario</div>
+              <div className="text-base font-semibold">{formatCurrency(75980.50)}</div>
+              <div className="flex items-center text-xs text-green-600 mt-1">
+                <span>↑ 12% vs mes anterior</span>
+              </div>
+            </div>
+            
+            <div className="bg-background border rounded-md p-2 shadow-sm">
+              <div className="text-xs text-muted-foreground mb-1">Stock Bajo</div>
+              <div className="text-base font-semibold">8</div>
+              <div className="flex items-center text-xs text-red-600 mt-1">
+                <span>3 críticos</span>
+              </div>
+            </div>
+            
+            <div className="bg-background border rounded-md p-2 shadow-sm">
+              <div className="text-xs text-muted-foreground mb-1">Movimientos</div>
+              <div className="text-base font-semibold">42</div>
+              <div className="flex items-center text-xs text-blue-600 mt-1">
+                <span>Últimos 30 días</span>
+              </div>
+            </div>
+          </div>
         </div>
-
-        {/* Métricas de Inventario */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        
+        {/* Ya no necesitamos las tarjetas antiguas */}
+        <div className="hidden">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Total de Productos</CardTitle>
@@ -457,11 +494,17 @@ const InventoryPage: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
               {[...productos, ...productos, ...productos].map((producto, index) => (
                 <div 
-                  key={producto.id} 
+                  key={`product-card-${producto.id}-${index}`} 
                   className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
                 >
-                  {/* Badge de descuento/oferta en esquina superior izquierda */}
-                  
+                  {/* Badge de descuento/oferta en esquina superior izquierda - solo para productos con descuento */}
+                  {producto.id === 2 && (
+                    <div className="absolute top-2 left-2 z-10">
+                      <div className="bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded">
+                        20% OFF
+                      </div>
+                    </div>
+                  )}
                   
                   {/* Imagen del producto */}
                   <div className="h-36 w-full bg-gray-100 relative flex items-center justify-center">
