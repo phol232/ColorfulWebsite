@@ -221,7 +221,7 @@ const SalesPage: React.FC = () => {
       <div className="container mx-auto px-4 py-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold">Ventas Completadas</h1>
+            <h1 className="text-3xl font-bold">VENTAS</h1>
             <p className="text-gray-500">Registro financiero de todas las transacciones finalizadas</p>
           </div>
           
