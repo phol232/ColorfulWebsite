@@ -461,13 +461,7 @@ const InventoryPage: React.FC = () => {
                   className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
                 >
                   {/* Badge de descuento/oferta en esquina superior izquierda */}
-                  {Math.random() > 0.6 && (
-                    <div className="absolute top-2 left-2 z-10">
-                      <div className="bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded">
-                        20% OFF
-                      </div>
-                    </div>
-                  )}
+                  
                   
                   {/* Imagen del producto */}
                   <div className="h-36 w-full bg-gray-100 relative flex items-center justify-center">
