@@ -100,25 +100,7 @@ const DashboardPage: React.FC = () => {
           <h2 className="text-xl font-semibold">Vista General</h2>
         </div>
 
-        {/* Accesos Rápidos */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <Button className="h-auto py-6 flex flex-col gap-2" variant="outline">
-            <PlusIcon className="h-6 w-6" />
-            <span>Nuevo Producto</span>
-          </Button>
-          <Button className="h-auto py-6 flex flex-col gap-2" variant="outline">
-            <ShoppingCart className="h-6 w-6" />
-            <span>Registrar Venta</span>
-          </Button>
-          <Button className="h-auto py-6 flex flex-col gap-2" variant="outline">
-            <ClipboardList className="h-6 w-6" />
-            <span>Ver Pedidos</span>
-          </Button>
-          <Button className="h-auto py-6 flex flex-col gap-2" variant="outline">
-            <UserPlus className="h-6 w-6" />
-            <span>Nuevo Cliente</span>
-          </Button>
-        </div>
+        
 
         {/* Resumen de Métricas */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
