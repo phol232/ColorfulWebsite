@@ -163,87 +163,54 @@ const OrdersPage: React.FC = () => {
   return (
     <MainLayout>
       <div className="container mx-auto px-4 py-6">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Gestión de Pedidos</h1>
-          <p className="text-gray-500">Administra todos los pedidos y actualiza sus estados</p>
-        </div>
-        
-        {/* Métricas de Pedidos */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Pedidos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center">
-                <ShoppingCart className="mr-2 h-4 w-4 text-primary" />
-                <div className="text-2xl font-bold">42</div>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                <span className="text-green-500">↑ 12%</span> este mes
-              </p>
-            </CardContent>
-          </Card>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-bold">PEDIDOS</h1>
+            <p className="text-sm text-gray-500">Administra todos los pedidos</p>
+          </div>
           
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Pendientes</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center">
-                <Clock className="mr-2 h-4 w-4 text-yellow-500" />
-                <div className="text-2xl font-bold">8</div>
+          {/* Dashboard de métricas horizontal */}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-4 md:mt-0">
+            <div className="bg-background border rounded-md p-2 shadow-sm">
+              <div className="text-xs text-muted-foreground mb-1">Total Pedidos</div>
+              <div className="text-base font-semibold">42</div>
+              <div className="flex items-center text-xs text-green-600 mt-1">
+                <span>↑ 12% este mes</span>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                Requieren atención pronto
-              </p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">En Proceso</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center">
-                <ShoppingBag className="mr-2 h-4 w-4 text-blue-500" />
-                <div className="text-2xl font-bold">5</div>
+            </div>
+            
+            <div className="bg-background border rounded-md p-2 shadow-sm">
+              <div className="text-xs text-muted-foreground mb-1">Pendientes</div>
+              <div className="text-base font-semibold">8</div>
+              <div className="flex items-center text-xs text-yellow-600 mt-1">
+                <span>Requieren atención</span>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                Siendo preparados
-              </p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Enviados</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center">
-                <Truck className="mr-2 h-4 w-4 text-indigo-500" />
-                <div className="text-2xl font-bold">12</div>
+            </div>
+            
+            <div className="bg-background border rounded-md p-2 shadow-sm">
+              <div className="text-xs text-muted-foreground mb-1">En Proceso</div>
+              <div className="text-base font-semibold">5</div>
+              <div className="flex items-center text-xs text-blue-600 mt-1">
+                <span>Siendo preparados</span>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                En camino a destino
-              </p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Completados</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center">
-                <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
-                <div className="text-2xl font-bold">17</div>
+            </div>
+            
+            <div className="bg-background border rounded-md p-2 shadow-sm">
+              <div className="text-xs text-muted-foreground mb-1">Enviados</div>
+              <div className="text-base font-semibold">12</div>
+              <div className="flex items-center text-xs text-indigo-600 mt-1">
+                <span>En camino a destino</span>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                Entregados exitosamente
-              </p>
-            </CardContent>
-          </Card>
+            </div>
+            
+            <div className="bg-background border rounded-md p-2 shadow-sm">
+              <div className="text-xs text-muted-foreground mb-1">Completados</div>
+              <div className="text-base font-semibold">17</div>
+              <div className="flex items-center text-xs text-green-600 mt-1">
+                <span>Entregados con éxito</span>
+              </div>
+            </div>
+          </div>
         </div>
         
         {/* Lista de Pedidos */}

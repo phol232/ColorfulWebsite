@@ -218,13 +218,50 @@ const CustomersPage: React.FC = () => {
   return (
     <MainLayout>
       <div className="container mx-auto px-4 py-6">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2">Gestión de Clientes</h1>
-          <p className="text-gray-500">Administra la información de tus clientes y analiza sus historiales de compra</p>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-bold">CLIENTES</h1>
+            <p className="text-sm text-gray-500">Administra la información de tus clientes</p>
+          </div>
+          
+          {/* Dashboard de métricas horizontal */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 md:mt-0">
+            <div className="bg-background border rounded-md p-2 shadow-sm">
+              <div className="text-xs text-muted-foreground mb-1">Total de Clientes</div>
+              <div className="text-base font-semibold">149</div>
+              <div className="flex items-center text-xs text-green-600 mt-1">
+                <span>+12% este mes</span>
+              </div>
+            </div>
+            
+            <div className="bg-background border rounded-md p-2 shadow-sm">
+              <div className="text-xs text-muted-foreground mb-1">Clientes Activos</div>
+              <div className="text-base font-semibold">137</div>
+              <div className="flex items-center text-xs text-green-600 mt-1">
+                <span>91.9% de retención</span>
+              </div>
+            </div>
+            
+            <div className="bg-background border rounded-md p-2 shadow-sm">
+              <div className="text-xs text-muted-foreground mb-1">Ticket Promedio</div>
+              <div className="text-base font-semibold">$32.50</div>
+              <div className="flex items-center text-xs text-green-600 mt-1">
+                <span>+5.2% vs mes anterior</span>
+              </div>
+            </div>
+            
+            <div className="bg-background border rounded-md p-2 shadow-sm">
+              <div className="text-xs text-muted-foreground mb-1">Compras Mensuales</div>
+              <div className="text-base font-semibold">215</div>
+              <div className="flex items-center text-xs text-green-600 mt-1">
+                <span>+8.7% este mes</span>
+              </div>
+            </div>
+          </div>
         </div>
         
-        {/* Tarjetas de resumen */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        {/* Ya no necesitamos las tarjetas antiguas */}
+        <div className="hidden">
           <Card>
             <CardContent className="pt-6">
               <div className="flex justify-between items-start">
