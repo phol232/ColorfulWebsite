@@ -51,20 +51,20 @@ const RegisterPage: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="w-full max-w-4xl overflow-hidden bg-white rounded-xl shadow-lg flex min-h-[600px] relative">
         {/* Sección izquierda con diseño diagonal usando clip-path */}
-        <div className="relative w-2/5 overflow-hidden">
+        <div className="relative w-[38%] overflow-hidden">
           {/* Fondo azul principal */}
           <div 
             className="absolute inset-0 bg-orange-500"
-            style={{ clipPath: "polygon(0 0, 100% 0, 85% 100%, 0 100%)" }}
+            style={{ clipPath: "polygon(0 0, 100% 0, 90% 100%, 0 100%)" }}
           ></div>
           
           {/* Contenido centrado */}
-          <div className="relative z-10 text-white p-12 h-full flex flex-col">
-            <div className="font-bold text-xl mb-12">SistemaGestión</div>
+          <div className="relative z-10 text-white px-8 py-10 h-full flex flex-col">
+            <div className="font-bold text-xl">SistemaGestión</div>
             
             <div className="flex-grow flex flex-col justify-center">
-              <h2 className="text-2xl font-bold mb-4">¿Ya tienes una cuenta?</h2>
-              <p className="text-sm opacity-90 mb-8">
+              <h2 className="text-2xl font-bold mb-3">¿Ya tienes una cuenta?</h2>
+              <p className="text-sm opacity-90 mb-6">
                 Todos los usuarios de nuestro sistema tienen acceso a funciones avanzadas para gestionar inventario, ventas y clientes de manera eficiente.
               </p>
               
@@ -78,7 +78,7 @@ const RegisterPage: React.FC = () => {
         </div>
         
         {/* Sección derecha - Blanco */}
-        <div className="w-3/5 p-12 h-full">
+        <div className="w-[62%] p-12 h-full">
           <div className="max-w-md mx-auto">
             <h1 className="text-2xl font-bold mb-2">Crea una cuenta nueva</h1>
             <p className="text-gray-600 mb-8">Completa los siguientes datos para registrarte en el sistema</p>
