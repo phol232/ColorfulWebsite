@@ -15,6 +15,8 @@ import CustomersPage from "@/pages/CustomersPage";
 import SuppliersPage from "@/pages/SuppliersPage";
 import ReportsPage from "@/pages/ReportsPage";
 import CategoriesPage from "@/pages/CategoriesPage";
+import LoginPage from "@/pages/LoginPage";
+import RegisterPage from "@/pages/RegisterPage";
 import { CartProvider } from "@/context/CartContext";
 
 function Router() {
@@ -32,6 +34,8 @@ function Router() {
       <Route path="/sales" component={SalesPage}/>
       <Route path="/invoices" component={InvoicesPage}/>
       <Route path="/categories" component={CategoriesPage}/>
+      <Route path="/login" component={LoginPage}/>
+      <Route path="/register" component={RegisterPage}/>
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>
