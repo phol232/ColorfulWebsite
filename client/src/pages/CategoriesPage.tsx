@@ -1,285 +1,237 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import MainLayout from "@/components/layouts/MainLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
   Search,
   Package,
   Pencil,
   Trash2,
   PlusCircle,
-  Filter,
   RefreshCcw,
-  Tags,
   ShoppingBag,
-  Truck,
-  Users,
-  BarChart2
 } from "lucide-react";
-import { Separator } from "@/components/ui/separator";
 
-// Datos de muestra para categorías de productos
-const categoriasProductos = [
-  { 
-    id: 1, 
-    nombre: "Hamburguesas", 
-    descripcion: "Hamburguesas de varios tipos y con diferentes ingredientes", 
-    productos: 14,
-    icono: "burger",
-    creado: "2023-12-15",
-    color: "bg-amber-100 text-amber-800 border-amber-400" 
-  },
-  { 
-    id: 2, 
-    nombre: "Pizzas", 
-    descripcion: "Pizzas tradicionales y de especialidad en diferentes tamaños", 
-    productos: 12,
-    icono: "pizza",
-    creado: "2023-12-15",
-    color: "bg-red-100 text-red-800 border-red-400" 
-  },
-  { 
-    id: 3, 
-    nombre: "Bebidas", 
-    descripcion: "Refrescos, aguas, café y bebidas especiales", 
-    productos: 20,
-    icono: "drink",
-    creado: "2023-12-18",
-    color: "bg-blue-100 text-blue-800 border-blue-400" 
-  },
-  { 
-    id: 4, 
-    nombre: "Postres", 
-    descripcion: "Postres, pasteles y opciones dulces", 
-    productos: 8,
-    icono: "cake",
-    creado: "2024-01-05",
-    color: "bg-pink-100 text-pink-800 border-pink-400" 
-  },
-  { 
-    id: 5, 
-    nombre: "Ensaladas", 
-    descripcion: "Ensaladas frescas y saludables", 
-    productos: 6,
-    icono: "salad",
-    creado: "2024-01-10",
-    color: "bg-green-100 text-green-800 border-green-400" 
-  },
-  { 
-    id: 6, 
-    nombre: "Complementos", 
-    descripcion: "Acompañamientos y extras", 
-    productos: 15,
-    icono: "side",
-    creado: "2024-01-12",
-    color: "bg-orange-100 text-orange-800 border-orange-400" 
-  },
-  { 
-    id: 7, 
-    nombre: "Desayunos", 
-    descripcion: "Platos y opciones para el desayuno", 
-    productos: 10,
-    icono: "breakfast",
-    creado: "2024-01-20",
-    color: "bg-yellow-100 text-yellow-800 border-yellow-400" 
-  },
-  { 
-    id: 8, 
-    nombre: "Combos", 
-    descripcion: "Combinaciones y paquetes especiales", 
-    productos: 7,
-    icono: "combo",
-    creado: "2024-02-05",
-    color: "bg-purple-100 text-purple-800 border-purple-400" 
-  },
-];
+const API_URL = "http://localhost:8000"; // Cambia según tu entorno/backend
 
-// Datos de muestra para categorías de proveedores
-const categoriasProveedores = [
-  { 
-    id: 1, 
-    nombre: "Alimentos", 
-    descripcion: "Proveedores de insumos alimenticios", 
-    proveedores: 8,
-    creado: "2023-11-10",
-    color: "bg-blue-100 text-blue-800 border-blue-400" 
-  },
-  { 
-    id: 2, 
-    nombre: "Bebidas", 
-    descripcion: "Proveedores de bebidas y refrescos", 
-    proveedores: 6,
-    creado: "2023-11-12",
-    color: "bg-green-100 text-green-800 border-green-400" 
-  },
-  { 
-    id: 3, 
-    nombre: "Empaques", 
-    descripcion: "Proveedores de material de empaque y desechables", 
-    proveedores: 4,
-    creado: "2023-11-20",
-    color: "bg-amber-100 text-amber-800 border-amber-400" 
-  },
-  { 
-    id: 4, 
-    nombre: "Vegetales", 
-    descripcion: "Proveedores de frutas y verduras frescas", 
-    proveedores: 5,
-    creado: "2023-12-05",
-    color: "bg-purple-100 text-purple-800 border-purple-400" 
-  },
-  { 
-    id: 5, 
-    nombre: "Condimentos", 
-    descripcion: "Proveedores de especias y condimentos", 
-    proveedores: 3,
-    creado: "2023-12-10",
-    color: "bg-rose-100 text-rose-800 border-rose-400" 
-  },
-];
-
-// Datos de muestra para categorías de clientes
-const categoriasClientes = [
-  { 
-    id: 1, 
-    nombre: "VIP", 
-    descripcion: "Clientes frecuentes con alto volumen de compras", 
-    clientes: 12,
-    creado: "2023-10-15",
-    color: "bg-purple-100 text-purple-800 border-purple-400" 
-  },
-  { 
-    id: 2, 
-    nombre: "Frecuente", 
-    descripcion: "Clientes que compran regularmente", 
-    clientes: 45,
-    creado: "2023-10-18",
-    color: "bg-blue-100 text-blue-800 border-blue-400" 
-  },
-  { 
-    id: 3, 
-    nombre: "Ocasional", 
-    descripcion: "Clientes que compran de forma esporádica", 
-    clientes: 58,
-    creado: "2023-10-20",
-    color: "bg-green-100 text-green-800 border-green-400" 
-  },
-  { 
-    id: 4, 
-    nombre: "Nuevo", 
-    descripcion: "Clientes con menos de un mes de antigüedad", 
-    clientes: 22,
-    creado: "2023-11-01",
-    color: "bg-yellow-100 text-yellow-800 border-yellow-400" 
-  },
-  { 
-    id: 5, 
-    nombre: "Inactivo", 
-    descripcion: "Clientes sin compras recientes (>3 meses)", 
-    clientes: 12,
-    creado: "2023-11-05",
-    color: "bg-gray-100 text-gray-800 border-gray-400" 
-  },
-];
+interface CategoriaProducto {
+  cat_id: string;
+  cat_nombre: string;
+  cat_descripcion: string;
+  cat_color: string;
+  cat_imagen?: string;
+  productos?: number;
+  creado?: string;
+}
 
 const CategoriesPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<string>("productos");
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddCategoryDialogOpen, setIsAddCategoryDialogOpen] = useState(false);
-  const [categoryType, setCategoryType] = useState("productos");
-  
-  // Filtrar categorías según la búsqueda y tipo actual
-  const getCategoriesByType = () => {
-    switch(activeTab) {
-      case "productos":
-        return categoriasProductos.filter(cat => 
-          cat.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          cat.descripcion.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-      case "proveedores":
-        return categoriasProveedores.filter(cat => 
-          cat.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          cat.descripcion.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-      case "clientes":
-        return categoriasClientes.filter(cat => 
-          cat.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          cat.descripcion.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-      default:
-        return [];
-    }
+  const [isEditCategoryDialogOpen, setIsEditCategoryDialogOpen] = useState(false);
+  const [categoriasProductos, setCategoriasProductos] = useState<CategoriaProducto[]>([]);
+  const [form, setForm] = useState({
+    cat_nombre: "",
+    cat_descripcion: "",
+    cat_color: "",
+    imagen: null as File | null,
+  });
+  const [editForm, setEditForm] = useState({
+    cat_id: "",
+    cat_nombre: "",
+    cat_descripcion: "",
+    cat_color: "",
+    imagen: null as File | null,
+    cat_imagen: "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<null | CategoriaProducto>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Cargar categorías desde API
+  const fetchCategorias = () => {
+    fetch(`${API_URL}/api/categorias`)
+      .then((res) => res.json())
+      .then((data) => setCategoriasProductos(data));
   };
-  
-  const filteredCategories = getCategoriesByType();
-  
-  // Mostrar diálogo para añadir nueva categoría
-  const handleAddCategory = (type: string) => {
-    setCategoryType(type);
-    setIsAddCategoryDialogOpen(true);
-  };
-  
+
+  useEffect(() => {
+    fetchCategorias();
+  }, []);
+
+  // Filtrar por búsqueda
+  const filteredCategories = categoriasProductos.filter(
+    (cat) =>
+      cat.cat_nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (cat.cat_descripcion && cat.cat_descripcion.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
   // Formatear fecha
-  const formatDate = (dateString: string) => {
-    const options: Intl.DateTimeFormatOptions = { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric'
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "";
+    const options: Intl.DateTimeFormatOptions = {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     };
-    return new Date(dateString).toLocaleDateString('es-ES', options);
+    return new Date(dateString).toLocaleDateString("es-ES", options);
   };
-  
-  // Renderizar contenido según el tipo de categoría
-  const renderCategoryDetailContent = (category: any) => {
-    switch(activeTab) {
-      case "productos":
-        return (
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <Package className="h-4 w-4 text-gray-500" />
-              <span className="text-sm text-gray-500">{category.productos} productos</span>
-            </div>
-            <Badge variant="outline" className={category.color}>Activa</Badge>
-          </div>
-        );
-      case "proveedores":
-        return (
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <Truck className="h-4 w-4 text-gray-500" />
-              <span className="text-sm text-gray-500">{category.proveedores} proveedores</span>
-            </div>
-            <Badge variant="outline" className={category.color}>Activa</Badge>
-          </div>
-        );
-      case "clientes":
-        return (
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-gray-500" />
-              <span className="text-sm text-gray-500">{category.clientes} clientes</span>
-            </div>
-            <Badge variant="outline" className={category.color}>Activa</Badge>
-          </div>
-        );
-      default:
-        return null;
+
+  // Manejadores de inputs
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const { id, value } = e.target;
+    setForm((prev) => ({ ...prev, [id]: value }));
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setForm((prev) => ({ ...prev, imagen: e.target.files![0] }));
     }
   };
+
+  // --------- EDITAR ------------
+  const handleEditClick = (categoria: CategoriaProducto) => {
+    setEditForm({
+      cat_id: categoria.cat_id,
+      cat_nombre: categoria.cat_nombre,
+      cat_descripcion: categoria.cat_descripcion,
+      cat_color: categoria.cat_color,
+      imagen: null,
+      cat_imagen: categoria.cat_imagen || "",
+    });
+    setIsEditCategoryDialogOpen(true);
+  };
+
+  const handleEditInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const { id, value } = e.target;
+    setEditForm((prev) => ({ ...prev, [id]: value }));
+  };
+
+  const handleEditFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setEditForm((prev) => ({ ...prev, imagen: e.target.files![0] }));
+    }
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    const formData = new FormData();
+    formData.append("cat_nombre", editForm.cat_nombre);
+    formData.append("cat_descripcion", editForm.cat_descripcion);
+    formData.append("cat_color", editForm.cat_color);
+    if (editForm.imagen) formData.append("imagen", editForm.imagen);
+
+    const res = await fetch(`${API_URL}/api/categorias/${editForm.cat_id}`, {
+      method: "POST", 
+      body: formData,
+      headers: {
+        "X-HTTP-Method-Override": "PUT",
+      },
+    });
+
+    if (res.ok) {
+      fetchCategorias();
+      setIsEditCategoryDialogOpen(false);
+      setEditForm({
+        cat_id: "",
+        cat_nombre: "",
+        cat_descripcion: "",
+        cat_color: "",
+        imagen: null,
+        cat_imagen: "",
+      });
+    } else {
+      alert("Error al editar categoría");
+    }
+    setLoading(false);
+  };
+
+  // Guardar nueva categoría
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    const formData = new FormData();
+    formData.append("cat_nombre", form.cat_nombre);
+    formData.append("cat_descripcion", form.cat_descripcion);
+    formData.append("cat_color", form.cat_color);
+    if (form.imagen) formData.append("imagen", form.imagen);
+
+    const res = await fetch(`${API_URL}/api/categorias`, {
+      method: "POST",
+      body: formData,
+    });
+
+    if (res.ok) {
+      fetchCategorias();
+      setIsAddCategoryDialogOpen(false);
+      setForm({ cat_nombre: "", cat_descripcion: "", cat_color: "", imagen: null });
+    } else {
+      alert("Error al crear categoría");
+    }
+    setLoading(false);
+  };
+
+  // ------- ELIMINAR ---------
+  const handleDeleteClick = (categoria: CategoriaProducto) => {
+    setDeleteTarget(categoria);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
+    const res = await fetch(`${API_URL}/api/categorias/${deleteTarget.cat_id}`, {
+      method: "DELETE",
+    });
+    if (res.ok) {
+      fetchCategorias();
+      setDeleteTarget(null);
+    } else {
+      alert("Error al eliminar categoría");
+    }
+    setDeleteLoading(false);
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteTarget(null);
+  };
+
+  // Render detalle de categoría (productos)
+  const renderCategoryDetailContent = (category: CategoriaProducto) => (
+    <div className="flex justify-between items-center">
+      <div className="flex items-center gap-2">
+        <Package className="h-4 w-4 text-gray-500" />
+        <span className="text-sm text-gray-500">{category.productos ?? 0} productos</span>
+      </div>
+      <Badge variant="outline" className={category.cat_color}>
+        Activa
+      </Badge>
+    </div>
+  );
 
   return (
     <MainLayout>
       <div className="container mx-auto px-4 py-6">
         <div className="mb-6">
           <h1 className="text-3xl font-bold mb-2">Gestión de Categorías</h1>
-          <p className="text-gray-500">Administra las categorías para productos, proveedores y clientes</p>
+          <p className="text-gray-500">
+            Administra las categorías para productos
+          </p>
         </div>
-        
-        {/* Tarjetas de resumen */}
+        {/* Tarjeta resumen */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           <Card>
             <CardContent className="pt-6">
@@ -295,297 +247,300 @@ const CategoriesPage: React.FC = () => {
               </div>
             </CardContent>
           </Card>
-          
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-gray-500 text-sm">Categorías de Proveedores</p>
-                  <h3 className="text-3xl font-bold mt-1">{categoriasProveedores.length}</h3>
-                  <p className="text-sm text-green-600 mt-1">Proveedores clasificados</p>
-                </div>
-                <div className="bg-green-100 p-3 rounded-full">
-                  <Truck className="h-6 w-6 text-green-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-gray-500 text-sm">Categorías de Clientes</p>
-                  <h3 className="text-3xl font-bold mt-1">{categoriasClientes.length}</h3>
-                  <p className="text-sm text-green-600 mt-1">Segmentos definidos</p>
-                </div>
-                <div className="bg-purple-100 p-3 rounded-full">
-                  <Users className="h-6 w-6 text-purple-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
-        
-        {/* Tabs para diferentes tipos de categorías */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
-          <TabsList className="bg-gray-100 p-1">
-            <TabsTrigger value="productos" className="rounded-md">Productos</TabsTrigger>
-            <TabsTrigger value="proveedores" className="rounded-md">Proveedores</TabsTrigger>
-            <TabsTrigger value="clientes" className="rounded-md">Clientes</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="productos" className="mt-4 space-y-4">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input 
-                  type="text" 
-                  placeholder="Buscar categoría de productos..." 
-                  className="pl-9" 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-              
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  className="flex items-center gap-2"
-                  onClick={() => setSearchQuery("")}
-                >
-                  <RefreshCcw className="h-4 w-4" />
-                  <span>Limpiar</span>
-                </Button>
-                
-                <Button 
-                  className="flex items-center gap-2"
-                  onClick={() => handleAddCategory("productos")}
-                >
-                  <PlusCircle className="h-4 w-4" />
-                  <span>Nueva Categoría</span>
-                </Button>
-              </div>
-            </div>
-            
-            {/* Lista de categorías de productos */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {filteredCategories.map(categoria => (
-                <Card key={categoria.id} className="overflow-hidden hover:shadow-md transition-shadow">
-                  <CardContent className="p-0">
-                    <div className="p-4 border-b">
-                      <div className="flex items-center justify-between mb-2">
-                        <Badge variant="outline" className={categoria.color}>
-                          {categoria.nombre}
-                        </Badge>
-                        <span className="text-xs text-gray-500">{formatDate(categoria.creado)}</span>
-                      </div>
-                      <p className="text-sm text-gray-600 line-clamp-2">{categoria.descripcion}</p>
-                    </div>
-                    <div className="p-4">
-                      {renderCategoryDetailContent(categoria)}
-                    </div>
-                    <div className="p-3 bg-gray-50 border-t flex justify-between">
-                      <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-800">
-                        <Pencil className="h-4 w-4 mr-1" /> Editar
-                      </Button>
-                      <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-800">
-                        <Trash2 className="h-4 w-4 mr-1" /> Eliminar
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="proveedores" className="mt-4 space-y-4">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input 
-                  type="text" 
-                  placeholder="Buscar categoría de proveedores..." 
-                  className="pl-9" 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-              
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  className="flex items-center gap-2"
-                  onClick={() => setSearchQuery("")}
-                >
-                  <RefreshCcw className="h-4 w-4" />
-                  <span>Limpiar</span>
-                </Button>
-                
-                <Button 
-                  className="flex items-center gap-2"
-                  onClick={() => handleAddCategory("proveedores")}
-                >
-                  <PlusCircle className="h-4 w-4" />
-                  <span>Nueva Categoría</span>
-                </Button>
-              </div>
-            </div>
-            
-            {/* Lista de categorías de proveedores */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {filteredCategories.map(categoria => (
-                <Card key={categoria.id} className="overflow-hidden hover:shadow-md transition-shadow">
-                  <CardContent className="p-0">
-                    <div className="p-4 border-b">
-                      <div className="flex items-center justify-between mb-2">
-                        <Badge variant="outline" className={categoria.color}>
-                          {categoria.nombre}
-                        </Badge>
-                        <span className="text-xs text-gray-500">{formatDate(categoria.creado)}</span>
-                      </div>
-                      <p className="text-sm text-gray-600 line-clamp-2">{categoria.descripcion}</p>
-                    </div>
-                    <div className="p-4">
-                      {renderCategoryDetailContent(categoria)}
-                    </div>
-                    <div className="p-3 bg-gray-50 border-t flex justify-between">
-                      <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-800">
-                        <Pencil className="h-4 w-4 mr-1" /> Editar
-                      </Button>
-                      <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-800">
-                        <Trash2 className="h-4 w-4 mr-1" /> Eliminar
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="clientes" className="mt-4 space-y-4">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input 
-                  type="text" 
-                  placeholder="Buscar categoría de clientes..." 
-                  className="pl-9" 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-              
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  className="flex items-center gap-2"
-                  onClick={() => setSearchQuery("")}
-                >
-                  <RefreshCcw className="h-4 w-4" />
-                  <span>Limpiar</span>
-                </Button>
-                
-                <Button 
-                  className="flex items-center gap-2"
-                  onClick={() => handleAddCategory("clientes")}
-                >
-                  <PlusCircle className="h-4 w-4" />
-                  <span>Nueva Categoría</span>
-                </Button>
-              </div>
-            </div>
-            
-            {/* Lista de categorías de clientes */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {filteredCategories.map(categoria => (
-                <Card key={categoria.id} className="overflow-hidden hover:shadow-md transition-shadow">
-                  <CardContent className="p-0">
-                    <div className="p-4 border-b">
-                      <div className="flex items-center justify-between mb-2">
-                        <Badge variant="outline" className={categoria.color}>
-                          {categoria.nombre}
-                        </Badge>
-                        <span className="text-xs text-gray-500">{formatDate(categoria.creado)}</span>
-                      </div>
-                      <p className="text-sm text-gray-600 line-clamp-2">{categoria.descripcion}</p>
-                    </div>
-                    <div className="p-4">
-                      {renderCategoryDetailContent(categoria)}
-                    </div>
-                    <div className="p-3 bg-gray-50 border-t flex justify-between">
-                      <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-800">
-                        <Pencil className="h-4 w-4 mr-1" /> Editar
-                      </Button>
-                      <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-800">
-                        <Trash2 className="h-4 w-4 mr-1" /> Eliminar
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-        </Tabs>
-        
-        {/* Diálogo para añadir nueva categoría */}
+        {/* Buscador y acciones */}
+        <div className="flex flex-col md:flex-row gap-4 mb-6">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              type="text"
+              placeholder="Buscar categoría de productos..."
+              className="pl-9"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="flex items-center gap-2"
+              onClick={() => setSearchQuery("")}
+            >
+              <RefreshCcw className="h-4 w-4" />
+              <span>Limpiar</span>
+            </Button>
+            <Button
+              className="flex items-center gap-2"
+              onClick={() => setIsAddCategoryDialogOpen(true)}
+            >
+              <PlusCircle className="h-4 w-4" />
+              <span>Nueva Categoría</span>
+            </Button>
+          </div>
+        </div>
+        {/* Lista de categorías */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {(filteredCategories as CategoriaProducto[]).map((categoria) => (
+            <Card key={categoria.cat_id} className="overflow-hidden hover:shadow-md transition-shadow">
+              <CardContent className="p-0">
+                {/* Imagen pequeña, centrada arriba */}
+                {categoria.cat_imagen && (
+                  <div className="w-full flex justify-center items-center pt-4">
+                    <img
+                      src={API_URL + categoria.cat_imagen}
+                      alt={categoria.cat_nombre}
+                      width={48}
+                      height={48}
+                      style={{
+                        width: "48px",
+                        height: "48px",
+                        objectFit: "cover",
+                        borderRadius: "0.5rem",
+                        border: "1px solid #eee",
+                        background: "#fafafa"
+                      }}
+                      onError={e => { (e.target as HTMLImageElement).src = "/img/default-category.png"; }}
+                    />
+                  </div>
+                )}
+                <div className="p-4 border-b">
+                  <div className="flex items-center justify-between mb-2">
+                    <Badge variant="outline" className={categoria.cat_color}>
+                      {categoria.cat_nombre}
+                    </Badge>
+                    <span className="text-xs text-gray-500">
+                      {formatDate(categoria.creado)}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-600 line-clamp-2">
+                    {categoria.cat_descripcion}
+                  </p>
+                </div>
+                <div className="p-4">{renderCategoryDetailContent(categoria)}</div>
+                <div className="p-3 bg-gray-50 border-t flex justify-between">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-blue-600 hover:text-blue-800"
+                    onClick={() => handleEditClick(categoria)}
+                  >
+                    <Pencil className="h-4 w-4 mr-1" /> Editar
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-600 hover:text-red-800"
+                    onClick={() => handleDeleteClick(categoria)}
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" /> Eliminar
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        {/* Dialog para crear nueva categoría */}
         <Dialog open={isAddCategoryDialogOpen} onOpenChange={setIsAddCategoryDialogOpen}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>
-                {categoryType === "productos" && "Crear Nueva Categoría de Productos"}
-                {categoryType === "proveedores" && "Crear Nueva Categoría de Proveedores"}
-                {categoryType === "clientes" && "Crear Nueva Categoría de Clientes"}
-              </DialogTitle>
+              <DialogTitle>Crear Nueva Categoría de Productos</DialogTitle>
               <DialogDescription>
                 Complete los campos para crear una nueva categoría
               </DialogDescription>
             </DialogHeader>
-            
-            <div className="space-y-4 py-4">
+            <form
+              onSubmit={handleSubmit}
+              className="space-y-4 py-4"
+              encType="multipart/form-data"
+            >
               <div className="grid gap-2">
-                <label htmlFor="nombre" className="text-sm font-medium">
+                <label htmlFor="cat_nombre" className="text-sm font-medium">
                   Nombre de la Categoría
                 </label>
-                <Input id="nombre" placeholder="Nombre de la categoría" />
+                <Input
+                  id="cat_nombre"
+                  value={form.cat_nombre}
+                  onChange={handleInputChange}
+                  required
+                />
               </div>
-              
               <div className="grid gap-2">
-                <label htmlFor="descripcion" className="text-sm font-medium">
+                <label htmlFor="cat_descripcion" className="text-sm font-medium">
                   Descripción
                 </label>
-                <textarea 
-                  id="descripcion" 
-                  rows={3} 
-                  placeholder="Descripción breve de la categoría"
+                <textarea
+                  id="cat_descripcion"
+                  rows={3}
+                  value={form.cat_descripcion}
+                  onChange={handleInputChange}
                   className="px-3 py-2 border border-gray-300 rounded-md w-full text-sm"
                 ></textarea>
               </div>
-              
-              {categoryType === "productos" && (
-                <div className="grid gap-2">
-                  <label htmlFor="color" className="text-sm font-medium">
-                    Color
-                  </label>
-                  <select id="color" className="px-3 py-2 border border-gray-300 rounded-md">
-                    <option value="bg-blue-100 text-blue-800 border-blue-400">Azul</option>
-                    <option value="bg-green-100 text-green-800 border-green-400">Verde</option>
-                    <option value="bg-red-100 text-red-800 border-red-400">Rojo</option>
-                    <option value="bg-yellow-100 text-yellow-800 border-yellow-400">Amarillo</option>
-                    <option value="bg-purple-100 text-purple-800 border-purple-400">Púrpura</option>
-                    <option value="bg-pink-100 text-pink-800 border-pink-400">Rosa</option>
-                    <option value="bg-orange-100 text-orange-800 border-orange-400">Naranja</option>
-                    <option value="bg-amber-100 text-amber-800 border-amber-400">Ámbar</option>
-                  </select>
-                </div>
-              )}
-            </div>
-            
+              <div className="grid gap-2">
+                <label htmlFor="cat_color" className="text-sm font-medium">
+                  Color
+                </label>
+                <select
+                  id="cat_color"
+                  value={form.cat_color}
+                  onChange={handleInputChange}
+                  className="px-3 py-2 border border-gray-300 rounded-md"
+                  required
+                >
+                  <option value="">Selecciona un color</option>
+                  <option value="bg-blue-100 text-blue-800 border-blue-400">Azul</option>
+                  <option value="bg-green-100 text-green-800 border-green-400">Verde</option>
+                  <option value="bg-red-100 text-red-800 border-red-400">Rojo</option>
+                  <option value="bg-yellow-100 text-yellow-800 border-yellow-400">Amarillo</option>
+                  <option value="bg-purple-100 text-purple-800 border-purple-400">Púrpura</option>
+                  <option value="bg-pink-100 text-pink-800 border-pink-400">Rosa</option>
+                  <option value="bg-orange-100 text-orange-800 border-orange-400">Naranja</option>
+                  <option value="bg-amber-100 text-amber-800 border-amber-400">Ámbar</option>
+                </select>
+              </div>
+              <div className="grid gap-2">
+                <label htmlFor="imagen" className="text-sm font-medium">
+                  Imagen
+                </label>
+                <Input
+                  id="imagen"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                />
+              </div>
+              <DialogFooter>
+                <Button variant="outline" type="button" onClick={() => setIsAddCategoryDialogOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={loading}>
+                  {loading ? "Guardando..." : "Guardar Categoría"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+        {/* Dialog para editar categoría */}
+        <Dialog open={isEditCategoryDialogOpen} onOpenChange={setIsEditCategoryDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Editar Categoría de Productos</DialogTitle>
+              <DialogDescription>
+                Modifica los campos y guarda los cambios
+              </DialogDescription>
+            </DialogHeader>
+            <form
+              onSubmit={handleEditSubmit}
+              className="space-y-4 py-4"
+              encType="multipart/form-data"
+            >
+              <div className="grid gap-2">
+                <label htmlFor="edit_cat_nombre" className="text-sm font-medium">
+                  Nombre de la Categoría
+                </label>
+                <Input
+                  id="cat_nombre"
+                  value={editForm.cat_nombre}
+                  onChange={handleEditInputChange}
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <label htmlFor="edit_cat_descripcion" className="text-sm font-medium">
+                  Descripción
+                </label>
+                <textarea
+                  id="cat_descripcion"
+                  rows={3}
+                  value={editForm.cat_descripcion}
+                  onChange={handleEditInputChange}
+                  className="px-3 py-2 border border-gray-300 rounded-md w-full text-sm"
+                ></textarea>
+              </div>
+              <div className="grid gap-2">
+                <label htmlFor="edit_cat_color" className="text-sm font-medium">
+                  Color
+                </label>
+                <select
+                  id="cat_color"
+                  value={editForm.cat_color}
+                  onChange={handleEditInputChange}
+                  className="px-3 py-2 border border-gray-300 rounded-md"
+                  required
+                >
+                  <option value="">Selecciona un color</option>
+                  <option value="bg-blue-100 text-blue-800 border-blue-400">Azul</option>
+                  <option value="bg-green-100 text-green-800 border-green-400">Verde</option>
+                  <option value="bg-red-100 text-red-800 border-red-400">Rojo</option>
+                  <option value="bg-yellow-100 text-yellow-800 border-yellow-400">Amarillo</option>
+                  <option value="bg-purple-100 text-purple-800 border-purple-400">Púrpura</option>
+                  <option value="bg-pink-100 text-pink-800 border-pink-400">Rosa</option>
+                  <option value="bg-orange-100 text-orange-800 border-orange-400">Naranja</option>
+                  <option value="bg-amber-100 text-amber-800 border-amber-400">Ámbar</option>
+                </select>
+              </div>
+              <div className="grid gap-2">
+                <label htmlFor="edit_imagen" className="text-sm font-medium">
+                  Imagen
+                </label>
+                {editForm.cat_imagen && (
+                  <div className="mb-2">
+                    <img
+                      src={API_URL + editForm.cat_imagen}
+                      alt="Imagen actual"
+                      width={48}
+                      height={48}
+                      style={{
+                        width: "48px",
+                        height: "48px",
+                        objectFit: "cover",
+                        borderRadius: "0.5rem",
+                        border: "1px solid #eee",
+                        background: "#fafafa"
+                      }}
+                      onError={e => { (e.target as HTMLImageElement).src = "/img/default-category.png"; }}
+                    />
+                    <span className="block text-xs text-gray-500">Imagen actual</span>
+                  </div>
+                )}
+                <Input
+                  id="imagen"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleEditFileChange}
+                />
+              </div>
+              <DialogFooter>
+                <Button variant="outline" type="button" onClick={() => setIsEditCategoryDialogOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={loading}>
+                  {loading ? "Guardando..." : "Guardar Cambios"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+        {/* Dialog para eliminar categoría */}
+        <Dialog open={!!deleteTarget} onOpenChange={handleDeleteCancel}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Eliminar Categoría</DialogTitle>
+              <DialogDescription>
+                ¿Estás seguro de que deseas eliminar la categoría "{deleteTarget?.cat_nombre}"? Esta acción no se puede deshacer.
+              </DialogDescription>
+            </DialogHeader>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsAddCategoryDialogOpen(false)}>
+              <Button variant="outline" onClick={handleDeleteCancel}>
                 Cancelar
               </Button>
-              <Button>Guardar Categoría</Button>
+              <Button
+                variant="destructive"
+                onClick={handleDeleteConfirm}
+                disabled={deleteLoading}
+              >
+                {deleteLoading ? "Eliminando..." : "Eliminar"}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

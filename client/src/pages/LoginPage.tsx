@@ -10,6 +10,7 @@ import {
   EyeOff 
 } from "lucide-react";
 import { Label } from "@/components/ui/label";
+import { loginApi } from "@/lib/api";
 
 const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -18,6 +19,8 @@ const LoginPage: React.FC = () => {
     password: "",
     rememberMe: false
   });
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -34,15 +37,28 @@ const LoginPage: React.FC = () => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Datos de login:", formData);
-    // Aquí iría la lógica para enviar los datos al backend
+    setErrorMsg(null);
+    setLoading(true);
+    try {
+      const res = await loginApi(formData.email, formData.password);
+      if (res.status && res.token) {
+        // Guarda el token (puedes usar localStorage, context, etc)
+        localStorage.setItem("token", res.token);
+        // Redirige a dashboard o página principal
+        window.location.href = "/dashboard";
+      } else {
+        setErrorMsg(res.message || "Error desconocido");
+      }
+    } catch (err) {
+      setErrorMsg("No se pudo conectar con el servidor.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const toggleShowPassword = () => {
-    setShowPassword(!showPassword);
-  };
+  const toggleShowPassword = () => setShowPassword(!showPassword);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -79,7 +95,11 @@ const LoginPage: React.FC = () => {
           <div className="max-w-md mx-auto">
             <h1 className="text-2xl font-bold mb-2">Iniciar Sesión</h1>
             <p className="text-gray-600 mb-8">Ingresa tus credenciales para acceder al sistema</p>
-            
+            {errorMsg && (
+              <div className="bg-red-100 text-red-700 px-3 py-2 rounded mb-4">
+                {errorMsg}
+              </div>
+            )}
             <form onSubmit={handleSubmit}>
               <div className="space-y-2 mb-4">
                 <Label htmlFor="email">Correo Electrónico</Label>
@@ -147,14 +167,16 @@ const LoginPage: React.FC = () => {
               <Button 
                 type="submit" 
                 className="w-full bg-orange-500 hover:bg-orange-600"
+                disabled={loading}
               >
-                INICIAR SESIÓN
+                {loading ? "Iniciando..." : "INICIAR SESIÓN"}
               </Button>
               
               <div className="mt-6 text-center text-sm text-gray-500">
                 <p>O inicia sesión con:</p>
                 <div className="flex justify-center space-x-4 mt-4">
                   <button className="p-2 border rounded-full">
+                    {/* Google Icon */}
                     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M22.5 12.066C22.5 11.234 22.4242 10.463 22.2969 9.71875H12V13.7148H17.9648C17.7617 14.9961 16.9883 16.1289 15.8086 16.8672V19.4531H19.2188C21.2852 17.5742 22.5 15.0469 22.5 12.066Z" fill="#4285F4"/>
                       <path d="M12 22.5C14.8125 22.5 17.1797 21.5977 19.2188 19.4531L15.8086 16.8672C14.8633 17.5195 13.5938 17.8984 12 17.8984C9.13359 17.8984 6.71016 16.0039 5.84766 13.4062H2.31797V16.0781C4.33594 19.9687 7.91016 22.5 12 22.5Z" fill="#34A853"/>
@@ -163,11 +185,13 @@ const LoginPage: React.FC = () => {
                     </svg>
                   </button>
                   <button className="p-2 border rounded-full">
+                    {/* Facebook Icon */}
                     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M22 12.0605C22 6.505 17.523 2 12.005 2C6.478 2 2 6.505 2 12.0605C2 17.083 5.657 21.245 10.441 22V15.0215H7.9V12.0605H10.441V9.848C10.441 7.2935 11.93 5.906 14.215 5.906C15.308 5.906 16.453 6.1015 16.453 6.1015V8.562H15.191C13.951 8.562 13.568 9.333 13.568 10.124V12.0605H16.334L15.891 15.0215H13.568V22C18.343 21.245 22 17.083 22 12.0605Z" fill="#1877F2"/>
                     </svg>
                   </button>
                   <button className="p-2 border rounded-full">
+                    {/* Apple Icon */}
                     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M17.2239 12.8357C17.2125 11.0543 18.0069 9.66612 19.6267 8.59948C18.7244 7.33024 17.3875 6.6291 15.6574 6.48119C14.0148 6.33894 12.2401 7.34924 11.6736 7.34924C11.0784 7.34924 9.50245 6.51965 8.2196 6.51965C5.97489 6.55663 3.55882 8.16673 3.55882 11.459C3.55882 12.5006 3.73809 13.5749 4.09662 14.6814C4.5701 16.1659 6.30705 19.5033 8.11267 19.4549C9.07961 19.4319 9.76048 18.7816 11.0215 18.7816C12.2455 18.7816 12.8737 19.4549 13.9479 19.4549C15.7651 19.4319 17.3243 16.4091 17.7745 14.9207C14.0376 13.2489 14.0148 9.35839 17.2239 8.35394V12.8357Z" fill="black"/>
                       <path d="M14.6801 4.83711C15.9143 3.35937 15.7872 2.02172 15.754 1.5C14.6046 1.57396 13.2945 2.3023 12.5744 3.21573C11.781 4.17855 11.3268 5.33719 11.4379 6.45536C12.6721 6.5064 13.6916 5.95703 14.6801 4.83711Z" fill="black"/>
