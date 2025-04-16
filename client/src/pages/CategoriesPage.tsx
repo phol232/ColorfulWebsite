@@ -22,7 +22,7 @@ import {
   ShoppingBag,
 } from "lucide-react";
 
-const API_URL = "http://localhost:8000"; // Cambia según tu entorno/backend
+const API_URL = "https://3909-190-236-32-145.ngrok-free.app"; 
 
 interface CategoriaProducto {
   cat_id: string;
