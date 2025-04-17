@@ -1,33 +1,54 @@
-import { defineConfig } from "vite";
+// vite.config.ts
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import themePlugin from "@replit/vite-plugin-shadcn-theme-json";
-import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
+import path from "path";
+import { fileURLToPath } from "url";
 
-export default defineConfig({
-  plugins: [
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const clientRoot = path.resolve(__dirname, "client");
+const publicDir = path.resolve(__dirname, "public");
+
+export default defineConfig(async ({ mode }) => {
+  // Carga las vars de entorno desde client/.env
+  const env = loadEnv(mode, clientRoot, "");
+
+  // Prepara plugins
+  const plugins: any[] = [
     react(),
     runtimeErrorOverlay(),
     themePlugin(),
-    ...(process.env.NODE_ENV !== "production" &&
-    process.env.REPL_ID !== undefined
-      ? [
-          await import("@replit/vite-plugin-cartographer").then((m) =>
-            m.cartographer(),
-          ),
-        ]
-      : []),
-  ],
-  resolve: {
-    alias: {
-      "@": path.resolve(import.meta.dirname, "client", "src"),
-      "@shared": path.resolve(import.meta.dirname, "shared"),
-      "@assets": path.resolve(import.meta.dirname, "attached_assets"),
+  ];
+  if (env.NODE_ENV !== "production" && process.env.REPL_ID) {
+    const { cartographer } = await import("@replit/vite-plugin-cartographer");
+    plugins.push(cartographer());
+  }
+
+  return {
+    root: clientRoot,
+    publicDir,
+    base: "/",
+    plugins,
+    resolve: {
+      alias: {
+        "@": path.resolve(clientRoot, "src"),
+        "@shared": path.resolve(__dirname, "shared"),
+        "@assets": path.resolve(__dirname, "attached_assets"),
+      },
     },
-  },
-  root: path.resolve(import.meta.dirname, "client"),
-  build: {
-    outDir: path.resolve(import.meta.dirname, "dist/public"),
-    emptyOutDir: true,
-  },
+    server: {
+      proxy: {
+        "/api": {
+          target: env.VITE_API_URL || "http://localhost:8000",
+          changeOrigin: true,
+          secure: false,
+        },
+      },
+    },
+    build: {
+      outDir: path.resolve(__dirname, "dist/public"),
+      emptyOutDir: true,
+    },
+  };
 });

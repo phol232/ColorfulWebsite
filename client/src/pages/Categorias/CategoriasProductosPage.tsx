@@ -1,3 +1,4 @@
+// client/src/pages/CategoriasProductosPage.tsx
 import React, { useState, useEffect } from "react";
 import MainLayout from "@/components/layouts/MainLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,8 +22,7 @@ import {
   RefreshCcw,
   ShoppingBag,
 } from "lucide-react";
-
-const API_URL = "http://localhost:8000"; 
+import { API_URL } from "@/config";
 
 interface CategoriaProducto {
   cat_id: string;
@@ -34,7 +34,7 @@ interface CategoriaProducto {
   creado?: string;
 }
 
-const CategoriesPage: React.FC = () => {
+const CategoriasProductosPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddCategoryDialogOpen, setIsAddCategoryDialogOpen] = useState(false);
   const [isEditCategoryDialogOpen, setIsEditCategoryDialogOpen] = useState(false);
@@ -61,7 +61,8 @@ const CategoriesPage: React.FC = () => {
   const fetchCategorias = () => {
     fetch(`${API_URL}/api/categorias`)
       .then((res) => res.json())
-      .then((data) => setCategoriasProductos(data));
+      .then((data) => setCategoriasProductos(data))
+      .catch((err) => console.error("Error al cargar categorías:", err));
   };
 
   useEffect(() => {
@@ -72,7 +73,8 @@ const CategoriesPage: React.FC = () => {
   const filteredCategories = categoriasProductos.filter(
     (cat) =>
       cat.cat_nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (cat.cat_descripcion && cat.cat_descripcion.toLowerCase().includes(searchQuery.toLowerCase()))
+      (cat.cat_descripcion &&
+        cat.cat_descripcion.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   // Formatear fecha
@@ -95,7 +97,7 @@ const CategoriesPage: React.FC = () => {
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
+    if (e.target.files?.[0]) {
       setForm((prev) => ({ ...prev, imagen: e.target.files![0] }));
     }
   };
@@ -121,7 +123,7 @@ const CategoriesPage: React.FC = () => {
   };
 
   const handleEditFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
+    if (e.target.files?.[0]) {
       setEditForm((prev) => ({ ...prev, imagen: e.target.files![0] }));
     }
   };
@@ -129,60 +131,72 @@ const CategoriesPage: React.FC = () => {
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
     const formData = new FormData();
     formData.append("cat_nombre", editForm.cat_nombre);
     formData.append("cat_descripcion", editForm.cat_descripcion);
     formData.append("cat_color", editForm.cat_color);
     if (editForm.imagen) formData.append("imagen", editForm.imagen);
 
-    const res = await fetch(`${API_URL}/api/categorias/${editForm.cat_id}`, {
-      method: "POST", 
-      body: formData,
-      headers: {
-        "X-HTTP-Method-Override": "PUT",
-      },
-    });
-
-    if (res.ok) {
-      fetchCategorias();
-      setIsEditCategoryDialogOpen(false);
-      setEditForm({
-        cat_id: "",
-        cat_nombre: "",
-        cat_descripcion: "",
-        cat_color: "",
-        imagen: null,
-        cat_imagen: "",
+    console.log("Enviando edición...");
+    try {
+      const res = await fetch(`${API_URL}/api/categorias/${editForm.cat_id}`, {
+        method: "POST",
+        headers: { "X-HTTP-Method-Override": "PUT" },
+        body: formData,
       });
-    } else {
+      if (res.ok) {
+        fetchCategorias();
+        setIsEditCategoryDialogOpen(false);
+        setEditForm({
+          cat_id: "",
+          cat_nombre: "",
+          cat_descripcion: "",
+          cat_color: "",
+          imagen: null,
+          cat_imagen: "",
+        });
+      } else {
+        alert("Error al editar categoría");
+      }
+    } catch (error) {
+      console.error("Error al enviar la petición:", error);
       alert("Error al editar categoría");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   // Guardar nueva categoría
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
     const formData = new FormData();
     formData.append("cat_nombre", form.cat_nombre);
     formData.append("cat_descripcion", form.cat_descripcion);
     formData.append("cat_color", form.cat_color);
     if (form.imagen) formData.append("imagen", form.imagen);
 
-    const res = await fetch(`${API_URL}/api/categorias`, {
-      method: "POST",
-      body: formData,
-    });
-
-    if (res.ok) {
-      fetchCategorias();
-      setIsAddCategoryDialogOpen(false);
-      setForm({ cat_nombre: "", cat_descripcion: "", cat_color: "", imagen: null });
-    } else {
+    console.log("Enviando nueva categoría...");
+    try {
+      const res = await fetch(`${API_URL}/api/categorias`, {
+        method: "POST",
+        body: formData,
+      });
+      if (res.ok) {
+        fetchCategorias();
+        setIsAddCategoryDialogOpen(false);
+        setForm({ cat_nombre: "", cat_descripcion: "", cat_color: "", imagen: null });
+      } else {
+        alert("Error al crear categoría");
+      }
+    } catch (error) {
+      console.error("Error al enviar la petición:", error);
       alert("Error al crear categoría");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   // ------- ELIMINAR ---------
@@ -193,44 +207,38 @@ const CategoriesPage: React.FC = () => {
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
     setDeleteLoading(true);
-    const res = await fetch(`${API_URL}/api/categorias/${deleteTarget.cat_id}`, {
-      method: "DELETE",
-    });
-    if (res.ok) {
-      fetchCategorias();
-      setDeleteTarget(null);
-    } else {
+
+    console.log("Eliminando categoría...");
+    try {
+      const res = await fetch(`${API_URL}/api/categorias/${deleteTarget.cat_id}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        fetchCategorias();
+        setDeleteTarget(null);
+      } else {
+        alert("Error al eliminar categoría");
+      }
+    } catch (error) {
+      console.error("Error al enviar la petición:", error);
       alert("Error al eliminar categoría");
+    } finally {
+      setDeleteLoading(false);
     }
-    setDeleteLoading(false);
   };
 
   const handleDeleteCancel = () => {
     setDeleteTarget(null);
   };
 
-  // Render detalle de categoría (productos)
-  const renderCategoryDetailContent = (category: CategoriaProducto) => (
-    <div className="flex justify-between items-center">
-      <div className="flex items-center gap-2">
-        <Package className="h-4 w-4 text-gray-500" />
-        <span className="text-sm text-gray-500">{category.productos ?? 0} productos</span>
-      </div>
-      <Badge variant="outline" className={category.cat_color}>
-        Activa
-      </Badge>
-    </div>
-  );
-
   return (
     <MainLayout>
       <div className="container mx-auto px-4 py-6">
         <div className="mb-6">
           <h1 className="text-3xl font-bold mb-2">Gestión de Categorías</h1>
-          <p className="text-gray-500">
-            Administra las categorías para productos
-          </p>
+          <p className="text-gray-500">Administra las categorías para productos</p>
         </div>
+
         {/* Tarjeta resumen */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           <Card>
@@ -248,6 +256,7 @@ const CategoriesPage: React.FC = () => {
             </CardContent>
           </Card>
         </div>
+
         {/* Buscador y acciones */}
         <div className="flex flex-col md:flex-row gap-4 mb-6">
           <div className="flex-1 relative">
@@ -261,29 +270,22 @@ const CategoriesPage: React.FC = () => {
             />
           </div>
           <div className="flex gap-2">
-            <Button
-              variant="outline"
-              className="flex items-center gap-2"
-              onClick={() => setSearchQuery("")}
-            >
+            <Button variant="outline" className="flex items-center gap-2" onClick={() => setSearchQuery("")}>
               <RefreshCcw className="h-4 w-4" />
               <span>Limpiar</span>
             </Button>
-            <Button
-              className="flex items-center gap-2"
-              onClick={() => setIsAddCategoryDialogOpen(true)}
-            >
+            <Button className="flex items-center gap-2" onClick={() => setIsAddCategoryDialogOpen(true)}>
               <PlusCircle className="h-4 w-4" />
               <span>Nueva Categoría</span>
             </Button>
           </div>
         </div>
+
         {/* Lista de categorías */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {(filteredCategories as CategoriaProducto[]).map((categoria) => (
+          {filteredCategories.map((categoria) => (
             <Card key={categoria.cat_id} className="overflow-hidden hover:shadow-md transition-shadow">
               <CardContent className="p-0">
-                {/* Imagen pequeña, centrada arriba */}
                 {categoria.cat_imagen && (
                   <div className="w-full flex justify-center items-center pt-4">
                     <img
@@ -297,9 +299,11 @@ const CategoriesPage: React.FC = () => {
                         objectFit: "cover",
                         borderRadius: "0.5rem",
                         border: "1px solid #eee",
-                        background: "#fafafa"
+                        background: "#fafafa",
                       }}
-                      onError={e => { (e.target as HTMLImageElement).src = "/img/default-category.png"; }}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = "/img/default-category.png";
+                      }}
                     />
                   </div>
                 )}
@@ -308,15 +312,21 @@ const CategoriesPage: React.FC = () => {
                     <Badge variant="outline" className={categoria.cat_color}>
                       {categoria.cat_nombre}
                     </Badge>
-                    <span className="text-xs text-gray-500">
-                      {formatDate(categoria.creado)}
-                    </span>
+                    <span className="text-xs text-gray-500">{formatDate(categoria.creado)}</span>
                   </div>
                   <p className="text-sm text-gray-600 line-clamp-2">
                     {categoria.cat_descripcion}
                   </p>
                 </div>
-                <div className="p-4">{renderCategoryDetailContent(categoria)}</div>
+                <div className="p-4 flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <Package className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm text-gray-500">{categoria.productos ?? 0} productos</span>
+                  </div>
+                  <Badge variant="outline" className={categoria.cat_color}>
+                    Activa
+                  </Badge>
+                </div>
                 <div className="p-3 bg-gray-50 border-t flex justify-between">
                   <Button
                     variant="ghost"
@@ -339,6 +349,7 @@ const CategoriesPage: React.FC = () => {
             </Card>
           ))}
         </div>
+
         {/* Dialog para crear nueva categoría */}
         <Dialog open={isAddCategoryDialogOpen} onOpenChange={setIsAddCategoryDialogOpen}>
           <DialogContent className="sm:max-w-md">
@@ -348,21 +359,12 @@ const CategoriesPage: React.FC = () => {
                 Complete los campos para crear una nueva categoría
               </DialogDescription>
             </DialogHeader>
-            <form
-              onSubmit={handleSubmit}
-              className="space-y-4 py-4"
-              encType="multipart/form-data"
-            >
+            <form onSubmit={handleSubmit} className="space-y-4 py-4" encType="multipart/form-data">
               <div className="grid gap-2">
                 <label htmlFor="cat_nombre" className="text-sm font-medium">
                   Nombre de la Categoría
                 </label>
-                <Input
-                  id="cat_nombre"
-                  value={form.cat_nombre}
-                  onChange={handleInputChange}
-                  required
-                />
+                <Input id="cat_nombre" value={form.cat_nombre} onChange={handleInputChange} required />
               </div>
               <div className="grid gap-2">
                 <label htmlFor="cat_descripcion" className="text-sm font-medium">
@@ -374,19 +376,13 @@ const CategoriesPage: React.FC = () => {
                   value={form.cat_descripcion}
                   onChange={handleInputChange}
                   className="px-3 py-2 border border-gray-300 rounded-md w-full text-sm"
-                ></textarea>
+                />
               </div>
               <div className="grid gap-2">
                 <label htmlFor="cat_color" className="text-sm font-medium">
                   Color
                 </label>
-                <select
-                  id="cat_color"
-                  value={form.cat_color}
-                  onChange={handleInputChange}
-                  className="px-3 py-2 border border-gray-300 rounded-md"
-                  required
-                >
+                <select id="cat_color" value={form.cat_color} onChange={handleInputChange} className="px-3 py-2 border border-gray-300 rounded-md" required>
                   <option value="">Selecciona un color</option>
                   <option value="bg-blue-100 text-blue-800 border-blue-400">Azul</option>
                   <option value="bg-green-100 text-green-800 border-green-400">Verde</option>
@@ -402,12 +398,7 @@ const CategoriesPage: React.FC = () => {
                 <label htmlFor="imagen" className="text-sm font-medium">
                   Imagen
                 </label>
-                <Input
-                  id="imagen"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                />
+                <Input id="imagen" type="file" accept="image/*" onChange={handleFileChange} />
               </div>
               <DialogFooter>
                 <Button variant="outline" type="button" onClick={() => setIsAddCategoryDialogOpen(false)}>
@@ -420,33 +411,23 @@ const CategoriesPage: React.FC = () => {
             </form>
           </DialogContent>
         </Dialog>
+
         {/* Dialog para editar categoría */}
         <Dialog open={isEditCategoryDialogOpen} onOpenChange={setIsEditCategoryDialogOpen}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Editar Categoría de Productos</DialogTitle>
-              <DialogDescription>
-                Modifica los campos y guarda los cambios
-              </DialogDescription>
+              <DialogDescription>Modifica los campos y guarda los cambios</DialogDescription>
             </DialogHeader>
-            <form
-              onSubmit={handleEditSubmit}
-              className="space-y-4 py-4"
-              encType="multipart/form-data"
-            >
+            <form onSubmit={handleEditSubmit} className="space-y-4 py-4" encType="multipart/form-data">
               <div className="grid gap-2">
-                <label htmlFor="edit_cat_nombre" className="text-sm font-medium">
+                <label htmlFor="cat_nombre" className="text-sm font-medium">
                   Nombre de la Categoría
                 </label>
-                <Input
-                  id="cat_nombre"
-                  value={editForm.cat_nombre}
-                  onChange={handleEditInputChange}
-                  required
-                />
+                <Input id="cat_nombre" value={editForm.cat_nombre} onChange={handleEditInputChange} required />
               </div>
               <div className="grid gap-2">
-                <label htmlFor="edit_cat_descripcion" className="text-sm font-medium">
+                <label htmlFor="cat_descripcion" className="text-sm font-medium">
                   Descripción
                 </label>
                 <textarea
@@ -455,19 +436,13 @@ const CategoriesPage: React.FC = () => {
                   value={editForm.cat_descripcion}
                   onChange={handleEditInputChange}
                   className="px-3 py-2 border border-gray-300 rounded-md w-full text-sm"
-                ></textarea>
+                />
               </div>
               <div className="grid gap-2">
-                <label htmlFor="edit_cat_color" className="text-sm font-medium">
+                <label htmlFor="cat_color" className="text-sm font-medium">
                   Color
                 </label>
-                <select
-                  id="cat_color"
-                  value={editForm.cat_color}
-                  onChange={handleEditInputChange}
-                  className="px-3 py-2 border border-gray-300 rounded-md"
-                  required
-                >
+                <select id="cat_color" value={editForm.cat_color} onChange={handleEditInputChange} className="px-3 py-2 border border-gray-300 rounded-md" required>
                   <option value="">Selecciona un color</option>
                   <option value="bg-blue-100 text-blue-800 border-blue-400">Azul</option>
                   <option value="bg-green-100 text-green-800 border-green-400">Verde</option>
@@ -480,7 +455,7 @@ const CategoriesPage: React.FC = () => {
                 </select>
               </div>
               <div className="grid gap-2">
-                <label htmlFor="edit_imagen" className="text-sm font-medium">
+                <label htmlFor="imagen" className="text-sm font-medium">
                   Imagen
                 </label>
                 {editForm.cat_imagen && (
@@ -496,19 +471,16 @@ const CategoriesPage: React.FC = () => {
                         objectFit: "cover",
                         borderRadius: "0.5rem",
                         border: "1px solid #eee",
-                        background: "#fafafa"
+                        background: "#fafafa",
                       }}
-                      onError={e => { (e.target as HTMLImageElement).src = "/img/default-category.png"; }}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = "/img/default-category.png";
+                      }}
                     />
                     <span className="block text-xs text-gray-500">Imagen actual</span>
                   </div>
                 )}
-                <Input
-                  id="imagen"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleEditFileChange}
-                />
+                <Input id="imagen" type="file" accept="image/*" onChange={handleEditFileChange} />
               </div>
               <DialogFooter>
                 <Button variant="outline" type="button" onClick={() => setIsEditCategoryDialogOpen(false)}>
@@ -521,32 +493,46 @@ const CategoriesPage: React.FC = () => {
             </form>
           </DialogContent>
         </Dialog>
+
         {/* Dialog para eliminar categoría */}
-        <Dialog open={!!deleteTarget} onOpenChange={handleDeleteCancel}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Eliminar Categoría</DialogTitle>
-              <DialogDescription>
-                ¿Estás seguro de que deseas eliminar la categoría "{deleteTarget?.cat_nombre}"? Esta acción no se puede deshacer.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button variant="outline" onClick={handleDeleteCancel}>
-                Cancelar
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={handleDeleteConfirm}
-                disabled={deleteLoading}
-              >
-                {deleteLoading ? "Eliminando..." : "Eliminar"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        {/* Dialog para eliminar categoría */}
+      <Dialog
+        open={!!deleteTarget}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) handleDeleteCancel(); // Cierra el diálogo correctamente
+        }}
+        >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Eliminar Categoría</DialogTitle>
+            <DialogDescription>
+              {deleteTarget ? (
+                <>
+                  ¿Estás seguro de que deseas eliminar la categoría "
+                  {deleteTarget.cat_nombre}"? Esta acción no se puede deshacer.
+                </>
+              ) : (
+                "No se ha seleccionado ninguna categoría para eliminar."
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleDeleteCancel}>
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteConfirm}
+              disabled={deleteLoading}
+            >
+              {deleteLoading ? "Eliminando..." : "Eliminar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       </div>
     </MainLayout>
   );
 };
 
-export default CategoriesPage;
+export default CategoriasProductosPage;

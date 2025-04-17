@@ -14,7 +14,7 @@ import InvoicesPage from "@/pages/InvoicesPage";
 import CustomersPage from "@/pages/CustomersPage";
 import SuppliersPage from "@/pages/SuppliersPage";
 import ReportsPage from "@/pages/ReportsPage";
-import CategoriesPage from "@/pages/CategoriesPage";
+import CategoriesPage from "@/pages/Categorias/CategoriesPage";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
 import { CartProvider } from "@/context/CartContext";

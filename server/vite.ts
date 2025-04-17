@@ -1,65 +1,62 @@
+// server/vite.ts
 import express, { type Express } from "express";
 import fs from "fs";
 import path from "path";
 import { createServer as createViteServer, createLogger } from "vite";
-import { type Server } from "http";
-import viteConfig from "../vite.config";
+import { fileURLToPath } from "url";
 import { nanoid } from "nanoid";
 
 const viteLogger = createLogger();
 
-export function log(message: string, source = "express") {
-  const formattedTime = new Date().toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: true,
-  });
+/** Helper de log para mantener el mismo formato que index.ts */
+export const log = (...args: any[]) => console.log("[vite]", ...args);
 
-  console.log(`${formattedTime} [${source}] ${message}`);
-}
+// ────────────────────────────────────────────────────────────
+//  Rutas importantes
+// ────────────────────────────────────────────────────────────
+const __dirname  = path.dirname(fileURLToPath(import.meta.url));
+const clientRoot = path.resolve(__dirname, "../client");          
+const viteConfig = path.resolve(__dirname, "../vite.config.ts");  
+const distDir    = path.resolve(__dirname, "../dist/public");     
 
-export async function setupVite(app: Express, server: Server) {
-  const serverOptions = {
-    middlewareMode: true,
-    hmr: { server },
-    allowedHosts: true,
-  };
-
+// ────────────────────────────────────────────────────────────
+//  Desarrollo: Vite como middleware
+// ────────────────────────────────────────────────────────────
+export async function setupVite(app: Express) {
   const vite = await createViteServer({
-    ...viteConfig,
-    configFile: false,
+    root: clientRoot,               // aquí vive el front
+    configFile: viteConfig,         // carga tu config completa
+    server: { middlewareMode: true },
+    appType: "custom",              // dejamos a Express servir HTML
     customLogger: {
       ...viteLogger,
-      error: (msg, options) => {
-        viteLogger.error(msg, options);
-        process.exit(1);
+      error: (msg, opt) => {
+        viteLogger.error(msg, opt);
+        process.exit(1);            // corta si hay errores graves
       },
     },
-    server: serverOptions,
-    appType: "custom",
   });
 
+  // monta middlewares de Vite
   app.use(vite.middlewares);
+
+  // fallback: devuelve index.html transformado por Vite
   app.use("*", async (req, res, next) => {
-    const url = req.originalUrl;
-
     try {
-      const clientTemplate = path.resolve(
-        import.meta.dirname,
-        "..",
-        "client",
-        "index.html",
+      const url = req.originalUrl;
+      const rawHtml = await fs.promises.readFile(
+        path.resolve(clientRoot, "index.html"),
+        "utf-8"
       );
 
-      // always reload the index.html file from disk incase it changes
-      let template = await fs.promises.readFile(clientTemplate, "utf-8");
-      template = template.replace(
+      // cache‑bust para main.tsx en cada request
+      const htmlWithNonce = rawHtml.replace(
         `src="/src/main.tsx"`,
-        `src="/src/main.tsx?v=${nanoid()}"`,
+        `src="/src/main.tsx?v=${nanoid()}"`
       );
-      const page = await vite.transformIndexHtml(url, template);
-      res.status(200).set({ "Content-Type": "text/html" }).end(page);
+
+      const html = await vite.transformIndexHtml(url, htmlWithNonce);
+      res.status(200).set({ "Content-Type": "text/html" }).end(html);
     } catch (e) {
       vite.ssrFixStacktrace(e as Error);
       next(e);
@@ -67,19 +64,20 @@ export async function setupVite(app: Express, server: Server) {
   });
 }
 
+// ────────────────────────────────────────────────────────────
+//  Producción: servir estáticos
+// ────────────────────────────────────────────────────────────
 export function serveStatic(app: Express) {
-  const distPath = path.resolve(import.meta.dirname, "public");
-
-  if (!fs.existsSync(distPath)) {
+  if (!fs.existsSync(distDir)) {
     throw new Error(
-      `Could not find the build directory: ${distPath}, make sure to build the client first`,
+      `No se encontró el directorio de build: ${distDir}. Ejecuta 'npm run build' primero.`
     );
   }
 
-  app.use(express.static(distPath));
+  app.use(express.static(distDir, { index: false }));
 
-  // fall through to index.html if the file doesn't exist
+  // fallback a index.html para rutas SPA
   app.use("*", (_req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
+    res.sendFile(path.resolve(distDir, "index.html"));
   });
 }
