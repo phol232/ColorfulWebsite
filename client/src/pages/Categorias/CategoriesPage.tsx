@@ -39,6 +39,9 @@ const CategoriasPage: React.FC = () => {
     <MainLayout>
       <div className="container mx-auto px-4 py-6">
         <h1 className="text-3xl font-bold mb-6">Gestión de Categorías</h1>
+        <p>Administra las diferentes categorias para productos, clientes y proveedores</p>
+        <br>
+        </br>
 
         {/* ─── Resumen ─── */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">

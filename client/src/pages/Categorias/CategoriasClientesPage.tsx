@@ -56,8 +56,6 @@ const CategoriasClientesPage: React.FC<Props> = ({ onChange }) => {
   const [loading, setLoading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<null | CategoriaCliente>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
-
-  // Cargar categorías de clientes desde API
   const fetchCategoriasClientes = () => {
     console.log("Solicitando categorías...");
     fetch(`${API_URL}/api/categorias-clientes`)
@@ -86,7 +84,6 @@ const CategoriasClientesPage: React.FC<Props> = ({ onChange }) => {
         cat.cli_cat_descripcion.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  // Manejadores de inputs
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
@@ -131,7 +128,7 @@ const CategoriasClientesPage: React.FC<Props> = ({ onChange }) => {
           method: "POST",
           headers: {
             "X-HTTP-Method-Override": "PUT",
-            Accept: "application/json", // ← aquí
+            Accept: "application/json", 
           },
           body: formData,
         }
@@ -180,7 +177,7 @@ const CategoriasClientesPage: React.FC<Props> = ({ onChange }) => {
       const res = await fetch(`${API_URL}/api/categorias-clientes`, {
         method: "POST",
         headers: {
-          Accept: "application/json", // ← aquí
+          Accept: "application/json", 
         },
         body: formData,
       });
@@ -255,9 +252,6 @@ const CategoriasClientesPage: React.FC<Props> = ({ onChange }) => {
 
   return (
       <>
-        
-
-        {/* Buscador y acciones */}
         <div className="flex flex-col md:flex-row gap-4 mb-6">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -287,8 +281,6 @@ const CategoriasClientesPage: React.FC<Props> = ({ onChange }) => {
             </Button>
           </div>
         </div>
-
-        {/* Lista de categorías */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {filteredCategories.map((categoria) => (
             <Card
@@ -329,8 +321,6 @@ const CategoriasClientesPage: React.FC<Props> = ({ onChange }) => {
             </Card>
           ))}
         </div>
-
-        {/* Dialog para crear nueva categoría */}
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
@@ -440,8 +430,6 @@ const CategoriasClientesPage: React.FC<Props> = ({ onChange }) => {
             </form>
           </DialogContent>
         </Dialog>
-
-        {/* Dialog para editar categoría */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
@@ -551,9 +539,6 @@ const CategoriasClientesPage: React.FC<Props> = ({ onChange }) => {
             </form>
           </DialogContent>
         </Dialog>
-
-        {/* Dialog para eliminar categoría */}
-        {/* Dialog para eliminar categoría */}
         <Dialog open={!!deleteTarget} onOpenChange={(isOpen) => !isOpen && handleDeleteCancel()}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
