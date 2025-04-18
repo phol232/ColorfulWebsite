@@ -31,7 +31,11 @@ interface CategoriaCliente {
   cli_color: string;
 }
 
-const CategoriasClientesPage: React.FC = () => {
+interface Props {
+  onChange: () => void;
+}
+
+const CategoriasClientesPage: React.FC<Props> = ({ onChange }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -184,6 +188,7 @@ const CategoriasClientesPage: React.FC = () => {
 
       if (res.ok) {
         fetchCategoriasClientes();
+        onChange?.(); 
         setIsAddDialogOpen(false);
         setForm({
           cli_cat_nombre: "",
@@ -226,6 +231,7 @@ const CategoriasClientesPage: React.FC = () => {
 
       if (res.ok) {
         fetchCategoriasClientes();
+        onChange?.();
         setDeleteTarget(null);
       } else {
         const errorData = await res.json();
@@ -248,40 +254,8 @@ const CategoriasClientesPage: React.FC = () => {
   };
 
   return (
-    <MainLayout>
-      <div className="container mx-auto px-4 py-6">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2">
-            Gestión de Categorías de Clientes
-          </h1>
-          <p className="text-gray-500">
-            Administra las categorías para clientes
-          </p>
-        </div>
-
-        {/* Tarjeta resumen */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-gray-500 text-sm">
-                    Categorías de Clientes
-                  </p>
-                  <h3 className="text-3xl font-bold mt-1">
-                    {categoriasClientes.length}
-                  </h3>
-                  <p className="text-sm text-green-600 mt-1">
-                    Clientes organizados
-                  </p>
-                </div>
-                <div className="bg-blue-100 p-3 rounded-full">
-                  <Users className="h-6 w-6 text-blue-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+      <>
+        
 
         {/* Buscador y acciones */}
         <div className="flex flex-col md:flex-row gap-4 mb-6">
@@ -609,8 +583,7 @@ const CategoriasClientesPage: React.FC = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
-    </MainLayout>
+      </>
   );
 };
 export default CategoriasClientesPage;

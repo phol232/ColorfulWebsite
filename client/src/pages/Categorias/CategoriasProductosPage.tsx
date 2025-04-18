@@ -34,7 +34,11 @@ interface CategoriaProducto {
   creado?: string;
 }
 
-const CategoriasProductosPage: React.FC = () => {
+interface Props {
+  onChange: () => void;
+}
+
+const CategoriasProductosPage: React.FC<Props> = ({ onChange }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddCategoryDialogOpen, setIsAddCategoryDialogOpen] = useState(false);
   const [isEditCategoryDialogOpen, setIsEditCategoryDialogOpen] = useState(false);
@@ -186,6 +190,7 @@ const CategoriasProductosPage: React.FC = () => {
       });
       if (res.ok) {
         fetchCategorias();
+        onChange?.();
         setIsAddCategoryDialogOpen(false);
         setForm({ cat_nombre: "", cat_descripcion: "", cat_color: "", imagen: null });
       } else {
@@ -215,6 +220,7 @@ const CategoriasProductosPage: React.FC = () => {
       });
       if (res.ok) {
         fetchCategorias();
+        onChange?.();
         setDeleteTarget(null);
       } else {
         alert("Error al eliminar categoría");
@@ -232,31 +238,7 @@ const CategoriasProductosPage: React.FC = () => {
   };
 
   return (
-    <MainLayout>
-      <div className="container mx-auto px-4 py-6">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2">Gestión de Categorías</h1>
-          <p className="text-gray-500">Administra las categorías para productos</p>
-        </div>
-
-        {/* Tarjeta resumen */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-gray-500 text-sm">Categorías de Productos</p>
-                  <h3 className="text-3xl font-bold mt-1">{categoriasProductos.length}</h3>
-                  <p className="text-sm text-green-600 mt-1">Productos organizados</p>
-                </div>
-                <div className="bg-blue-100 p-3 rounded-full">
-                  <ShoppingBag className="h-6 w-6 text-blue-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
+    <>
         {/* Buscador y acciones */}
         <div className="flex flex-col md:flex-row gap-4 mb-6">
           <div className="flex-1 relative">
@@ -493,9 +475,6 @@ const CategoriasProductosPage: React.FC = () => {
             </form>
           </DialogContent>
         </Dialog>
-
-        {/* Dialog para eliminar categoría */}
-        {/* Dialog para eliminar categoría */}
       <Dialog
         open={!!deleteTarget}
         onOpenChange={(isOpen) => {
@@ -530,8 +509,7 @@ const CategoriasProductosPage: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      </div>
-    </MainLayout>
+    </>
   );
 };
 
