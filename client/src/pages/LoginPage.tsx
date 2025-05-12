@@ -3,41 +3,39 @@ import { Link } from "wouter";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Mail,
-  Lock,
-  Eye,
-  EyeOff
-} from "lucide-react";
+import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { loginApi } from "@/lib/api";
 import { API_URL } from "@/config";
+import { useAuth } from "@/context/AuthContext";
 
 const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     usr_user: "",
     password: "",
-    rememberMe: false
+    rememberMe: false,
   });
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const handleCheckboxChange = (checked: boolean) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      rememberMe: checked
+      rememberMe: checked,
     }));
   };
 
+  const { login } = useAuth();
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
@@ -45,8 +43,7 @@ const LoginPage: React.FC = () => {
     try {
       const res = await loginApi(formData.usr_user, formData.password);
       if (res.status && res.token) {
-        localStorage.setItem("token", res.token);
-        window.location.href = "/dashboard";
+        login(res.token); // Utilizamos el método login del contexto
       } else {
         setErrorMsg(res.message || "Error desconocido");
       }
@@ -58,7 +55,10 @@ const LoginPage: React.FC = () => {
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = `${API_URL}/api/auth/google/redirect`;
+    // Asegúrate de que esta URL coincida exactamente con la configurada en tu backend Laravel
+    const redirectUrl = `${API_URL}/api/auth/google/redirect`;
+    console.log("Iniciando login con Google:", redirectUrl);
+    window.location.href = redirectUrl;
   };
 
   return (
@@ -145,7 +145,7 @@ const LoginPage: React.FC = () => {
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPassword(v => !v)}
+                    onClick={() => setShowPassword((v) => !v)}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
                   >
                     {showPassword ? (
