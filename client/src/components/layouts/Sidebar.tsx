@@ -1,12 +1,12 @@
-import React from "react";
+import React, { useState } from "react";
 import { useLocation, Link } from "wouter";
-import { 
+import {
   LayoutDashboard,
   Package,
-  UtensilsCrossed, 
+  UtensilsCrossed,
   Users,
-  BarChart2, 
-  CreditCard, 
+  BarChart2,
+  CreditCard,
   Settings,
   Search,
   Grid3X3,
@@ -22,6 +22,8 @@ import {
   Tags
 } from "lucide-react";
 import Logo from "../ui/Logo";
+import { useAuth } from "@/context/AuthContext";
+import { API_URL } from "@/config";
 
 interface SidebarProps {
   className?: string;
@@ -29,6 +31,37 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
   const [location] = useLocation();
+  const { logout } = useAuth();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+
+    try {
+      // Llamar al endpoint de logout en el backend
+      const token = localStorage.getItem("token");
+      if (token) {
+        await fetch(`${API_URL}/api/logout`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json"
+          }
+        });
+      }
+
+      // Llamar a la función logout del contexto para limpiar el estado local
+      logout();
+      console.log("Sesión cerrada correctamente");
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error);
+      // Aún así cerramos sesión localmente si hay un error en el backend
+      logout();
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
   const isActive = (path: string) => {
     return location === path;
@@ -58,81 +91,79 @@ const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
   const renderMenuItem = (item: any) => {
     const active = isActive(item.path);
     return (
-      <Link href={item.path}>
-        <div className={`flex items-center p-2.5 rounded-md transition-colors cursor-pointer ${
-          active 
-            ? 'bg-primary/10 text-primary' 
-            : 'text-gray-700 hover:bg-gray-100'
-        }`}>
+        <Link href={item.path}>
+          <div className={`flex items-center p-2.5 rounded-md transition-colors cursor-pointer ${
+              active
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-gray-700 hover:bg-gray-100'
+          }`}>
           <span className={`${active ? 'text-primary' : 'text-gray-500'}`}>
             {item.icon}
           </span>
-          <span className="ml-3 text-sm">{item.name}</span>
-          {active && <span className="ml-auto">
+            <span className="ml-3 text-sm">{item.name}</span>
+            {active && <span className="ml-auto">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </span>}
-        </div>
-      </Link>
+          </div>
+        </Link>
     );
   };
 
   return (
-    <aside className={`w-64 bg-white border-r border-gray-200 flex flex-col h-screen ${className}`}>
-      {/* Logo */}
-      <div className="flex px-5 py-5">
-        <Logo />
-      </div>
+      <aside className={`w-64 bg-white border-r border-gray-200 flex flex-col h-screen ${className}`}>
+        {/* Logo */}
+        <div className="flex px-5 py-5">
+          <Logo />
+        </div>
 
-      {/* Navegación Principal */}
-      <div className="flex-grow px-3 overflow-y-auto">
-        <div className="mb-6">
-          <h3 className="text-gray-500 font-medium text-xs uppercase tracking-wider px-3 mb-3">Menú Principal</h3>
-          <ul className="space-y-1">
-            {menuItems.map((item) => (
-              <li key={item.name}>
-                {renderMenuItem(item)}
-              </li>
-            ))}
-          </ul>
-        </div>
-        
-        {/* Gestión de Ventas */}
-        <div className="mb-6">
-          <h3 className="text-gray-500 font-medium text-xs uppercase tracking-wider px-3 mb-3">Gestión de Ventas</h3>
-          <ul className="space-y-1">
-            {salesItems.map((item) => (
-              <li key={item.name}>
-                {renderMenuItem(item)}
-              </li>
-            ))}
-          </ul>
-        </div>
-        
-        {/* Herramientas */}
-        <div className="mb-6">
-          <h3 className="text-gray-500 font-medium text-xs uppercase tracking-wider px-3 mb-3">Herramientas</h3>
-          <ul className="space-y-1">
-            {toolsItems.map((item) => (
-              <li key={item.name}>
-                {renderMenuItem(item)}
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
+        {/* Navegación Principal */}
+        <div className="flex-grow px-3 overflow-y-auto">
+          <div className="mb-6">
+            <h3 className="text-gray-500 font-medium text-xs uppercase tracking-wider px-3 mb-3">Menú Principal</h3>
+            <ul className="space-y-1">
+              {menuItems.map((item) => (
+                  <li key={item.name}>
+                    {renderMenuItem(item)}
+                  </li>
+              ))}
+            </ul>
+          </div>
 
-      {/* Logout */}
-      <div className="px-3 pt-4 pb-5 border-t border-gray-200">
-        <Link href="/logout">
-          <div className="flex items-center p-2.5 text-red-500 hover:bg-red-50 rounded-md transition-colors cursor-pointer">
+          {/* Gestión de Ventas */}
+          <div className="mb-6">
+            <h3 className="text-gray-500 font-medium text-xs uppercase tracking-wider px-3 mb-3">Gestión de Ventas</h3>
+            <ul className="space-y-1">
+              {salesItems.map((item) => (
+                  <li key={item.name}>
+                    {renderMenuItem(item)}
+                  </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Herramientas */}
+          <div className="mb-6">
+            <h3 className="text-gray-500 font-medium text-xs uppercase tracking-wider px-3 mb-3">Herramientas</h3>
+            <ul className="space-y-1">
+              {toolsItems.map((item) => (
+                  <li key={item.name}>
+                    {renderMenuItem(item)}
+                  </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        {/* Logout */}
+        <div className="px-3 pt-4 pb-5 border-t border-gray-200">
+          <div onClick={handleLogout} className="flex items-center p-2.5 text-red-500 hover:bg-red-50 rounded-md transition-colors cursor-pointer">
             <LogOut className="h-5 w-5" />
             <span className="ml-3 text-sm">Cerrar Sesión</span>
           </div>
-        </Link>
-      </div>
-    </aside>
+        </div>
+      </aside>
   );
 };
 

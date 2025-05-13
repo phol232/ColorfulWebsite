@@ -30,8 +30,8 @@ export interface RegisterResponse {
 }
 
 export async function loginApi(
-  usr_user: string,    
-  password: string
+    usr_user: string,
+    password: string
 ): Promise<LoginResponse> {
   const res = await fetch(`${API_URL}/api/login`, {
     method: "POST",
@@ -55,9 +55,27 @@ export async function registerApi(payload: {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Accept":       "application/json",   
+      "Accept":       "application/json",
     },
     body: JSON.stringify(payload),
+  });
+
+  return res.json();
+}
+
+export interface LogoutResponse {
+  status: boolean;
+  message: string;
+}
+
+export async function logoutApi(token: string): Promise<LogoutResponse> {
+  const res = await fetch(`${API_URL}/api/logout`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+    },
   });
 
   return res.json();

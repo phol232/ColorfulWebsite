@@ -10,7 +10,9 @@ const GoogleCallback: React.FC = () => {
   const { login } = useAuth();
 
   useEffect(() => {
+    // Extrae el token directamente de la URL si viene en ese formato
     const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
     const code = urlParams.get('code');
     const error = urlParams.get('error');
 
@@ -20,55 +22,54 @@ const GoogleCallback: React.FC = () => {
       return;
     }
 
-    if (!code) {
-      setError("No se recibió código de autorización");
-      console.error("URL de callback recibida:", window.location.href);
-      console.error("Parámetros URL:", Object.fromEntries(urlParams.entries()));
+    // Si ya tenemos el token directamente, usarlo
+    if (token) {
+      console.log("Token recibido directamente en callback:", token);
+      login(token);
       return;
     }
 
-    const exchangeCodeForToken = async () => {
-      try {
-        console.log("Enviando código a:", `${API_URL}/api/auth/google/callback?code=${code}`);
-
-        const response = await fetch(`${API_URL}/api/auth/google/callback?code=${code}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-          credentials: 'include'
-        });
-
-        console.log("Respuesta del servidor:", response.status);
-
+    // Si no hay token pero hay código, intercambiarlo por un token
+    if (code) {
+      const exchangeCodeForToken = async () => {
         try {
-          const data = await response.json();
-          console.log("Datos recibidos:", JSON.stringify(data).substring(0, 100) + "...");
+          console.log("Enviando código a:", `${API_URL}/api/auth/google/callback?code=${code}`);
 
-          if (response.ok && data.token) {
-            console.log("Token recibido en GoogleCallBack:", data.token);
-            login(data.token); // Usar el token para autenticar al usuario
+          const response = await fetch(`${API_URL}/api/auth/google/callback?code=${code}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            credentials: 'include'
+          });
 
-            // Agregar un pequeño retraso antes de la navegación manual
-            setTimeout(() => {
-              console.log("Navegando al dashboard después del login");
-              window.location.href = '/dashboard';
-            }, 500);
-          } else {
-            setError(data.message || "Error al autenticar con Google");
+          console.log("Respuesta del servidor:", response.status);
+
+          try {
+            const data = await response.json();
+            console.log("Datos recibidos:", JSON.stringify(data).substring(0, 100) + "...");
+
+            if (response.ok && data.token) {
+              console.log("Token recibido después de intercambiar código:", data.token);
+              login(data.token);
+            } else {
+              setError(data.message || "Error al autenticar con Google");
+            }
+          } catch (jsonError) {
+            console.error("Error al procesar JSON:", jsonError);
+            setError("Error en la respuesta del servidor");
           }
-        } catch (jsonError) {
-          console.error("Error al procesar JSON:", jsonError);
-          setError("Error en la respuesta del servidor");
+        } catch (err) {
+          setError("Error de conexión con el servidor");
+          console.error(err);
         }
-      } catch (err) {
-        setError("Error de conexión con el servidor");
-        console.error(err);
-      }
-    };
+      };
 
-    exchangeCodeForToken();
+      exchangeCodeForToken();
+    } else {
+      setError("No se recibió código de autorización ni token");
+    }
   }, [login, setLocation]);
 
   // Si hay un error, mostrar mensaje después de 5 segundos redirigir a login

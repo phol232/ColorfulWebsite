@@ -79,7 +79,7 @@ const Routes: React.FC = () => {
 
             {/* RAÍZ / REDIRECCIÓN POR DEFECTO */}
             <Route path="/">
-                {isAuthenticated ? <Redirect to="/dashboard" /> : <Redirect to="/login" />}
+                <Redirect to={isAuthenticated ? "/dashboard" : "/login"} />
             </Route>
 
             {/* 404 */}

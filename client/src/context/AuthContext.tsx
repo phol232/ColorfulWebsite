@@ -20,27 +20,77 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
                                                                 }) => {
   // Lee el token SÍNCRONAMENTE al iniciar para evitar el salto de rutas
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    console.log('Inicializando estado de autenticación');
     if (typeof window === "undefined") return false;
-    return !!localStorage.getItem("token");
+
+    const token = localStorage.getItem("token");
+    const tokenIsValid = token !== null && token !== undefined && token !== "";
+
+    console.log('Token encontrado:', !!token, 'Token válido:', tokenIsValid);
+    return tokenIsValid;
   });
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
+
+  // Mejorar lógica de redirección para evitar bucles y comportamientos inesperados
+  React.useEffect(() => {
+    console.log('Auth state changed:', { isAuthenticated, location });
+
+    // Si el usuario está autenticado y está en rutas públicas, redirigir a dashboard
+    if (isAuthenticated) {
+      if (location === "/" || location === "/login" || location === "/register") {
+        console.log('Redirigiendo a dashboard (autenticado en ruta pública)');
+        setLocation("/dashboard");
+      }
+    }
+    // Si el usuario NO está autenticado y NO está en una ruta pública permitida, redirigir a login
+    else if (!isAuthenticated &&
+        location !== "/login" &&
+        location !== "/register" &&
+        location !== "/" &&
+        !location.includes("auth/google") &&
+        !location.includes("api/auth/google/callback") &&
+        !location.startsWith("/auth/google") &&
+        !location.startsWith("/api/auth/google")) {
+      console.log('Redirigiendo a login (no autenticado en ruta protegida)');
+      console.log('Ubicación actual:', location);
+      setLocation("/login");
+    }
+  }, [location, isAuthenticated]);
 
   const login = (token: string) => {
-    localStorage.setItem("token", token);
+    console.log('Login ejecutado con token');
+    // Primero actualizar el estado
     setIsAuthenticated(true);
+    // Luego guardar en localStorage
+    localStorage.setItem("token", token);
+    // Redirigir usando wouter
     setLocation("/dashboard");
-    // Fallback por si el navegador no respeta setLocation
+
+    // Fallback si la redirección no funciona correctamente
     setTimeout(() => {
       if (window.location.pathname !== "/dashboard") {
+        console.log('Fallback: Redirigiendo manualmente a dashboard');
         window.location.href = "/dashboard";
       }
-    }, 200);
+    }, 300);
   };
 
   const logout = () => {
-    localStorage.removeItem("token");
+    console.log('Logout ejecutado');
+    // Primero actualizar el estado
     setIsAuthenticated(false);
+    // Luego eliminar de localStorage
+    localStorage.removeItem("token");
+    // Redirigir usando wouter
     setLocation("/login");
+
+    // Fallback si la redirección no funciona correctamente
+    setTimeout(() => {
+      if (window.location.pathname !== "/login") {
+        console.log('Fallback: Redirigiendo manualmente a login');
+        window.location.href = "/login";
+      }
+    }, 300);
   };
 
   return (
