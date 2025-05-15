@@ -1,4 +1,4 @@
-
+// src/pages/auth/google/callback.tsx
 import React, { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/context/AuthContext";
@@ -10,75 +10,56 @@ const GoogleCallback: React.FC = () => {
   const { login } = useAuth();
 
   useEffect(() => {
-    // Extrae el token directamente de la URL si viene en ese formato
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
-    const code = urlParams.get('code');
     const error = urlParams.get('error');
 
     if (error) {
       setError(`Error de Google: ${error}`);
-      console.error("Error de Google:", error);
       return;
     }
 
-    // Si ya tenemos el token directamente, usarlo
     if (token) {
-      console.log("Token recibido directamente en callback:", token);
-      login(token);
-      return;
-    }
+      // 1. Guardar el token
+      localStorage.setItem("token", token);
 
-    // Si no hay token pero hay código, intercambiarlo por un token
-    if (code) {
-      const exchangeCodeForToken = async () => {
-        try {
-          console.log("Enviando código a:", `${API_URL}/api/auth/google/callback?code=${code}`);
-
-          const response = await fetch(`${API_URL}/api/auth/google/callback?code=${code}`, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-            credentials: 'include'
-          });
-
-          console.log("Respuesta del servidor:", response.status);
-
-          try {
-            const data = await response.json();
-            console.log("Datos recibidos:", JSON.stringify(data).substring(0, 100) + "...");
-
-            if (response.ok && data.token) {
-              console.log("Token recibido después de intercambiar código:", data.token);
-              login(data.token);
-            } else {
-              setError(data.message || "Error al autenticar con Google");
-            }
-          } catch (jsonError) {
-            console.error("Error al procesar JSON:", jsonError);
-            setError("Error en la respuesta del servidor");
-          }
-        } catch (err) {
-          setError("Error de conexión con el servidor");
-          console.error(err);
+      // 2. Consultar /api/user para obtener el perfil completo
+      fetch(`${API_URL}/api/user`, {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Accept": "application/json",
         }
-      };
+      })
+          .then(async (resp) => {
+            if (resp.ok) {
+              const data = await resp.json();
+              const usuario = data.usuario || data; // depende de tu API, pero ambos cubren el caso
 
-      exchangeCodeForToken();
+              // 3. Guardar el perfil y usr_id en localStorage
+              if (usuario && usuario.usr_id) {
+                localStorage.setItem("userProfile", JSON.stringify(usuario));
+                localStorage.setItem("userId", usuario.usr_id);
+
+                // 4. Llamar login del contexto para guardar en React
+                login(token, usuario);
+
+                setLocation("/dashboard");
+              } else {
+                setError("No se pudo obtener el perfil de usuario.");
+              }
+            } else {
+              setError("No se pudo obtener el perfil del usuario desde el backend.");
+            }
+          })
+          .catch(() => setError("Error al conectar con el backend."));
     } else {
-      setError("No se recibió código de autorización ni token");
+      setError("No se recibió token válido.");
     }
   }, [login, setLocation]);
 
-  // Si hay un error, mostrar mensaje después de 5 segundos redirigir a login
   useEffect(() => {
     if (error) {
-      const timer = setTimeout(() => {
-        setLocation('/login');
-      }, 5000);
-
+      const timer = setTimeout(() => setLocation("/login"), 5000);
       return () => clearTimeout(timer);
     }
   }, [error, setLocation]);

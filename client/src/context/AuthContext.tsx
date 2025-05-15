@@ -3,98 +3,152 @@ import React, {
   createContext,
   useContext,
   useState,
+  useEffect,
   ReactNode,
 } from "react";
 import { useLocation } from "wouter";
+import { API_URL } from "@/config";
+
+interface UserProfile {
+  name?: string;
+  email?: string;
+  avatar?: string;
+  role?: string;
+  userId: string;
+  usr_id?: string;
+  sub?: string;
+  id?: string;
+  user_id?: string;
+  google_id?: string;
+  perfil?: any;
+}
 
 interface AuthContextType {
   isAuthenticated: boolean;
-  login: (token: string) => void;
+  userProfile: UserProfile;
+  login: (token: string, userData?: any) => void;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({
-                                                                  children,
-                                                                }) => {
-  // Lee el token SÍNCRONAMENTE al iniciar para evitar el salto de rutas
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  // Estado inicial de autenticación
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    console.log('Inicializando estado de autenticación');
     if (typeof window === "undefined") return false;
-
     const token = localStorage.getItem("token");
-    const tokenIsValid = token !== null && token !== undefined && token !== "";
-
-    console.log('Token encontrado:', !!token, 'Token válido:', tokenIsValid);
-    return tokenIsValid;
+    return !!token;
   });
+
+  // Estado inicial de perfil de usuario
+  const [userProfile, setUserProfile] = useState<UserProfile>(() => {
+    if (typeof window === "undefined") return { userId: "" };
+    try {
+      const storedProfile = localStorage.getItem("userProfile");
+      const storedUserId = localStorage.getItem("userId");
+      if (storedProfile) {
+        const profile = JSON.parse(storedProfile);
+        if (!profile.userId && storedUserId) profile.userId = storedUserId;
+        return profile;
+      }
+      return { userId: storedUserId || "" };
+    } catch {
+      return { userId: "" };
+    }
+  });
+
   const [location, setLocation] = useLocation();
 
-  // Mejorar lógica de redirección para evitar bucles y comportamientos inesperados
-  React.useEffect(() => {
-    console.log('Auth state changed:', { isAuthenticated, location });
+  // Función para obtener los datos del usuario del backend
+  const fetchUserProfile = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
 
-    // Si el usuario está autenticado y está en rutas públicas, redirigir a dashboard
+      const response = await fetch(`${API_URL}/api/user`, {
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Accept": "application/json",
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const usuario = data.usuario || data; // Ajusta según tu API
+        if (usuario && usuario.usr_id) {
+          // Guardar en React y localStorage
+          setUserProfile(usuario);
+          localStorage.setItem("userProfile", JSON.stringify(usuario));
+          localStorage.setItem("userId", usuario.usr_id);
+        }
+      }
+    } catch (e) {
+      // Si hay error, no hace nada (el usuario tendrá que volver a loguearse)
+    }
+  };
+
+  // Cargar perfil del usuario cada vez que se autentica
+  useEffect(() => {
     if (isAuthenticated) {
-      if (location === "/" || location === "/login" || location === "/register") {
-        console.log('Redirigiendo a dashboard (autenticado en ruta pública)');
-        setLocation("/dashboard");
+      fetchUserProfile();
+    }
+  }, [isAuthenticated]);
+
+  // Redirección automática según autenticación
+  useEffect(() => {
+    if (isAuthenticated) {
+      if (["/", "/login", "/register"].includes(location)) setLocation("/dashboard");
+    } else {
+      if (
+          !["/login", "/register", "/"].includes(location) &&
+          !location.includes("auth/google") &&
+          !location.includes("api/auth/google/callback")
+      ) {
+        setLocation("/login");
       }
     }
-    // Si el usuario NO está autenticado y NO está en una ruta pública permitida, redirigir a login
-    else if (!isAuthenticated &&
-        location !== "/login" &&
-        location !== "/register" &&
-        location !== "/" &&
-        !location.includes("auth/google") &&
-        !location.includes("api/auth/google/callback") &&
-        !location.startsWith("/auth/google") &&
-        !location.startsWith("/api/auth/google")) {
-      console.log('Redirigiendo a login (no autenticado en ruta protegida)');
-      console.log('Ubicación actual:', location);
-      setLocation("/login");
-    }
-  }, [location, isAuthenticated]);
+  }, [location, isAuthenticated, setLocation]);
 
-  const login = (token: string) => {
-    console.log('Login ejecutado con token');
-    // Primero actualizar el estado
+  // Login: guarda token y consulta el perfil de usuario
+  const login = (token: string, userData?: any) => {
     setIsAuthenticated(true);
-    // Luego guardar en localStorage
     localStorage.setItem("token", token);
-    // Redirigir usando wouter
-    setLocation("/dashboard");
 
-    // Fallback si la redirección no funciona correctamente
+    // Si tienes datos del usuario (por login tradicional), guárdalos temporalmente
+    if (userData && userData.usr_id) {
+      setUserProfile(userData);
+      localStorage.setItem("userProfile", JSON.stringify(userData));
+      localStorage.setItem("userId", userData.usr_id);
+    }
+
+    // Pero siempre intenta obtener el perfil desde la API
+    fetchUserProfile();
+
+    setLocation("/dashboard");
     setTimeout(() => {
       if (window.location.pathname !== "/dashboard") {
-        console.log('Fallback: Redirigiendo manualmente a dashboard');
         window.location.href = "/dashboard";
       }
     }, 300);
   };
 
+  // Logout
   const logout = () => {
-    console.log('Logout ejecutado');
-    // Primero actualizar el estado
     setIsAuthenticated(false);
-    // Luego eliminar de localStorage
+    setUserProfile({ userId: "" });
     localStorage.removeItem("token");
-    // Redirigir usando wouter
+    localStorage.removeItem("userProfile");
+    localStorage.removeItem("userId");
     setLocation("/login");
-
-    // Fallback si la redirección no funciona correctamente
     setTimeout(() => {
       if (window.location.pathname !== "/login") {
-        console.log('Fallback: Redirigiendo manualmente a login');
         window.location.href = "/login";
       }
     }, 300);
   };
 
   return (
-      <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
+      <AuthContext.Provider value={{ isAuthenticated, userProfile, login, logout }}>
         {children}
       </AuthContext.Provider>
   );
@@ -102,8 +156,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
 
 export const useAuth = (): AuthContextType => {
   const ctx = useContext(AuthContext);
-  if (!ctx) {
-    throw new Error("useAuth must be used within AuthProvider");
-  }
+  if (!ctx) throw new Error("useAuth debe usarse dentro de AuthProvider");
   return ctx;
 };

@@ -6,6 +6,7 @@ export interface LoginResponse {
   message: string;
   token?: string;
   usuario?: {
+    perfil: {};
     usr_id: string;
     usr_user: string;
     usr_email: string;
@@ -62,22 +63,3 @@ export async function registerApi(payload: {
 
   return res.json();
 }
-
-export interface LogoutResponse {
-  status: boolean;
-  message: string;
-}
-
-export async function logoutApi(token: string): Promise<LogoutResponse> {
-  const res = await fetch(`${API_URL}/api/logout`, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${token}`,
-      "Content-Type": "application/json",
-      "Accept": "application/json",
-    },
-  });
-
-  return res.json();
-}
-

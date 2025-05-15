@@ -43,7 +43,12 @@ const LoginPage: React.FC = () => {
     try {
       const res = await loginApi(formData.usr_user, formData.password);
       if (res.status && res.token) {
-        login(res.token); // Utilizamos el método login del contexto
+        // Aseguramos que tengamos todos los datos del usuario y su perfil
+        const userData = {
+          ...res.usuario,
+          perfil: res.usuario?.perfil || {}
+        };
+        login(res.token, userData);
       } else {
         setErrorMsg(res.message || "Error desconocido");
       }
