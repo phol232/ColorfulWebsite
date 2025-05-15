@@ -1,52 +1,103 @@
-// src/hooks/useUserId.ts
+import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 
+/**
+ * Custom hook to reliably get the user ID from various sources
+ * Handles different ID formats and provides a development fallback
+ */
 export function useUserId(): string {
-  const { userProfile, isAuthenticated } = useAuth();
-  if (!isAuthenticated) return "";
+    const { userProfile, isAuthenticated } = useAuth();
+    const [userId, setUserId] = useState<string>("");
 
-  const userId: string =
-    userProfile.userId ||
-    userProfile.usr_id ||
-    userProfile.sub ||
-    userProfile.id ||
-    userProfile.user_id ||
-    userProfile.google_id ||
-    "";
+    useEffect(() => {
+        // Try to get user ID from different sources
+        let id = "";
 
-  if (userId) return userId;
+        // Try to get from userProfile first - with more fields for Google auth
+        if (userProfile) {
+            id = userProfile.userId ||
+                userProfile.user_id ||
+                userProfile.sub ||
+                userProfile.id ||
+                userProfile.google_id ||
+                userProfile.user_id ||
+                "";
+        }
 
-  /* Intento 2: localStorage */
-  if (typeof window !== "undefined") {
-    const storedUserId = localStorage.getItem("userId");
-    if (storedUserId) return storedUserId;
+        // If no ID found and we're authenticated, try localStorage
+        if (!id && isAuthenticated && typeof window !== "undefined") {
+            const localStorageId = localStorage.getItem("userId");
+            if (localStorageId) {
+                id = localStorageId;
+            } else {
+                // Try to parse userProfile from localStorage as a fallback
+                try {
+                    const profileStr = localStorage.getItem("userProfile");
+                    if (profileStr) {
+                        const profile = JSON.parse(profileStr);
+                        id = profile.userId ||
+                            profile.user_id ||
+                            profile.sub ||
+                            profile.id ||
+                            profile.google_id ||
+                            profile.usr_id ||
+                            "";
 
-    const profileRaw = localStorage.getItem("userProfile");
-    if (profileRaw) {
-      try {
-        const p = JSON.parse(profileRaw);
-        return (
-          p.userId ||
-          p.usr_id ||
-          p.sub ||
-          p.id ||
-          p.user_id ||
-          p.google_id ||
-          ""
-        );
-      } catch (e) {
-        console.error("Error al parsear userProfile:", e);
-      }
-    }
-  }
+                        // Si encontramos ID en localStorage, asegurémonos de guardarlo
+                        if (id) {
+                            localStorage.setItem("userId", id);
+                            console.log("ID guardado desde localStorage:", id);
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error parsing userProfile from localStorage:", error);
+                }
+            }
+        }
 
-  /* Fallback en desarrollo */
-  if (process.env.NODE_ENV === "development") {
-    console.warn(
-      "⚠️ ID de usuario no disponible. Se usará un ID predeterminado para desarrollo."
-    );
-    return "72890842";
-  }
+        // Si aún no hay ID pero estamos autenticados, intentar buscar en session storage (para Google auth)
+        if (!id && isAuthenticated && typeof window !== "undefined") {
+            try {
+                const sessionProfileStr = sessionStorage.getItem("userProfile");
+                if (sessionProfileStr) {
+                    const profile = JSON.parse(sessionProfileStr);
+                    id = profile.userId ||
+                        profile.user_id ||
+                        profile.sub ||
+                        profile.id ||
+                        profile.google_id ||
+                        profile.usr_id ||
+                        "";
 
-  return "";
+                    // Si encontramos ID en sessionStorage, guardarlo en localStorage para futura referencia
+                    if (id) {
+                        localStorage.setItem("userId", id);
+                        console.log("ID guardado desde sessionStorage:", id);
+                    }
+                }
+            } catch (error) {
+                console.error("Error parsing userProfile from sessionStorage:", error);
+            }
+        }
+
+        // Development fallback - only use if no other ID found
+        if (!id) {
+            if (process.env.NODE_ENV === "development") {
+                console.warn("⚠️ ID de usuario no disponible. Se usará un ID predeterminado para desarrollo.",
+                    new Error("Component Stack"));
+                id = "72890843"; // Consistent development fallback ID
+            }
+        }
+
+        setUserId(id);
+
+        // Si tenemos un ID válido pero no está en localStorage, guardarlo
+        if (id && id !== "72890843" && typeof window !== "undefined") {
+            localStorage.setItem("userId", id);
+        }
+    }, [userProfile, isAuthenticated]);
+
+    return userId;
 }
+
+export default useUserId;

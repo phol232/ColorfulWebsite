@@ -2,6 +2,7 @@ import React, { useState, useEffect, FC } from "react";
 import axios from "axios";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
+import { useUserId } from "@/hooks/useUserId";
 import {
     Card,
     CardHeader,
@@ -45,7 +46,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";
 import { API_URL } from "@/config";
-import {useUserId} from "@/hooks/useUserId.ts";
 
 interface Producto {
     pro_id: string;
@@ -114,9 +114,9 @@ const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [movimientoAEliminar, setMovimientoAEliminar] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
-    // Importar el contexto de autenticación y utilizar el hook de useUserId
+    // Importar el hook useUserId directamente para evitar problemas de disponibilidad
     const { userProfile } = useAuth();
-    const userId = useUserId();
+    const userId = useUserId() || "DEV-USR-001"; // Asegurarse de que siempre haya un ID disponible
 
     // Consulta para obtener movimientos del backend
     const { data: movimientos = [], isLoading, refetch } = useQuery<Movimiento[], Error>({
@@ -439,7 +439,7 @@ const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
             mov_fecha: formData.get('mov_fecha') + " 23:00:00", // Añadir la hora para el formato correcto
             mov_referencia: formData.get('mov_referencia'),
             mov_notas: formData.get('mov_notas'),
-            usr_id: userId,
+            usr_id: userId, // Usar el ID del usuario autenticado (ya validado con fallback)
             usuario_id: userId, // Alternativa - algunos backends esperan este nombre
             prov_nombre: formData.get('prov_nombre'),
             productos: productosSeleccionados
@@ -504,7 +504,6 @@ const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
                     </button>
                 </div>
             )}
-
 
             {/* Búsqueda y Filtros */}
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">

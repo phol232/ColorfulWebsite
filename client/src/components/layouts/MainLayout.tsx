@@ -1,13 +1,20 @@
+// src/components/layouts/MainLayout.tsx
 import React, { ReactNode, useState } from "react";
 import { useLocation } from "wouter";
 import Sidebar from "./Sidebar";
 import Logo from "../ui/Logo";
-import { Search, Filter, ShoppingBasket, Bell, Menu, ChevronLeft, ChevronRight, User } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Search,
+  ShoppingBasket,
+  Bell,
+  Menu,
+  ChevronLeft,
+  ChevronRight,
+  User as UserIcon,
+} from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/context/AuthContext";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -20,25 +27,49 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { userProfile } = useAuth();
 
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
+  const toggleSidebar = () => setSidebarOpen((v) => !v);
+  const toggleMobileMenu = () => setMobileMenuOpen((v) => !v);
+
+  // Para obtener las iniciales
+  const getInitials = () => {
+    if (userProfile.perfil && userProfile.perfil.usrp_nombre) {
+      const nombre = userProfile.perfil.usrp_nombre;
+      const apellido = userProfile.perfil.usrp_apellido || "";
+      return `${nombre[0] || ""}${apellido[0] || ""}`.toUpperCase();
+    } else if (userProfile.name) {
+      return userProfile.name
+          .split(" ")
+          .map((n: string) => n[0])
+          .join("")
+          .toUpperCase()
+          .slice(0, 2);
+    }
+    return "";
   };
 
-  const toggleMobileMenu = () => {
-    setMobileMenuOpen(!mobileMenuOpen);
+  // Para mostrar el nombre real
+  const getFullName = () => {
+    if (userProfile.perfil && userProfile.perfil.usrp_nombre) {
+      return `${userProfile.perfil.usrp_nombre} ${userProfile.perfil.usrp_apellido || ""}`;
+    }
+    return userProfile.name || "Usuario";
   };
 
   return (
       <div className="min-h-screen flex bg-[#F5F7FA]">
         {/* Sidebar - hidden on mobile or when closed */}
-        {(!isMobile && sidebarOpen) && (
-            <Sidebar className="sidebar-visible" />
-        )}
+        {!isMobile && sidebarOpen && <Sidebar className="sidebar-visible" />}
 
         {/* Mobile menu overlay */}
         {isMobile && mobileMenuOpen && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={toggleMobileMenu}>
-              <div className="absolute left-0 top-0 h-full w-64 z-50" onClick={(e) => e.stopPropagation()}>
+            <div
+                className="fixed inset-0 bg-black bg-opacity-50 z-40"
+                onClick={toggleMobileMenu}
+            >
+              <div
+                  className="absolute left-0 top-0 h-full w-64 z-50"
+                  onClick={(e) => e.stopPropagation()}
+              >
                 <Sidebar className="h-full" />
               </div>
             </div>
@@ -50,7 +81,10 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             {/* Left side - hamburger menu on mobile, toggle button on desktop */}
             <div className="flex items-center">
               {isMobile ? (
-                  <button onClick={toggleMobileMenu} className="mr-3 p-1 hover:bg-gray-100 rounded-md">
+                  <button
+                      onClick={toggleMobileMenu}
+                      className="mr-3 p-1 hover:bg-gray-100 rounded-md"
+                  >
                     <Menu className="h-6 w-6 text-gray-700" />
                   </button>
               ) : (
@@ -102,13 +136,22 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
               <div className="flex items-center">
                 <div className="mr-2 text-right hidden md:block">
-                  <p className="text-sm font-medium">{userProfile.name || "Usuario"}</p>
-                  <p className="text-xs text-gray-500">{userProfile.role || "Administrador"}</p>
+                  <p className="text-sm font-medium">{getFullName()}</p>
+                  <p className="text-xs text-gray-500">
+                    {userProfile.role || "Usuario"}
+                  </p>
                 </div>
                 <Avatar className="h-8 w-8 border border-gray-300">
-                  <AvatarImage src={userProfile.avatar || ""} alt="User avatar" />
+                  <AvatarImage
+                      src={
+                          userProfile.avatar ||
+                          userProfile.perfil?.usrp_imagen ||
+                          ""
+                      }
+                      alt="User avatar"
+                  />
                   <AvatarFallback>
-                    {userProfile.name ? userProfile.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : <User className="h-4 w-4" />}
+                    {getInitials() || <UserIcon className="h-4 w-4" />}
                   </AvatarFallback>
                 </Avatar>
               </div>
@@ -116,9 +159,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
           </header>
 
           {/* Main content */}
-          <main className="flex-grow p-6 overflow-y-auto">
-            {children}
-          </main>
+          <main className="flex-grow p-6 overflow-y-auto">{children}</main>
         </div>
       </div>
   );
