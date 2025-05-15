@@ -6,6 +6,7 @@ export interface LoginResponse {
   message: string;
   token?: string;
   usuario?: {
+    perfil: {};
     usr_id: string;
     usr_user: string;
     usr_email: string;

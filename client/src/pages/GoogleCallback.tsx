@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/context/AuthContext";
@@ -10,98 +9,182 @@ const GoogleCallback: React.FC = () => {
   const { login } = useAuth();
 
   useEffect(() => {
+    /* Parámetros de la URL */
     const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get('code');
-    const error = urlParams.get('error');
+    const token = urlParams.get("token");
+    const code = urlParams.get("code");
+    const googleError = urlParams.get("error");
 
-    if (error) {
-      setError(`Error de Google: ${error}`);
-      console.error("Error de Google:", error);
+    if (googleError) {
+      setError(`Error de Google: ${googleError}`);
+      console.error("Error de Google:", googleError);
       return;
     }
 
-    if (!code) {
-      setError("No se recibió código de autorización");
-      console.error("URL de callback recibida:", window.location.href);
-      console.error("Parámetros URL:", Object.fromEntries(urlParams.entries()));
-      return;
-    }
+    /* ─── Caso 1: token presente directamente ─── */
+    if (token) {
+      console.log("Token recibido directamente en callback:", token);
 
-    const exchangeCodeForToken = async () => {
-      try {
-        console.log("Enviando código a:", `${API_URL}/api/auth/google/callback?code=${code}`);
-
-        const response = await fetch(`${API_URL}/api/auth/google/callback?code=${code}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-          credentials: 'include'
-        });
-
-        console.log("Respuesta del servidor:", response.status);
-
+      /* Decodificar JWT para extraer datos mínimos */
+      const decodeJwt = (jwt: string) => {
         try {
-          const data = await response.json();
-          console.log("Datos recibidos:", JSON.stringify(data).substring(0, 100) + "...");
-
-          if (response.ok && data.token) {
-            console.log("Token recibido en GoogleCallBack:", data.token);
-            login(data.token); // Usar el token para autenticar al usuario
-
-            // Agregar un pequeño retraso antes de la navegación manual
-            setTimeout(() => {
-              console.log("Navegando al dashboard después del login");
-              window.location.href = '/dashboard';
-            }, 500);
-          } else {
-            setError(data.message || "Error al autenticar con Google");
-          }
-        } catch (jsonError) {
-          console.error("Error al procesar JSON:", jsonError);
-          setError("Error en la respuesta del servidor");
+          const [, payload] = jwt.split(".");
+          if (!payload) return {};
+          const json = atob(payload.replace(/-/g, "+").replace(/_/g, "/"));
+          return JSON.parse(json);
+        } catch (err) {
+          console.error("Error al decodificar JWT:", err);
+          return {};
         }
-      } catch (err) {
-        setError("Error de conexión con el servidor");
-        console.error(err);
-      }
-    };
+      };
 
-    exchangeCodeForToken();
+      const payload = decodeJwt(token);
+
+      /* Detectar ID */
+      const userId: string =
+        payload.sub ??
+        payload.userId ??
+        payload.user_id ??
+        payload.usr_id ??
+        payload.id ??
+        payload.google_id ??
+        "";
+
+      if (userId) {
+        localStorage.setItem("userId", userId);
+      }
+
+      /* Llamar a login con el payload como userData */
+      login(token, {
+        ...payload,
+        userId,
+        usr_id: userId,
+        user_id: userId,
+        id: userId,
+        google_id: userId,
+      });
+      return;
+    }
+
+    /* ─── Caso 2: intercambiar code ─── */
+    if (code) {
+      const exchangeCodeForToken = async () => {
+        try {
+          console.log(
+            "Enviando código a:",
+            `${API_URL}/api/auth/google/callback?code=${code}`
+          );
+
+          const response = await fetch(
+            `${API_URL}/api/auth/google/callback?code=${code}`,
+            {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+              },
+              credentials: "include",
+            }
+          );
+
+          console.log("Respuesta del servidor:", response.status);
+          const data = await response.json();
+          console.log(
+            "Datos recibidos:",
+            JSON.stringify(data).substring(0, 100) + "..."
+          );
+
+          if (data.token) {
+            const userData = data.usuario || data.user || data.profile || {};
+            const profileExtra = userData.perfil || {};
+
+            const userId: string =
+              userData.usr_id ||
+              userData.sub ||
+              userData.id ||
+              userData.user_id ||
+              userData.google_id ||
+              "";
+
+            console.log("ID de usuario detectado:", userId);
+
+            if (userId) localStorage.setItem("userId", userId);
+
+            login(data.token, {
+              ...userData,
+              userId,
+              usr_id: userId,
+              user_id: userId,
+              id: userId,
+              google_id: userId,
+              usrp_imagen:
+                profileExtra.usrp_imagen ||
+                userData.picture ||
+                userData.photoUrl ||
+                userData.avatar,
+              picture:
+                userData.picture ||
+                userData.photoUrl ||
+                profileExtra.usrp_imagen ||
+                userData.avatar,
+            });
+
+            setLocation("/dashboard");
+          } else {
+            console.error("No se recibió token en la respuesta");
+            setError("Error al procesar la autenticación con Google");
+          }
+        } catch (err) {
+          console.error("Error de conexión:", err);
+          setError("Error de conexión con el servidor");
+        }
+      };
+
+      exchangeCodeForToken();
+    } else {
+      setError("No se recibió código de autorización ni token");
+    }
   }, [login, setLocation]);
 
-  // Si hay un error, mostrar mensaje después de 5 segundos redirigir a login
+  /* Redirección automática tras error */
   useEffect(() => {
     if (error) {
-      const timer = setTimeout(() => {
-        setLocation('/login');
-      }, 5000);
-
+      const timer = setTimeout(() => setLocation("/login"), 5000);
       return () => clearTimeout(timer);
     }
   }, [error, setLocation]);
 
+  /* ──────────────────────────────────────────────────────────── */
+  /* UI                                                           */
+  /* ──────────────────────────────────────────────────────────── */
   return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-md">
-          {error ? (
-              <div className="text-center">
-                <h2 className="text-xl font-semibold text-red-600 mb-2">Error de autenticación</h2>
-                <p className="text-gray-600">{error}</p>
-                <p className="text-gray-500 mt-4">Redirigiendo a la página de login...</p>
-              </div>
-          ) : (
-              <div className="text-center">
-                <h2 className="text-xl font-semibold text-gray-800 mb-2">Autenticando con Google</h2>
-                <p className="text-gray-600">Por favor espere mientras procesamos su inicio de sesión...</p>
-                <div className="mt-4 flex justify-center">
-                  <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-orange-500"></div>
-                </div>
-              </div>
-          )}
-        </div>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-md">
+        {error ? (
+          <div className="text-center">
+            <h2 className="text-xl font-semibold text-red-600 mb-2">
+              Error de autenticación
+            </h2>
+            <p className="text-gray-600">{error}</p>
+            <p className="text-gray-500 mt-4">
+              Redirigiendo a la página de login...
+            </p>
+          </div>
+        ) : (
+          <div className="text-center">
+            <h2 className="text-xl font-semibold text-gray-800 mb-2">
+              Autenticando con Google
+            </h2>
+            <p className="text-gray-600">
+              Por favor espere mientras procesamos su inicio de sesión...
+            </p>
+            <div className="mt-4 flex justify-center">
+              <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-orange-500"></div>
+            </div>
+          </div>
+        )}
       </div>
+    </div>
   );
 };
 

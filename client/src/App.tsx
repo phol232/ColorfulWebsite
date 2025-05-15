@@ -13,7 +13,7 @@ import RegisterPage from "@/pages/RegisterPage";
 import GoogleCallback from "@/pages/GoogleCallback";
 import DashboardPage from "@/pages/DashboardPage";
 import ProductsPage from "@/pages/ProductsPage";
-import InventoryPage from "@/pages/InventoryPage";
+import InventoryPage from "@/pages/Inventory/InventoryPage.tsx";
 import POSPage from "@/pages/POSPage";
 import OrdersPage from "@/pages/OrdersPage";
 import SalesPage from "@/pages/SalesPage";
