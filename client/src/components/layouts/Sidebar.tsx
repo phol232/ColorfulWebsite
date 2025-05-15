@@ -2,14 +2,10 @@ import React, { useState } from "react";
 import { useLocation, Link } from "wouter";
 import {
   LayoutDashboard,
-  Package,
-  UtensilsCrossed,
   Users,
   BarChart2,
   CreditCard,
   Settings,
-  Search,
-  Grid3X3,
   LogOut,
   Boxes,
   ShoppingCart,
@@ -17,15 +13,12 @@ import {
   ClipboardList,
   Receipt,
   Store,
-  ScanBarcode,
-  ShoppingBag,
   Tags,
-  User
 } from "lucide-react";
 import Logo from "../ui/Logo";
 import { useAuth } from "../../context/AuthContext";
-import { API_URL } from "../../config";
-import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
+import { API_URL } from "@/config.ts";
+
 
 interface SidebarProps {
   className?: string;
