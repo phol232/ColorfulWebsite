@@ -47,7 +47,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     return "";
   };
 
-  // Para mostrar el nombre real
   const getFullName = () => {
     if (userProfile.perfil && userProfile.perfil.usrp_nombre) {
       return `${userProfile.perfil.usrp_nombre} ${userProfile.perfil.usrp_apellido || ""}`;
@@ -57,10 +56,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
   return (
       <div className="min-h-screen flex bg-[#F5F7FA]">
-        {/* Sidebar - hidden on mobile or when closed */}
         {!isMobile && sidebarOpen && <Sidebar className="sidebar-visible" />}
 
-        {/* Mobile menu overlay */}
         {isMobile && mobileMenuOpen && (
             <div
                 className="fixed inset-0 bg-black bg-opacity-50 z-40"
@@ -76,9 +73,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         )}
 
         <div className="flex-grow flex flex-col">
-          {/* Header */}
           <header className="bg-white py-3 px-4 shadow-sm flex items-center justify-between z-30">
-            {/* Left side - hamburger menu on mobile, toggle button on desktop */}
             <div className="flex items-center">
               {isMobile ? (
                   <button
@@ -102,7 +97,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                   </button>
               )}
 
-              {/* Logo when sidebar is collapsed */}
               {!sidebarOpen && !isMobile && (
                   <div className="mr-4">
                     <Logo />
@@ -122,7 +116,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
               </div>
             </div>
 
-            {/* Right side - user profile and buttons */}
             <div className="flex items-center space-x-4">
               <button className="relative p-2 text-gray-500 hover:text-gray-700">
                 <Bell className="h-5 w-5" />
@@ -158,7 +151,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             </div>
           </header>
 
-          {/* Main content */}
           <main className="flex-grow p-6 overflow-y-auto">{children}</main>
         </div>
       </div>

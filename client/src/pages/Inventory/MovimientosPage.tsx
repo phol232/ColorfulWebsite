@@ -7,7 +7,6 @@ import {
     Card,
     CardHeader,
     CardTitle,
-    CardDescription,
     CardContent,
     CardFooter,
 } from "@/components/ui/card";
@@ -15,13 +14,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
     Dialog,
-    DialogTrigger,
     DialogContent,
     DialogHeader,
     DialogTitle,
     DialogDescription,
     DialogFooter,
-    DialogClose,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import {
@@ -34,8 +31,6 @@ import {
 import {
     Search as SearchIcon,
     PlusCircle,
-    Filter,
-    Calendar,
     ArrowUpRight,
     ArrowDownLeft,
     Trash2,
@@ -119,7 +114,7 @@ const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
     const userId = useUserId() || "DEV-USR-001"; // Asegurarse de que siempre haya un ID disponible
 
     // Consulta para obtener movimientos del backend
-    const { data: movimientos = [], isLoading, refetch } = useQuery<Movimiento[], Error>({
+    const { data: movimientos = [], isLoading } = useQuery<Movimiento[], Error>({
         queryKey: ["movimientos"],
         queryFn: async () => {
             try {

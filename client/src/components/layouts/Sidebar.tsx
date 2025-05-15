@@ -46,12 +46,10 @@ const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
         });
       }
 
-      // Llamar a la función logout del contexto para limpiar el estado local
       logout();
       console.log("Sesión cerrada correctamente");
     } catch (error) {
       console.error("Error al cerrar sesión:", error);
-      // Aún así cerramos sesión localmente si hay un error en el backend
       logout();
     } finally {
       setIsLoggingOut(false);
@@ -114,8 +112,6 @@ const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
         </div>
 
 
-
-        {/* Navegación Principal */}
         <div className="flex-grow px-3 overflow-y-auto">
           <div className="mb-6">
             <h3 className="text-gray-500 font-medium text-xs uppercase tracking-wider px-3 mb-3">Menú Principal</h3>
@@ -128,7 +124,6 @@ const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
             </ul>
           </div>
 
-          {/* Gestión de Ventas */}
           <div className="mb-6">
             <h3 className="text-gray-500 font-medium text-xs uppercase tracking-wider px-3 mb-3">Gestión de Ventas</h3>
             <ul className="space-y-1">
@@ -140,7 +135,6 @@ const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
             </ul>
           </div>
 
-          {/* Herramientas */}
           <div className="mb-6">
             <h3 className="text-gray-500 font-medium text-xs uppercase tracking-wider px-3 mb-3">Herramientas</h3>
             <ul className="space-y-1">
@@ -153,7 +147,6 @@ const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
           </div>
         </div>
 
-        {/* Logout */}
         <div className="px-3 pt-4 pb-5 border-t border-gray-200">
           <div onClick={handleLogout} className="flex items-center p-2.5 text-red-500 hover:bg-red-50 rounded-md transition-colors cursor-pointer">
             <LogOut className="h-5 w-5" />
