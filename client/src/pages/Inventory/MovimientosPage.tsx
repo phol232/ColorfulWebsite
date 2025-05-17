@@ -2,7 +2,7 @@ import React, { useState, useEffect, FC } from "react";
 import axios from "axios";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
-import { useUserId } from "@/hooks/useUserId";
+import { useUserId } from "@/hooks/useUserId.ts";
 import {
     Card,
     CardHeader,
