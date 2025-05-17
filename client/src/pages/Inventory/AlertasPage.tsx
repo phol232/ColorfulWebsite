@@ -57,14 +57,21 @@ const AlertasPage: React.FC = () => {
     };
     const [configAlertaForm, setConfigAlertaForm] = useState<CrearConfiguracionAlertaPayload>(initialConfigAlertaFormState);
 
+    // Importar el usuario desde AuthContext
+    const useUserId = () => {
+        const { userProfile } = useAuth();
+        return userProfile?.userId || null;
+    };
+
+    // Obtener userId directamente del userProfile
+    const userId = userProfile?.userId || null;
+
     // --- EFECTO PARA USUARIO ---
     useEffect(() => {
-        if (isAuthenticated && userProfile.userId && configAlertaForm.config_creado_por_usr_id !== userProfile.userId) {
-            setConfigAlertaForm(prev => ({ ...prev, config_creado_por_usr_id: userProfile.userId }));
-        } else if ((!isAuthenticated || !userProfile.userId) && configAlertaForm.config_creado_por_usr_id) {
-            setConfigAlertaForm(prev => ({ ...prev, config_creado_por_usr_id: '' }));
+        if (userId) {
+            setConfigAlertaForm(prev => ({ ...prev, config_creado_por_usr_id: userId }));
         }
-    }, [isAuthenticated, userProfile.userId, configAlertaForm.config_creado_por_usr_id]);
+    }, [userId]);
 
     // --- DATA QUERIES ---
     const { data: alertas = [], isLoading: alertasIsLoading, refetch: refetchAlertas } = useQuery<AlertaStock[], Error>({
@@ -118,13 +125,13 @@ const AlertasPage: React.FC = () => {
 
     const crearConfiguracionAlertaMutation = useMutation({
         mutationFn: async (payload: CrearConfiguracionAlertaPayload) => {
-            if (!isAuthenticated || !userProfile.userId) {
+            if (!userId) {
                 toast({ title: 'Error de Autenticación', description: 'Debe iniciar sesión.', variant: 'destructive' });
                 throw new Error("Usuario no autenticado.");
             }
             const numericPayload = {
                 ...payload,
-                config_creado_por_usr_id: userProfile.userId,
+                config_creado_por_usr_id: userId,
                 config_umbral_valor: parseFloat(payload.config_umbral_valor as string),
             };
             if (isNaN(numericPayload.config_umbral_valor)) {
@@ -137,7 +144,7 @@ const AlertasPage: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['configuracionesParaSelectAlertas'] });
             toast({ title: 'Éxito', description: 'Configuración creada.' });
             setIsConfigModalOpen(false);
-            setConfigAlertaForm({...initialConfigAlertaFormState, config_creado_por_usr_id: (isAuthenticated && userProfile.userId) ? userProfile.userId : '' });
+            setConfigAlertaForm({...initialConfigAlertaFormState, config_creado_por_usr_id: userProfile?.userId || '' });
         },
         onError: (error: any) => { toast({ title: 'Error', description: error.response?.data?.message || 'No se pudo crear config.', variant: 'destructive' }); },
     });
@@ -153,7 +160,12 @@ const AlertasPage: React.FC = () => {
         setManualAlertaForm(prev => ({ ...prev, [name]: value }));
     };
     const handleManualAlertaSelectChange = (name: keyof CrearAlertaManualPayload, value: string | number | null) => {
-        setManualAlertaForm(prev => ({ ...prev, [name]: value }));
+        // Si se selecciona "ninguna" para config_alerta_id_origen, establecer como null
+        if (name === 'config_alerta_id_origen' && value === 'ninguna') {
+            setManualAlertaForm(prev => ({ ...prev, [name]: null }));
+        } else {
+            setManualAlertaForm(prev => ({ ...prev, [name]: value }));
+        }
     };
     const handleConfigAlertaFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -169,11 +181,18 @@ const AlertasPage: React.FC = () => {
     };
     const handleCrearConfigAlertaSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!isAuthenticated || !userProfile.userId) {
+        if (!isAuthenticated || !userProfile?.userId) {
             toast({ title: "Error de autenticación", description: "Debe iniciar sesión.", variant: "destructive" });
             return;
         }
-        crearConfiguracionAlertaMutation.mutate(configAlertaForm);
+
+        // Asegurarse que el ID de usuario esté establecido correctamente antes de enviar
+        const formToSend = {
+            ...configAlertaForm,
+            config_creado_por_usr_id: userProfile.userId
+        };
+
+        crearConfiguracionAlertaMutation.mutate(formToSend);
     };
 
     // --- FILTRADO ---
@@ -257,12 +276,12 @@ const AlertasPage: React.FC = () => {
                     <Button onClick={() => refetchAlertas()} variant="outline" className="w-full sm:w-auto"><RefreshCcw className="h-4 w-4 mr-2" />Actualizar</Button>
                 </div>
             </div>
-            <div className="mb-6 flex flex-col sm:flex-row gap-2">
+            <div className="mb-6 flex flex-col sm:flex-row justify-end gap-2">
                 <Button onClick={() => setIsConfigModalOpen(true)} variant="default" disabled={false}>
-                    <Settings className="h-4 w-4 mr-2" /> Nueva Configuración de Alerta
+                    <Settings className="h-4 w-4 mr-2" /> Nueva Configuración
                 </Button>
                 <Button onClick={() => setIsManualAlertaModalOpen(true)} variant="default" disabled={false}>
-                    <PlusCircle className="h-4 w-4 mr-2" /> Nueva Alerta Manual
+                    <PlusCircle className="h-4 w-4 mr-2" /> Nueva Alerta
                 </Button>
             </div>
 
@@ -276,19 +295,19 @@ const AlertasPage: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredAlertas.map((alerta) => (
-                    <Card key={alerta.alerta_stock_id} className="flex flex-col">
+                    <Card key={alerta.alerta_stock_id} className="flex flex-col" style={{ backgroundColor: '#f0fdfa', borderColor: '#ccfbf1' }}>
                         <CardHeader>
                             <div className="flex justify-between items-start">
                                 <Badge className={`${getNivelAlertaBadgeColor(alerta.alerta_nivel_generado)} mb-2`}>{getNivelAlertaIcon(alerta.alerta_nivel_generado)} {alerta.alerta_nivel_generado}</Badge>
                                 <Badge className={`${getEstadoBadgeColor(alerta.estado_alerta)} mb-2`}>{getEstadoAlertaIcon(alerta.estado_alerta)} {alerta.estado_alerta}</Badge>
                             </div>
-                            <CardTitle className="text-md">{alerta.producto?.pro_nombre || `Alerta ID: ${alerta.alerta_stock_id}`}</CardTitle>
+                            <CardTitle className="text-md" style={{ color: '#065f46' }}>{alerta.producto?.pro_nombre || `Alerta ID: ${alerta.alerta_stock_id}`}</CardTitle>
                             <CardDescription className="text-xs">Generada: {new Date(alerta.fecha_generacion).toLocaleString()}</CardDescription>
                         </CardHeader>
                         <CardContent className="flex-grow space-y-2 text-sm">
                             <p><strong>Mensaje:</strong> {alerta.mensaje_automatico}</p>
                             <p><strong>Tipo:</strong> {alerta.alerta_tipo_generada}</p>
-                            {alerta.producto && (<div className="text-xs p-2 bg-slate-50 rounded mt-2"><p><strong>ID Prod:</strong> {alerta.prod_id}</p><p><strong>Stock Capturado:</strong> {alerta.stock_capturado}</p><p><strong>Umbral:</strong> {alerta.umbral_evaluado}</p><p className="font-semibold">Stock Actual: {alerta.producto.pro_stock}</p></div>)}
+                            {alerta.producto && (<div className="text-xs p-2 rounded mt-2" style={{ backgroundColor: '#d1fae5' }}><p><strong>ID Prod:</strong> {alerta.prod_id}</p><p><strong>Stock Capturado:</strong> {alerta.stock_capturado}</p><p><strong>Umbral:</strong> {alerta.umbral_evaluado}</p><p className="font-semibold">Stock Actual: {alerta.producto.pro_stock}</p></div>)}
                             {alerta.comentario_resolucion_actual && (<p className="text-xs text-gray-500 italic mt-1"><strong>Info:</strong> {alerta.comentario_resolucion_actual}</p>)}
                             {alerta.estado_alerta === 'Resuelta' && (
                                 <div className="mt-2 pt-2 border-t border-dashed">
@@ -324,11 +343,25 @@ const AlertasPage: React.FC = () => {
                                 const formData = new FormData(e.currentTarget);
                                 const estado_alerta = formData.get('estado_alerta_edit') as AlertaStock['estado_alerta'];
                                 const comentario_resolucion = formData.get('comentario_resolucion_edit') as string | null;
-                                const resuelta_por_usr_id = estado_alerta === 'Resuelta' ? userProfile.userId : null;
+
+                                // Asegurarse de que el usuario esté autenticado para marcar como resuelta
+                                if (estado_alerta === 'Resuelta' && (!isAuthenticated || !userProfile?.userId)) {
+                                    toast({
+                                        title: 'Error',
+                                        description: 'Debe iniciar sesión para marcar una alerta como resuelta.',
+                                        variant: 'destructive'
+                                    });
+                                    return;
+                                }
+
+                                // Solo establecer resuelta_por_usr_id cuando el estado es 'Resuelta' y el usuario está autenticado
+                                const resuelta_por_usr_id = estado_alerta === 'Resuelta' ? userProfile?.userId : null;
+
                                 updateAlertaMutation.mutate({
-                                    alerta_stock_id: selectedAlerta.alerta_stock_id, estado_alerta,
+                                    alerta_stock_id: selectedAlerta.alerta_stock_id,
+                                    estado_alerta,
                                     comentario_resolucion: estado_alerta === 'Resuelta'
-                                        ? (comentario_resolucion || `Resuelta por ${userProfile.name || userProfile.email || userProfile.userId}`)
+                                        ? (comentario_resolucion || `Resuelta por ${userProfile?.name || userProfile?.email || userProfile?.userId || 'Usuario'}`)
                                         : null,
                                     resuelta_por_usr_id,
                                     fecha_resolucion: estado_alerta === 'Resuelta' ? new Date().toISOString() : null,
@@ -396,7 +429,7 @@ const AlertasPage: React.FC = () => {
                             <Select name="config_alerta_id_origen" value={manualAlertaForm.config_alerta_id_origen?.toString() || ""} onValueChange={(v) => handleManualAlertaSelectChange('config_alerta_id_origen', v ? parseInt(v) : null)}>
                                 <SelectTrigger id="config_alerta_id_origen_manual_create"><SelectValue placeholder="Ninguna" /></SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="">Ninguna</SelectItem>
+                                    <SelectItem value="ninguna">Ninguna</SelectItem>
                                     {configuracionesParaSelect.map(c => (<SelectItem key={c.config_alerta_id} value={c.config_alerta_id.toString()}>{c.config_nombre}</SelectItem>))}
                                 </SelectContent>
                             </Select>
@@ -434,85 +467,91 @@ const AlertasPage: React.FC = () => {
 
             {/* --- MODAL NUEVA CONFIGURACION ALERTA --- */}
             <Dialog open={isConfigModalOpen} onOpenChange={setIsConfigModalOpen}>
-                <DialogContent className="sm:max-w-lg">
+                <DialogContent className="sm:max-w-3xl">
                     <DialogHeader>
                         <DialogTitle>Nueva Configuración de Alerta</DialogTitle>
                         <DialogDescription>Registra una nueva configuración de alerta de stock.</DialogDescription>
                     </DialogHeader>
-                    {isAuthenticated && userProfile.userId ? (
-                        <form onSubmit={handleCrearConfigAlertaSubmit} className="grid gap-4">
-                            <div className="space-y-1">
-                                <Label htmlFor="cfg_nombre_create">Nombre*</Label>
-                                <Input id="cfg_nombre_create" name="config_nombre" value={configAlertaForm.config_nombre} onChange={handleConfigAlertaFormChange} placeholder="Ej: Lácteos bajos" required />
-                            </div>
-                            <div className="space-y-1">
-                                <Label htmlFor="cfg_tipo_create">Tipo Regla*</Label>
-                                <Select name="config_tipo" value={configAlertaForm.config_tipo} onValueChange={(v) => handleConfigAlertaSelectChange('config_tipo', v as CrearConfiguracionAlertaPayload['config_tipo'])} required>
-                                    <SelectTrigger id="cfg_tipo_create"><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="STOCK_LLEGA_A_VALOR">Stock Llega a Valor</SelectItem>
-                                        <SelectItem value="STOCK_DEBAJO_DE_UMBRAL">Stock Debajo Umbral</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-1">
-                                <Label htmlFor="cfg_umbral_create">Valor Umbral*</Label>
-                                <Input id="cfg_umbral_create" name="config_umbral_valor" type="number" value={configAlertaForm.config_umbral_valor as string} onChange={handleConfigAlertaFormChange} required />
-                            </div>
-                            <div className="space-y-1">
-                                <Label htmlFor="cfg_apli_create">Aplicabilidad*</Label>
-                                <Select name="config_aplicabilidad" value={configAlertaForm.config_aplicabilidad} onValueChange={(v) => { handleConfigAlertaSelectChange('config_aplicabilidad', v as CrearConfiguracionAlertaPayload['config_aplicabilidad']); if (v === 'GENERAL') setConfigAlertaForm(prev => ({ ...prev, id_referencia_aplicabilidad: null })); }} required>
-                                    <SelectTrigger id="cfg_apli_create"><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="GENERAL">General</SelectItem>
-                                        <SelectItem value="POR_CATEGORIA">Por Categoría</SelectItem>
-                                        <SelectItem value="POR_PRODUCTO_ESPECIFICO">Por Producto</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            {configAlertaForm.config_aplicabilidad === 'POR_CATEGORIA' && (
-                                <div className="space-y-1">
-                                    <Label htmlFor="cfg_ref_cat_create">Categoría*</Label>
-                                    <Select name="id_referencia_aplicabilidad" value={configAlertaForm.id_referencia_aplicabilidad || ""} onValueChange={(v) => handleConfigAlertaSelectChange('id_referencia_aplicabilidad', v)} required>
-                                        <SelectTrigger id="cfg_ref_cat_create"><SelectValue placeholder="Seleccionar categoría"/></SelectTrigger>
-                                        <SelectContent>
-                                            {categoriasParaSelect.map(c => (<SelectItem key={c.cat_id} value={c.cat_id}>{c.cat_nombre}</SelectItem>))}
-                                        </SelectContent>
-                                    </Select>
+                    {userId ? (
+                        <form onSubmit={handleCrearConfigAlertaSubmit}>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-1">
+                                <div className="space-y-3">
+                                    <div>
+                                        <Label htmlFor="cfg_nombre_create">Nombre*</Label>
+                                        <Input id="cfg_nombre_create" name="config_nombre" value={configAlertaForm.config_nombre} onChange={handleConfigAlertaFormChange} placeholder="Ej: Lácteos bajos" required />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="cfg_tipo_create">Tipo Regla*</Label>
+                                        <Select name="config_tipo" value={configAlertaForm.config_tipo} onValueChange={(v) => handleConfigAlertaSelectChange('config_tipo', v as CrearConfiguracionAlertaPayload['config_tipo'])} required>
+                                            <SelectTrigger id="cfg_tipo_create"><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="STOCK_LLEGA_A_VALOR">Stock Llega a Valor</SelectItem>
+                                                <SelectItem value="STOCK_DEBAJO_DE_UMBRAL">Stock Debajo Umbral</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="cfg_umbral_create">Valor Umbral*</Label>
+                                        <Input id="cfg_umbral_create" name="config_umbral_valor" type="number" value={configAlertaForm.config_umbral_valor as string} onChange={handleConfigAlertaFormChange} required />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="cfg_nivel_create">Nivel Alerta*</Label>
+                                        <Select
+                                            name="config_nivel_alerta_default"
+                                            value={configAlertaForm.config_nivel_alerta_default}
+                                            onValueChange={(v) => handleConfigAlertaSelectChange('config_nivel_alerta_default', v as CrearConfiguracionAlertaPayload['config_nivel_alerta_default'])}
+                                            required
+                                        >
+                                            <SelectTrigger id="cfg_nivel_create"><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="INFO">INFO</SelectItem>
+                                                <SelectItem value="ADVERTENCIA">ADVERTENCIA</SelectItem>
+                                                <SelectItem value="CRITICO">CRITICO</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
                                 </div>
-                            )}
-                            {configAlertaForm.config_aplicabilidad === 'POR_PRODUCTO_ESPECIFICO' && (
-                                <div className="space-y-1">
-                                    <Label htmlFor="cfg_ref_prod_create">Producto*</Label>
-                                    <Select name="id_referencia_aplicabilidad" value={configAlertaForm.id_referencia_aplicabilidad || ""} onValueChange={(v) => handleConfigAlertaSelectChange('id_referencia_aplicabilidad', v)} required>
-                                        <SelectTrigger id="cfg_ref_prod_create"><SelectValue placeholder="Seleccionar producto"/></SelectTrigger>
-                                        <SelectContent>
-                                            {productosParaSelect.map(p => (<SelectItem key={p.pro_id} value={p.pro_id}>{p.pro_nombre}</SelectItem>))}
-                                        </SelectContent>
-                                    </Select>
+                                <div className="space-y-3">
+                                    <div>
+                                        <Label htmlFor="cfg_apli_create">Aplicabilidad*</Label>
+                                        <Select name="config_aplicabilidad" value={configAlertaForm.config_aplicabilidad} onValueChange={(v) => { handleConfigAlertaSelectChange('config_aplicabilidad', v as CrearConfiguracionAlertaPayload['config_aplicabilidad']); if (v === 'GENERAL') setConfigAlertaForm(prev => ({ ...prev, id_referencia_aplicabilidad: null })); }} required>
+                                            <SelectTrigger id="cfg_apli_create"><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="GENERAL">General</SelectItem>
+                                                <SelectItem value="POR_CATEGORIA">Por Categoría</SelectItem>
+                                                <SelectItem value="POR_PRODUCTO_ESPECIFICO">Por Producto</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    {configAlertaForm.config_aplicabilidad === 'POR_CATEGORIA' && (
+                                        <div>
+                                            <Label htmlFor="cfg_ref_cat_create">Categoría*</Label>
+                                            <Select name="id_referencia_aplicabilidad" value={configAlertaForm.id_referencia_aplicabilidad || ""} onValueChange={(v) => handleConfigAlertaSelectChange('id_referencia_aplicabilidad', v)} required>
+                                                <SelectTrigger id="cfg_ref_cat_create"><SelectValue placeholder="Seleccionar categoría"/></SelectTrigger>
+                                                <SelectContent>
+                                                    {categoriasParaSelect.map(c => (<SelectItem key={c.cat_id} value={c.cat_id}>{c.cat_nombre}</SelectItem>))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    )}
+                                    {configAlertaForm.config_aplicabilidad === 'POR_PRODUCTO_ESPECIFICO' && (
+                                        <div>
+                                            <Label htmlFor="cfg_ref_prod_create">Producto*</Label>
+                                            <Select name="id_referencia_aplicabilidad" value={configAlertaForm.id_referencia_aplicabilidad || ""} onValueChange={(v) => handleConfigAlertaSelectChange('id_referencia_aplicabilidad', v)} required>
+                                                <SelectTrigger id="cfg_ref_prod_create"><SelectValue placeholder="Seleccionar producto"/></SelectTrigger>
+                                                <SelectContent>
+                                                    {productosParaSelect.map(p => (<SelectItem key={p.pro_id} value={p.pro_id}>{p.pro_nombre}</SelectItem>))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    )}
+                                    <div>
+                                        <Label htmlFor="cfg_desc_create">Descripción</Label>
+                                        <Textarea id="cfg_desc_create" name="config_descripcion" value={configAlertaForm.config_descripcion || ''} onChange={handleConfigAlertaFormChange} placeholder="Detalles..." />
+                                    </div>
                                 </div>
-                            )}
-                            <div className="space-y-1">
-                                <Label htmlFor="cfg_desc_create">Descripción</Label>
-                                <Textarea id="cfg_desc_create" name="config_descripcion" value={configAlertaForm.config_descripcion || ''} onChange={handleConfigAlertaFormChange} placeholder="Detalles..." />
                             </div>
-                            <div className="space-y-1">
-                                <Label htmlFor="cfg_nivel_create">Nivel Alerta*</Label>
-                                <Select
-                                    name="config_nivel_alerta_default"
-                                    value={configAlertaForm.config_nivel_alerta_default}
-                                    onValueChange={(v) => handleConfigAlertaSelectChange('config_nivel_alerta_default', v as CrearConfiguracionAlertaPayload['config_nivel_alerta_default'])}
-                                    required
-                                >
-                                    <SelectTrigger id="cfg_nivel_create"><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="INFO">INFO</SelectItem>
-                                        <SelectItem value="ADVERTENCIA">ADVERTENCIA</SelectItem>
-                                        <SelectItem value="CRITICO">CRITICO</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <DialogFooter>
+                            <DialogFooter className="mt-6 flex justify-end">
                                 <Button type="button" variant="outline" onClick={() => { setIsConfigModalOpen(false); setConfigAlertaForm(initialConfigAlertaFormState); }}>Cancelar</Button>
                                 <Button type="submit" disabled={crearConfiguracionAlertaMutation.isPending}>{crearConfiguracionAlertaMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Crear</Button>
                             </DialogFooter>
