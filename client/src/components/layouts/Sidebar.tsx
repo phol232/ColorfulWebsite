@@ -112,7 +112,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
         </div>
 
 
-        <div className="flex-grow px-3 overflow-y-auto">
+        <div className="flex-grow px-3 oveow-y-auto">
           <div className="mb-6">
             <h3 className="text-gray-500 font-medium text-xs uppercase tracking-wider px-3 mb-3">Menú Principal</h3>
             <ul className="space-y-1">
