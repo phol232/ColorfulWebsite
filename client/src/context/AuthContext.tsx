@@ -62,8 +62,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   // Función para obtener los datos del usuario del backend
   const fetchUserProfile = async () => {
     try {
+      console.log("Obteniendo perfil de usuario desde API...");
       const token = localStorage.getItem("token");
-      if (!token) return;
+      if (!token) {
+        console.log("No hay token disponible");
+        return;
+      }
 
       const response = await fetch(`${API_URL}/api/user`, {
         headers: {
@@ -72,19 +76,50 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
       });
 
+      console.log("Respuesta de /api/user:", response.status);
       if (response.ok) {
         const data = await response.json();
-        const usuario = data.usuario || data; // Ajusta según tu API
-        if (usuario && usuario.usr_id) {
+        console.log("Datos de usuario recibidos:", data);
+
+        // Intentar extraer el usuario de diferentes formatos posibles
+        const usuario = data.usuario || data.user || data;
+
+        // Buscar un ID válido en diferentes formatos
+        const userId = usuario.usr_id || usuario.id || usuario.user_id ||
+            usuario.sub || usuario.google_id;
+
+        if (usuario && userId) {
+          // Normalizar el perfil para tener un userId consistente
+          const normalizedProfile = {
+            ...usuario,
+            userId: userId
+          };
+
+          console.log("Perfil normalizado:", normalizedProfile);
+
           // Guardar en React y localStorage
-          setUserProfile(usuario);
-          localStorage.setItem("userProfile", JSON.stringify(usuario));
-          localStorage.setItem("userId", usuario.usr_id);
+          setUserProfile(normalizedProfile);
+          localStorage.setItem("userProfile", JSON.stringify(normalizedProfile));
+          localStorage.setItem("userId", userId);
+
+          return normalizedProfile;
+        } else {
+          console.warn("Perfil de usuario incompleto:", usuario);
+        }
+      } else {
+        console.error("Error al obtener perfil de usuario:", response.status);
+        try {
+          const errorText = await response.text();
+          console.error("Detalles del error:", errorText);
+        } catch (e) {
+          // Ignorar error al leer respuesta
         }
       }
     } catch (e) {
+      console.error("Error al obtener perfil de usuario:", e);
       // Si hay error, no hace nada (el usuario tendrá que volver a loguearse)
     }
+    return null;
   };
 
   // Cargar perfil del usuario cada vez que se autentica
@@ -114,11 +149,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsAuthenticated(true);
     localStorage.setItem("token", token);
 
-    // Si tienes datos del usuario (por login tradicional), guárdalos temporalmente
-    if (userData && userData.usr_id) {
-      setUserProfile(userData);
-      localStorage.setItem("userProfile", JSON.stringify(userData));
-      localStorage.setItem("userId", userData.usr_id);
+    // Si tienes datos del usuario (por login tradicional o de Google), guárdalos temporalmente
+    if (userData) {
+      // Intentar encontrar un ID de usuario válido entre diferentes formatos posibles
+      const userId = userData.usr_id || userData.id || userData.user_id ||
+          userData.sub || userData.google_id || userData.userId;
+
+      if (userId) {
+        // Asegurarse de que el perfil tenga un userId normalizado
+        const normalizedUserData = {
+          ...userData,
+          userId: userId
+        };
+
+        console.log("Guardando perfil de usuario:", normalizedUserData);
+        setUserProfile(normalizedUserData);
+        localStorage.setItem("userProfile", JSON.stringify(normalizedUserData));
+        localStorage.setItem("userId", userId);
+      } else {
+        console.warn("Login recibió datos de usuario pero sin ID identificable:", userData);
+      }
     }
 
     // Pero siempre intenta obtener el perfil desde la API

@@ -67,6 +67,9 @@ const LoginPage: React.FC = () => {
     // Guardar el estado actual antes de redirigir
     sessionStorage.setItem('google_auth_pending', 'true');
 
+    // Registrar URL de callback para ayudar a depurar
+    console.log("URL de callback esperada:", window.location.origin + "/auth/google/callback");
+
     // Redireccionar al endpoint de autenticación
     window.location.href = redirectUrl;
   };

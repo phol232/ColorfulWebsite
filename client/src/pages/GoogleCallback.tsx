@@ -10,16 +10,31 @@ const GoogleCallback: React.FC = () => {
   const { login } = useAuth();
 
   useEffect(() => {
+    console.log("GoogleCallback: Iniciando procesamiento");
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
     const error = urlParams.get('error');
+    const code = urlParams.get('code'); // Google también puede enviar un código de autorización
+
+    console.log("Parámetros recibidos:", { token, error, code });
 
     if (error) {
+      console.error("Error de autenticación:", error);
       setError(`Error de Google: ${error}`);
       return;
     }
 
+    // Si tenemos código pero no token, puede ser el flujo estándar de OAuth
+    if (code && !token) {
+      console.log("Se recibió código de autorización pero no token");
+      // Este es un caso que el backend debería manejar, pero podemos intentar
+      // redirigir al backend para que procese el código
+      window.location.href = `${API_URL}/api/auth/google/callback?code=${code}`;
+      return;
+    }
+
     if (token) {
+      console.log("Token recibido, procesando...");
       // 1. Guardar el token
       localStorage.setItem("token", token);
 
@@ -31,29 +46,48 @@ const GoogleCallback: React.FC = () => {
         }
       })
           .then(async (resp) => {
+            console.log("Respuesta de API /user:", resp.status);
             if (resp.ok) {
               const data = await resp.json();
+              console.log("Datos de usuario recibidos:", data);
               const usuario = data.usuario || data; // depende de tu API, pero ambos cubren el caso
 
               // 3. Guardar el perfil y usr_id en localStorage
-              if (usuario && usuario.usr_id) {
+              if (usuario && (usuario.usr_id || usuario.id || usuario.user_id || usuario.sub)) {
+                // Asegurarnos de tener un ID válido usando cualquier formato que venga
+                const userId = usuario.usr_id || usuario.id || usuario.user_id || usuario.sub;
+                usuario.userId = userId; // Normalizar el ID para el contexto
+
                 localStorage.setItem("userProfile", JSON.stringify(usuario));
-                localStorage.setItem("userId", usuario.usr_id);
+                localStorage.setItem("userId", userId);
 
                 // 4. Llamar login del contexto para guardar en React
                 login(token, usuario);
 
+                console.log("Login exitoso, redirigiendo a dashboard...");
                 setLocation("/dashboard");
               } else {
-                setError("No se pudo obtener el perfil de usuario.");
+                console.error("Perfil incompleto:", usuario);
+                setError("No se pudo obtener el perfil de usuario. Datos incompletos.");
               }
             } else {
-              setError("No se pudo obtener el perfil del usuario desde el backend.");
+              console.error("Error al obtener perfil:", resp.status);
+              try {
+                const errorData = await resp.text();
+                console.error("Detalles:", errorData);
+                setError(`Error del servidor: ${resp.status} - ${errorData}`);
+              } catch (e) {
+                setError(`No se pudo obtener el perfil: Error ${resp.status}`);
+              }
             }
           })
-          .catch(() => setError("Error al conectar con el backend."));
+          .catch((err) => {
+            console.error("Error en la petición:", err);
+            setError(`Error al conectar con el backend: ${err.message}`);
+          });
     } else {
-      setError("No se recibió token válido.");
+      console.error("No se recibió token ni código");
+      setError("No se recibió token ni código de autorización válido.");
     }
   }, [login, setLocation]);
 
