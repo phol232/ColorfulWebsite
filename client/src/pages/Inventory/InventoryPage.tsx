@@ -1,106 +1,58 @@
-// src/App.tsx
-import React from "react";
-import { Router, Route, Redirect } from "wouter";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { queryClient } from "./lib/queryClient";
-import { Toaster } from "@/components/ui/toaster";
-import { CartProvider } from "@/context/CartContext";
-import { AuthProvider, useAuth } from "@/context/AuthContext";
+// client/src/pages/InventoryPage.tsx
+import React, { useState, FC } from "react";
+import axios from "axios";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import MainLayout from "@/components/layouts/MainLayout.tsx";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/components/ui/tabs.tsx";
+import { API_URL } from "@/config.ts";
+import ProductosPage from "../Inventory/ProductosPage";
+import MovimientosPage from "../Inventory/MovimientosPage";
+import AlertasPage from "../Inventory/AlertasPage";
 
-import NotFound from "@/pages/not-found";
-import LoginPage from "@/pages/LoginPage";
-import RegisterPage from "@/pages/RegisterPage";
-import GoogleCallback from "@/pages/GoogleCallback";
-import DashboardPage from "@/pages/DashboardPage";
-import ProductsPage from "@/pages/ProductsPage";
-import InventoryPage from "@/pages/Inventory/InventoryPage.tsx";
-import POSPage from "@/pages/POSPage";
-import OrdersPage from "@/pages/OrdersPage";
-import SalesPage from "@/pages/SalesPage";
-import InvoicesPage from "@/pages/InvoicesPage";
-import CustomersPage from "@/pages/CustomersPage";
-import SuppliersPage from "@/pages/SuppliersPage";
-import ReportsPage from "@/pages/ReportsPage";
-import CategoriesPage from "@/pages/Categorias/CategoriesPage";
+axios.defaults.baseURL = API_URL;
+axios.defaults.withCredentials = true;
+axios.defaults.headers.common["Accept"] = "application/json";
 
-const Routes: React.FC = () => {
-  const { isAuthenticated } = useAuth();
+const InventoryPage: FC = () => {
+  const [activeTab, setActiveTab] = useState<"products" | "movements" | "alerts">("products");
 
   return (
-      <>
-        {/* RUTAS PÚBLICAS */}
-        <Route path="/login">
-          {!isAuthenticated ? <LoginPage /> : <Redirect to="/dashboard" />}
-        </Route>
-        <Route path="/register">
-          {!isAuthenticated ? <RegisterPage /> : <Redirect to="/dashboard" />}
-        </Route>
-        <Route path="/auth/google/callback">
-          {!isAuthenticated ? <GoogleCallback /> : <Redirect to="/dashboard" />}
-        </Route>
-        <Route path="/api/auth/google/callback">
-          {!isAuthenticated ? <GoogleCallback /> : <Redirect to="/dashboard" />}
-        </Route>
+      <MainLayout>
+        <div className="container mx-auto px-4 py-6">
+          <h1 className="text-3xl font-bold mb-2">Gestión de Inventario</h1>
+          <p className="text-gray-600 mb-6">Administra productos, movimientos y alertas del inventario</p>
 
-        {/* RUTAS PROTEGIDAS */}
-        <Route path="/dashboard">
-          {isAuthenticated ? <DashboardPage /> : <Redirect to="/login" />}
-        </Route>
-        <Route path="/products">
-          {isAuthenticated ? <ProductsPage /> : <Redirect to="/login" />}
-        </Route>
-        <Route path="/inventory">
-          {isAuthenticated ? <InventoryPage /> : <Redirect to="/login" />}
-        </Route>
-        <Route path="/pos">
-          {isAuthenticated ? <POSPage /> : <Redirect to="/login" />}
-        </Route>
-        <Route path="/orders">
-          {isAuthenticated ? <OrdersPage /> : <Redirect to="/login" />}
-        </Route>
-        <Route path="/sales">
-          {isAuthenticated ? <SalesPage /> : <Redirect to="/login" />}
-        </Route>
-        <Route path="/invoices">
-          {isAuthenticated ? <InvoicesPage /> : <Redirect to="/login" />}
-        </Route>
-        <Route path="/customers">
-          {isAuthenticated ? <CustomersPage /> : <Redirect to="/login" />}
-        </Route>
-        <Route path="/suppliers">
-          {isAuthenticated ? <SuppliersPage /> : <Redirect to="/login" />}
-        </Route>
-        <Route path="/reports">
-          {isAuthenticated ? <ReportsPage /> : <Redirect to="/login" />}
-        </Route>
-        <Route path="/categories">
-          {isAuthenticated ? <CategoriesPage /> : <Redirect to="/login" />}
-        </Route>
+          <Tabs value={activeTab} onValueChange={v => setActiveTab(v as any)} className="mb-6">
+            <TabsList>
+              <TabsTrigger value="products">Productos</TabsTrigger>
+              <TabsTrigger value="movements">Movimientos</TabsTrigger>
+              <TabsTrigger value="alerts">Alertas</TabsTrigger>
+            </TabsList>
 
-        {/* RAÍZ / REDIRECCIÓN POR DEFECTO */}
-        <Route path="/">
-          {isAuthenticated ? <Redirect to="/dashboard" /> : <Redirect to="/login" />}
-        </Route>
+            {/* — Productos — */}
+            <TabsContent value="products" className="space-y-6">
+              <ProductosPage />
+            </TabsContent>
 
-        {/* 404 */}
-        <Route>
-          <NotFound />
-        </Route>
-      </>
+            {/* — Movimientos — */}
+            <TabsContent value="movements" className="space-y-6">
+              <MovimientosPage />
+            </TabsContent>
+
+            {/* — Alertas — */}
+            <TabsContent value="alerts" className="space-y-6">
+              <AlertasPage />
+            </TabsContent>
+
+          </Tabs>
+        </div>
+      </MainLayout>
   );
 };
 
-const App: React.FC = () => (
-    <QueryClientProvider client={queryClient}>
-      <Router>
-        <AuthProvider>
-          <CartProvider>
-            <Routes />
-            <Toaster />
-          </CartProvider>
-        </AuthProvider>
-      </Router>
-    </QueryClientProvider>
-);
-
-export default App;
+export default InventoryPage;
