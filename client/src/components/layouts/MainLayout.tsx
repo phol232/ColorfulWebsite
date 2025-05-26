@@ -32,11 +32,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
   // Para obtener las iniciales
   const getInitials = () => {
-    if (userProfile.perfil && userProfile.perfil.usrp_nombre) {
+    if (userProfile?.perfil?.usrp_nombre) {
       const nombre = userProfile.perfil.usrp_nombre;
       const apellido = userProfile.perfil.usrp_apellido || "";
       return `${nombre[0] || ""}${apellido[0] || ""}`.toUpperCase();
-    } else if (userProfile.name) {
+    } else if (userProfile?.name) {
       return userProfile.name
           .split(" ")
           .map((n: string) => n[0])
@@ -48,10 +48,10 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   };
 
   const getFullName = () => {
-    if (userProfile.perfil && userProfile.perfil.usrp_nombre) {
+    if (userProfile?.perfil?.usrp_nombre) {
       return `${userProfile.perfil.usrp_nombre} ${userProfile.perfil.usrp_apellido || ""}`;
     }
-    return userProfile.name || "Usuario";
+    return "Usuario";
   };
 
   return (
@@ -131,14 +131,14 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 <div className="mr-2 text-right hidden md:block">
                   <p className="text-sm font-medium">{getFullName()}</p>
                   <p className="text-xs text-gray-500">
-                    {userProfile.role || "Usuario"}
+                    {userProfile?.role || "Usuario"}
                   </p>
                 </div>
                 <Avatar className="h-8 w-8 border border-gray-300">
                   <AvatarImage
                       src={
-                          userProfile.avatar ||
-                          userProfile.perfil?.usrp_imagen ||
+                          userProfile?.avatar ||
+                          userProfile?.perfil?.usrp_imagen ||
                           ""
                       }
                       alt="User avatar"
