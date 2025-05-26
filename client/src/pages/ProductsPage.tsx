@@ -317,10 +317,10 @@ const ProductsPage: React.FC = () => {
                       <Button 
                         size="sm" 
                         onClick={() => addToCart({
-                          id: product.id,
-                          name: product.name,
-                          price: product.discountPrice || product.price,
-                          image: product.image
+                            id: product.id,
+                            name: product.name,
+                            price: product.discountPrice || product.price,
+                            image: product.image
                         })}
                       >
                         Agregar

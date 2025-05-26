@@ -25,7 +25,7 @@ type CartAction =
 
 // Define the cart context
 interface CartContextType extends CartState {
-  addToCart: (item: Omit<CartItem, 'quantity'>) => void;
+  addToCart: (item: { id: number; name: string; price: number; image: string; quantity: number }) => void;
   removeFromCart: (id: number) => void;
   updateQuantity: (id: number, quantity: number) => void;
   clearCart: () => void;

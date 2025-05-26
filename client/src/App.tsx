@@ -13,7 +13,7 @@ import RegisterPage from "@/pages/RegisterPage";
 import GoogleCallback from "@/pages/GoogleCallback";
 import DashboardPage from "@/pages/DashboardPage";
 import ProductsPage from "@/pages/ProductsPage";
-import InventoryPage from "@/pages/Inventory/InventoryPage.tsx";
+import InventoryPage from "@/pages/InventoryPage";
 import POSPage from "@/pages/POSPage";
 import OrdersPage from "@/pages/OrdersPage";
 import SalesPage from "@/pages/SalesPage";
@@ -79,7 +79,7 @@ const Routes: React.FC = () => {
 
             {/* RAÍZ / REDIRECCIÓN POR DEFECTO */}
             <Route path="/">
-                <Redirect to={isAuthenticated ? "/dashboard" : "/login"} />
+                {isAuthenticated ? <Redirect to="/dashboard" /> : <Redirect to="/login" />}
             </Route>
 
             {/* 404 */}
