@@ -63,3 +63,4 @@ export async function registerApi(payload: {
 
   return res.json();
 }
+
