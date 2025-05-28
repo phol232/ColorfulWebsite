@@ -1,8 +1,10 @@
+
 import React from "react";
 import { Route, Switch } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import LoginPage from "./pages/LoginPage";
 import GoogleCallback from "./pages/GoogleCallback";
+import MicrosoftCallback from "./pages/MicrosoftCallback";
 import DashboardPage from "./pages/DashboardPage";
 import InventoryPage from "./pages/Inventory/InventoryPage";
 import SuppliersPage from "./pages/SuppliersPage";
@@ -30,7 +32,9 @@ const App: React.FC = () => {
                         <Route path="/" component={HomePage} />
                         <Route path="/login" component={LoginPage} />
                         <Route path="/register" component={RegisterPage} />
+                        {/* Rutas de autenticación */}
                         <Route path="/auth/google/callback" component={GoogleCallback} />
+                        <Route path="/auth/microsoft/callback" component={MicrosoftCallback} />
 
                         <Route path="/dashboard" component={DashboardPage} />
 
@@ -55,8 +59,8 @@ const App: React.FC = () => {
 
                         <Route path="/:rest*" component={NotFoundPage} />
                     </Switch>
+                    <Toaster />
                 </CartProvider>
-                <Toaster />
             </AuthProvider>
         </QueryClientProvider>
     );

@@ -74,6 +74,20 @@ const LoginPage: React.FC = () => {
     window.location.href = redirectUrl;
   };
 
+  const handleMicrosoftLogin = () => {
+    const redirectUrl = `${API_URL}/api/auth/microsoft/redirect`;
+    console.log("Iniciando login con Microsoft:", redirectUrl);
+
+    // Guardar el estado actual antes de redirigir
+    sessionStorage.setItem('microsoft_auth_pending', 'true');
+
+    // Registrar URL de callback para ayudar a depurar
+    console.log("URL de callback esperada:", window.location.origin + "/auth/microsoft/callback");
+
+    // Redireccionar al endpoint de autenticación
+    window.location.href = redirectUrl;
+  };
+
   return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="w-full max-w-4xl overflow-hidden bg-white rounded-xl shadow-lg flex min-h-[600px] relative">
@@ -222,6 +236,28 @@ const LoginPage: React.FC = () => {
                       />
                     </svg>
                     INICIAR CON GOOGLE
+                  </Button>
+                </div>
+
+                {/* Botón Microsoft */}
+                <div className="mt-2">
+                  <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full flex items-center justify-center border-gray-300 hover:bg-gray-100"
+                      onClick={handleMicrosoftLogin}
+                  >
+                    <svg
+                        className="h-5 w-5 mr-2"
+                        viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path fill="#f25022" d="M11.4 11.4H0V0h11.4z"/>
+                      <path fill="#00a4ef" d="M24 11.4H12.6V0H24z"/>
+                      <path fill="#7fba00" d="M11.4 24H0V12.6h11.4z"/>
+                      <path fill="#ffb900" d="M24 24H12.6V12.6H24z"/>
+                    </svg>
+                    INICIAR CON MICROSOFT
                   </Button>
                 </div>
               </form>

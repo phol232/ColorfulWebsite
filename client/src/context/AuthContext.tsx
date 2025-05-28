@@ -92,7 +92,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           // Normalizar el perfil para tener un userId consistente
           const normalizedProfile = {
             ...usuario,
-            userId: userId
+            userId: userId,
+            // Construir URL completa del avatar si existe
+            avatar: usuario.perfil?.usrp_imagen
+                ? `${API_URL}/storage/${usuario.perfil.usrp_imagen}`
+                : undefined
           };
 
           console.log("Perfil normalizado:", normalizedProfile);
@@ -137,7 +141,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (
           !["/login", "/register", "/"].includes(location) &&
           !location.includes("auth/google") &&
-          !location.includes("api/auth/google/callback")
+          !location.includes("auth/microsoft") &&
+          !location.includes("api/auth/google/callback") &&
+          !location.includes("api/auth/microsoft/callback")
       ) {
         setLocation("/login");
       }
@@ -159,7 +165,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Asegurarse de que el perfil tenga un userId normalizado
         const normalizedUserData = {
           ...userData,
-          userId: userId
+          userId: userId,
+          // Construir URL completa del avatar si existe
+          avatar: userData.perfil?.usrp_imagen
+              ? `${API_URL}/storage/${userData.perfil.usrp_imagen}`
+              : undefined
         };
 
         console.log("Guardando perfil de usuario:", normalizedUserData);
