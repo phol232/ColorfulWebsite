@@ -13,12 +13,12 @@ export default defineConfig(async ({ mode }) => {
   // Carga las vars de entorno desde client/.env
   const env = loadEnv(mode, clientRoot, "");
 
-  // Prepara plugins
   const plugins: any[] = [
     react(),
     runtimeErrorOverlay(),
     themePlugin(),
   ];
+
   if (env.NODE_ENV !== "production" && process.env.REPL_ID) {
     const { cartographer } = await import("@replit/vite-plugin-cartographer");
     plugins.push(cartographer());
@@ -37,12 +37,18 @@ export default defineConfig(async ({ mode }) => {
       },
     },
     server: {
-      host: '0.0.0.0',
+      host: "0.0.0.0",
       port: 5000,
       strictPort: true,
+      // Añade aquí todos los hosts desde los que sirvas tu frontend
+      allowedHosts: [
+        "localhost",
+        "yamicorp.areallc.tech",
+        "api.areall.tech",
+      ],
       proxy: {
         "/api": {
-          target: env.VITE_API_URL || "http://localhost:8000",
+          target: env.VITE_API_URL,  // <- usa tu variable de entorno
           changeOrigin: true,
           secure: false,
         },
@@ -54,3 +60,4 @@ export default defineConfig(async ({ mode }) => {
     },
   };
 });
+
