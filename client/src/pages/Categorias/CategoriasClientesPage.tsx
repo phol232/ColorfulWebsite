@@ -22,6 +22,7 @@ import {
   Users,
 } from "lucide-react";
 import { API_URL } from "@/config";
+import { useNotifications } from "@/hooks/useNotifications";
 
 interface CategoriaCliente {
   cli_cat_id: string;
@@ -36,6 +37,7 @@ interface Props {
 }
 
 const CategoriasClientesPage: React.FC<Props> = ({ onChange }) => {
+  const { showSuccess, showError } = useNotifications();
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -59,17 +61,17 @@ const CategoriasClientesPage: React.FC<Props> = ({ onChange }) => {
   const fetchCategoriasClientes = () => {
     console.log("Solicitando categorías...");
     fetch(`${API_URL}/api/categorias-clientes`)
-      .then((res) => {
-        console.log("Status respuesta:", res.status);
-        return res.json();
-      })
-      .then((data) => {
-        console.log("Datos recibidos:", data.length, "categorías");
-        setCategoriasClientes(data);
-      })
-      .catch((err) => {
-        console.error("Error al cargar categorías:", err);
-      });
+        .then((res) => {
+          console.log("Status respuesta:", res.status);
+          return res.json();
+        })
+        .then((data) => {
+          console.log("Datos recibidos:", data.length, "categorías");
+          setCategoriasClientes(data);
+        })
+        .catch((err) => {
+          console.error("Error al cargar categorías:", err);
+        });
   };
 
   useEffect(() => {
@@ -78,14 +80,14 @@ const CategoriasClientesPage: React.FC<Props> = ({ onChange }) => {
 
   // Filtrar por búsqueda
   const filteredCategories = categoriasClientes.filter(
-    (cat) =>
-      cat.cli_cat_nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (cat.cli_cat_descripcion &&
-        cat.cli_cat_descripcion.toLowerCase().includes(searchQuery.toLowerCase()))
+      (cat) =>
+          cat.cli_cat_nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (cat.cli_cat_descripcion &&
+              cat.cli_cat_descripcion.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+      e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { id, value } = e.target;
     setForm((prev) => ({ ...prev, [id]: value }));
@@ -104,7 +106,7 @@ const CategoriasClientesPage: React.FC<Props> = ({ onChange }) => {
   };
 
   const handleEditInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+      e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { id, value } = e.target;
     setEditForm((prev) => ({ ...prev, [id]: value }));
@@ -123,15 +125,15 @@ const CategoriasClientesPage: React.FC<Props> = ({ onChange }) => {
     console.log("Enviando edición...");
     try {
       const res = await fetch(
-        `${API_URL}/api/categorias-clientes/${editForm.cli_cat_id}`,
-        {
-          method: "POST",
-          headers: {
-            "X-HTTP-Method-Override": "PUT",
-            Accept: "application/json", 
-          },
-          body: formData,
-        }
+          `${API_URL}/api/categorias-clientes/${editForm.cli_cat_id}`,
+          {
+            method: "POST",
+            headers: {
+              "X-HTTP-Method-Override": "PUT",
+              Accept: "application/json",
+            },
+            body: formData,
+          }
       );
       console.log("Status respuesta:", res.status);
 
@@ -145,17 +147,15 @@ const CategoriasClientesPage: React.FC<Props> = ({ onChange }) => {
           cli_cat_estado: "Activo",
           cli_color: "",
         });
+        showSuccess("Categoría de cliente actualizada correctamente");
       } else {
         const errorData = await res.json();
         console.error("Error en respuesta:", errorData);
-        alert(
-          "Error al editar categoría de cliente: " +
-            (errorData.message || res.statusText)
-        );
+        showError(errorData.message || res.statusText, "No se pudo editar la categoría de cliente");
       }
     } catch (error) {
       console.error("Error al enviar la petición:", error);
-      alert("Error al editar categoría de cliente");
+      showError(error, "Error al editar categoría de cliente");
     } finally {
       setLoading(false);
     }
@@ -177,7 +177,7 @@ const CategoriasClientesPage: React.FC<Props> = ({ onChange }) => {
       const res = await fetch(`${API_URL}/api/categorias-clientes`, {
         method: "POST",
         headers: {
-          Accept: "application/json", 
+          Accept: "application/json",
         },
         body: formData,
       });
@@ -185,7 +185,7 @@ const CategoriasClientesPage: React.FC<Props> = ({ onChange }) => {
 
       if (res.ok) {
         fetchCategoriasClientes();
-        onChange?.(); 
+        onChange?.();
         setIsAddDialogOpen(false);
         setForm({
           cli_cat_nombre: "",
@@ -193,17 +193,15 @@ const CategoriasClientesPage: React.FC<Props> = ({ onChange }) => {
           cli_cat_estado: "Activo",
           cli_color: "",
         });
+        showSuccess("Categoría de cliente creada correctamente");
       } else {
         const errorData = await res.json();
         console.error("Error en respuesta:", errorData);
-        alert(
-          "Error al crear categoría de cliente: " +
-            (errorData.message || res.statusText)
-        );
+        showError(errorData.message || res.statusText, "No se pudo crear la categoría de cliente");
       }
     } catch (error) {
       console.error("Error al enviar la petición:", error);
-      alert("Error al crear categoría de cliente");
+      showError(error, "Error al crear categoría de cliente");
     } finally {
       setLoading(false);
     }
@@ -221,8 +219,8 @@ const CategoriasClientesPage: React.FC<Props> = ({ onChange }) => {
     console.log("Eliminando categoría...");
     try {
       const res = await fetch(
-        `${API_URL}/api/categorias-clientes/${deleteTarget.cli_cat_id}`,
-        { method: "DELETE" }
+          `${API_URL}/api/categorias-clientes/${deleteTarget.cli_cat_id}`,
+          { method: "DELETE" }
       );
       console.log("Status respuesta:", res.status);
 
@@ -230,17 +228,15 @@ const CategoriasClientesPage: React.FC<Props> = ({ onChange }) => {
         fetchCategoriasClientes();
         onChange?.();
         setDeleteTarget(null);
+        showSuccess("Categoría de cliente eliminada correctamente");
       } else {
         const errorData = await res.json();
         console.error("Error en respuesta:", errorData);
-        alert(
-          "Error al eliminar categoría de cliente: " +
-            (errorData.message || res.statusText)
-        );
+        showError(errorData.message || res.statusText, "No se pudo eliminar la categoría de cliente");
       }
     } catch (error) {
       console.error("Error al enviar la petición:", error);
-      alert("Error al eliminar categoría de cliente");
+      showError(error, "Error al eliminar categoría de cliente");
     } finally {
       setDeleteLoading(false);
     }
@@ -256,25 +252,25 @@ const CategoriasClientesPage: React.FC<Props> = ({ onChange }) => {
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
-              type="text"
-              placeholder="Buscar categoría de clientes..."
-              className="pl-9"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+                type="text"
+                placeholder="Buscar categoría de clientes..."
+                className="pl-9"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
           <div className="flex gap-2">
             <Button
-              variant="outline"
-              className="flex items-center gap-2"
-              onClick={() => setSearchQuery("")}
+                variant="outline"
+                className="flex items-center gap-2"
+                onClick={() => setSearchQuery("")}
             >
               <RefreshCcw className="h-4 w-4" />
               <span>Limpiar</span>
             </Button>
             <Button
-              className="flex items-center gap-2"
-              onClick={() => setIsAddDialogOpen(true)}
+                className="flex items-center gap-2"
+                onClick={() => setIsAddDialogOpen(true)}
             >
               <PlusCircle className="h-4 w-4" />
               <span>Nueva Categoría</span>
@@ -283,42 +279,42 @@ const CategoriasClientesPage: React.FC<Props> = ({ onChange }) => {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {filteredCategories.map((categoria) => (
-            <Card
-              key={categoria.cli_cat_id}
-              className="overflow-hidden hover:shadow-md transition-shadow"
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <Badge variant="outline" className={categoria.cli_color}>
-                    {categoria.cli_cat_nombre}
-                  </Badge>
-                  <span className="text-xs text-gray-500">
+              <Card
+                  key={categoria.cli_cat_id}
+                  className="overflow-hidden hover:shadow-md transition-shadow"
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <Badge variant="outline" className={categoria.cli_color}>
+                      {categoria.cli_cat_nombre}
+                    </Badge>
+                    <span className="text-xs text-gray-500">
                     {categoria.cli_cat_estado}
                   </span>
-                </div>
-                <p className="text-sm text-gray-600 line-clamp-2">
-                  {categoria.cli_cat_descripcion}
-                </p>
-                <div className="mt-4 flex justify-between">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-blue-600 hover:text-blue-800"
-                    onClick={() => handleEditClick(categoria)}
-                  >
-                    <Pencil className="h-4 w-4 mr-1" /> Editar
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-red-600 hover:text-red-800"
-                    onClick={() => handleDeleteClick(categoria)}
-                  >
-                    <Trash2 className="h-4 w-4 mr-1" /> Eliminar
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                  </div>
+                  <p className="text-sm text-gray-600 line-clamp-2">
+                    {categoria.cli_cat_descripcion}
+                  </p>
+                  <div className="mt-4 flex justify-between">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-blue-600 hover:text-blue-800"
+                        onClick={() => handleEditClick(categoria)}
+                    >
+                      <Pencil className="h-4 w-4 mr-1" /> Editar
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-600 hover:text-red-800"
+                        onClick={() => handleDeleteClick(categoria)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" /> Eliminar
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
           ))}
         </div>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
@@ -332,46 +328,46 @@ const CategoriasClientesPage: React.FC<Props> = ({ onChange }) => {
             <form onSubmit={handleSubmit} className="space-y-4 py-4">
               <div className="grid gap-2">
                 <label
-                  htmlFor="cli_cat_nombre"
-                  className="text-sm font-medium"
+                    htmlFor="cli_cat_nombre"
+                    className="text-sm font-medium"
                 >
                   Nombre de la Categoría
                 </label>
                 <Input
-                  id="cli_cat_nombre"
-                  value={form.cli_cat_nombre}
-                  onChange={handleInputChange}
-                  required
+                    id="cli_cat_nombre"
+                    value={form.cli_cat_nombre}
+                    onChange={handleInputChange}
+                    required
                 />
               </div>
               <div className="grid gap-2">
                 <label
-                  htmlFor="cli_cat_descripcion"
-                  className="text-sm font-medium"
+                    htmlFor="cli_cat_descripcion"
+                    className="text-sm font-medium"
                 >
                   Descripción
                 </label>
                 <textarea
-                  id="cli_cat_descripcion"
-                  rows={3}
-                  value={form.cli_cat_descripcion}
-                  onChange={handleInputChange}
-                  className="px-3 py-2 border border-gray-300 rounded-md w-full text-sm"
+                    id="cli_cat_descripcion"
+                    rows={3}
+                    value={form.cli_cat_descripcion}
+                    onChange={handleInputChange}
+                    className="px-3 py-2 border border-gray-300 rounded-md w-full text-sm"
                 />
               </div>
               <div className="grid gap-2">
                 <label
-                  htmlFor="cli_cat_estado"
-                  className="text-sm font-medium"
+                    htmlFor="cli_cat_estado"
+                    className="text-sm font-medium"
                 >
                   Estado
                 </label>
                 <select
-                  id="cli_cat_estado"
-                  value={form.cli_cat_estado}
-                  onChange={handleInputChange}
-                  className="px-3 py-2 border border-gray-300 rounded-md"
-                  required
+                    id="cli_cat_estado"
+                    value={form.cli_cat_estado}
+                    onChange={handleInputChange}
+                    className="px-3 py-2 border border-gray-300 rounded-md"
+                    required
                 >
                   <option value="Activo">Activo</option>
                   <option value="Inactivo">Inactivo</option>
@@ -382,11 +378,11 @@ const CategoriasClientesPage: React.FC<Props> = ({ onChange }) => {
                   Color
                 </label>
                 <select
-                  id="cli_color"
-                  value={form.cli_color}
-                  onChange={handleInputChange}
-                  className="px-3 py-2 border border-gray-300 rounded-md"
-                  required
+                    id="cli_color"
+                    value={form.cli_color}
+                    onChange={handleInputChange}
+                    className="px-3 py-2 border border-gray-300 rounded-md"
+                    required
                 >
                   <option value="">Selecciona un color</option>
                   <option value="bg-blue-100 text-blue-800 border-blue-400">
@@ -417,9 +413,9 @@ const CategoriasClientesPage: React.FC<Props> = ({ onChange }) => {
               </div>
               <DialogFooter>
                 <Button
-                  variant="outline"
-                  type="button"
-                  onClick={() => setIsAddDialogOpen(false)}
+                    variant="outline"
+                    type="button"
+                    onClick={() => setIsAddDialogOpen(false)}
                 >
                   Cancelar
                 </Button>
@@ -441,46 +437,46 @@ const CategoriasClientesPage: React.FC<Props> = ({ onChange }) => {
             <form onSubmit={handleEditSubmit} className="space-y-4 py-4">
               <div className="grid gap-2">
                 <label
-                  htmlFor="cli_cat_nombre"
-                  className="text-sm font-medium"
+                    htmlFor="cli_cat_nombre"
+                    className="text-sm font-medium"
                 >
                   Nombre de la Categoría
                 </label>
                 <Input
-                  id="cli_cat_nombre"
-                  value={editForm.cli_cat_nombre}
-                  onChange={handleEditInputChange}
-                  required
+                    id="cli_cat_nombre"
+                    value={editForm.cli_cat_nombre}
+                    onChange={handleEditInputChange}
+                    required
                 />
               </div>
               <div className="grid gap-2">
                 <label
-                  htmlFor="cli_cat_descripcion"
-                  className="text-sm font-medium"
+                    htmlFor="cli_cat_descripcion"
+                    className="text-sm font-medium"
                 >
                   Descripción
                 </label>
                 <textarea
-                  id="cli_cat_descripcion"
-                  rows={3}
-                  value={editForm.cli_cat_descripcion}
-                  onChange={handleEditInputChange}
-                  className="px-3 py-2 border border-gray-300 rounded-md w-full text-sm"
+                    id="cli_cat_descripcion"
+                    rows={3}
+                    value={editForm.cli_cat_descripcion}
+                    onChange={handleEditInputChange}
+                    className="px-3 py-2 border border-gray-300 rounded-md w-full text-sm"
                 />
               </div>
               <div className="grid gap-2">
                 <label
-                  htmlFor="cli_cat_estado"
-                  className="text-sm font-medium"
+                    htmlFor="cli_cat_estado"
+                    className="text-sm font-medium"
                 >
                   Estado
                 </label>
                 <select
-                  id="cli_cat_estado"
-                  value={editForm.cli_cat_estado}
-                  onChange={handleEditInputChange}
-                  className="px-3 py-2 border border-gray-300 rounded-md"
-                  required
+                    id="cli_cat_estado"
+                    value={editForm.cli_cat_estado}
+                    onChange={handleEditInputChange}
+                    className="px-3 py-2 border border-gray-300 rounded-md"
+                    required
                 >
                   <option value="Activo">Activo</option>
                   <option value="Inactivo">Inactivo</option>
@@ -491,11 +487,11 @@ const CategoriasClientesPage: React.FC<Props> = ({ onChange }) => {
                   Color
                 </label>
                 <select
-                  id="cli_color"
-                  value={editForm.cli_color}
-                  onChange={handleEditInputChange}
-                  className="px-3 py-2 border border-gray-300 rounded-md"
-                  required
+                    id="cli_color"
+                    value={editForm.cli_color}
+                    onChange={handleEditInputChange}
+                    className="px-3 py-2 border border-gray-300 rounded-md"
+                    required
                 >
                   <option value="">Selecciona un color</option>
                   <option value="bg-blue-100 text-blue-800 border-blue-400">
@@ -526,9 +522,9 @@ const CategoriasClientesPage: React.FC<Props> = ({ onChange }) => {
               </div>
               <DialogFooter>
                 <Button
-                  variant="outline"
-                  type="button"
-                  onClick={() => setIsEditDialogOpen(false)}
+                    variant="outline"
+                    type="button"
+                    onClick={() => setIsEditDialogOpen(false)}
                 >
                   Cancelar
                 </Button>
@@ -543,27 +539,27 @@ const CategoriasClientesPage: React.FC<Props> = ({ onChange }) => {
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Eliminar Categoría de Cliente</DialogTitle>
-                <DialogDescription>
-                  {deleteTarget ? (
-                  <>
-                  ¿Estás seguro de que deseas eliminar la categoría "
-                  {deleteTarget.cli_cat_nombre}"? Esta acción no se puede deshacer.
-                  </>
-                  ) : (
-                  "No se ha seleccionado ninguna categoría para eliminar."
+              <DialogDescription>
+                {deleteTarget ? (
+                    <>
+                      ¿Estás seguro de que deseas eliminar la categoría "
+                      {deleteTarget.cli_cat_nombre}"? Esta acción no se puede deshacer.
+                    </>
+                ) : (
+                    "No se ha seleccionado ninguna categoría para eliminar."
                 )}
-                </DialogDescription>
+              </DialogDescription>
             </DialogHeader>
             <DialogFooter>
               <Button variant="outline" onClick={handleDeleteCancel}>
                 Cancelar
               </Button>
               <Button
-                variant="destructive"
-                onClick={handleDeleteConfirm}
-                disabled={deleteLoading}
+                  variant="destructive"
+                  onClick={handleDeleteConfirm}
+                  disabled={deleteLoading}
               >
-              {deleteLoading ? "Eliminando..." : "Eliminar"}
+                {deleteLoading ? "Eliminando..." : "Eliminar"}
               </Button>
             </DialogFooter>
           </DialogContent>

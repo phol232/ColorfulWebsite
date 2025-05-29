@@ -1,14 +1,16 @@
-
 // src/pages/auth/microsoft/callback.tsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react';
 import { useLocation } from "wouter";
 import { useAuth } from "@/context/AuthContext";
 import { API_URL } from "@/config";
+import { useNotifications } from '@/hooks/useNotifications';
 
 const MicrosoftCallback: React.FC = () => {
-    const [error, setError] = useState<string | null>(null);
-    const [, setLocation] = useLocation();
     const { login } = useAuth();
+    const { showSuccess, showError } = useNotifications();
+    const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
+    const [error, setError] = useState<string>('');
+    const [, setLocation] = useLocation();
 
     useEffect(() => {
         console.log("MicrosoftCallback: Iniciando procesamiento");
@@ -45,16 +47,25 @@ const MicrosoftCallback: React.FC = () => {
                 .then(response => response.json())
                 .then(data => {
                     console.log("Datos de usuario recibidos:", data);
-                    if (data.status && data.usuario) {
-                        login(token, data.usuario);
+                    if (data.status && data.token) {
+                        console.log("Autenticación exitosa, redirigiendo...");
+                        login(data.token, data.usuario);
+                        setStatus('success');
+                        showSuccess("Autenticación con Microsoft exitosa");
                     } else {
-                        console.error("Error en la respuesta del usuario:", data);
-                        setError("Error al obtener información del usuario");
+                        console.error("Error en la respuesta:", data);
+                        const errorMessage = data.message || 'Error de autenticación';
+                        setError(errorMessage);
+                        setStatus('error');
+                        showError(errorMessage, "Error de autenticación con Microsoft");
                     }
                 })
-                .catch(err => {
-                    console.error("Error al obtener usuario:", err);
-                    login(token); // Login solo con token si falla obtener usuario
+                .catch(error => {
+                    console.error("Error al procesar callback:", error);
+                    const errorMessage = 'Error al procesar la autenticación';
+                    setError(errorMessage);
+                    setStatus('error');
+                    showError(error, "Error al procesar la autenticación con Microsoft");
                 });
 
             return;
@@ -62,7 +73,7 @@ const MicrosoftCallback: React.FC = () => {
 
         console.error("No se recibió token ni código válido");
         setError("No se pudo completar la autenticación con Microsoft");
-    }, [login, setLocation]);
+    }, [login, setLocation, showSuccess, showError]);
 
     // Redirigir en caso de error después de 3 segundos
     useEffect(() => {

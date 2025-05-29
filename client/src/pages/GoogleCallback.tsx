@@ -1,13 +1,17 @@
 // src/pages/auth/google/callback.tsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react';
 import { useLocation } from "wouter";
 import { useAuth } from "@/context/AuthContext";
 import { API_URL } from "@/config";
+import { useNotifications } from '@/hooks/useNotifications';
 
 const GoogleCallback: React.FC = () => {
-  const [error, setError] = useState<string | null>(null);
-  const [, setLocation] = useLocation();
   const { login } = useAuth();
+  const { showSuccess, showError } = useNotifications();
+  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const [error, setError] = useState<string>('');
+  const [, setLocation] = useLocation();
+
 
   useEffect(() => {
     console.log("GoogleCallback: Iniciando procesamiento");
@@ -89,7 +93,7 @@ const GoogleCallback: React.FC = () => {
       console.error("No se recibió token ni código");
       setError("No se recibió token ni código de autorización válido.");
     }
-  }, [login, setLocation]);
+  }, [login, setLocation, showSuccess, showError]);
 
   useEffect(() => {
     if (error) {

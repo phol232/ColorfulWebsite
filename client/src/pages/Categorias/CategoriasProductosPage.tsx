@@ -23,6 +23,7 @@ import {
   ShoppingBag,
 } from "lucide-react";
 import { API_URL } from "@/config";
+import { useNotifications } from "@/hooks/useNotifications";
 
 interface CategoriaProducto {
   cat_id: string;
@@ -39,6 +40,7 @@ interface Props {
 }
 
 const CategoriasProductosPage: React.FC<Props> = ({ onChange }) => {
+  const { showSuccess, showError } = useNotifications();
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddCategoryDialogOpen, setIsAddCategoryDialogOpen] = useState(false);
   const [isEditCategoryDialogOpen, setIsEditCategoryDialogOpen] = useState(false);
@@ -64,9 +66,9 @@ const CategoriasProductosPage: React.FC<Props> = ({ onChange }) => {
   // Cargar categorías desde API
   const fetchCategorias = () => {
     fetch(`${API_URL}/api/categorias`)
-      .then((res) => res.json())
-      .then((data) => setCategoriasProductos(data))
-      .catch((err) => console.error("Error al cargar categorías:", err));
+        .then((res) => res.json())
+        .then((data) => setCategoriasProductos(data))
+        .catch((err) => console.error("Error al cargar categorías:", err));
   };
 
   useEffect(() => {
@@ -75,10 +77,10 @@ const CategoriasProductosPage: React.FC<Props> = ({ onChange }) => {
 
   // Filtrar por búsqueda
   const filteredCategories = categoriasProductos.filter(
-    (cat) =>
-      cat.cat_nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (cat.cat_descripcion &&
-        cat.cat_descripcion.toLowerCase().includes(searchQuery.toLowerCase()))
+      (cat) =>
+          cat.cat_nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (cat.cat_descripcion &&
+              cat.cat_descripcion.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   // Formatear fecha
@@ -94,7 +96,7 @@ const CategoriasProductosPage: React.FC<Props> = ({ onChange }) => {
 
   // Manejadores de inputs
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+      e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { id, value } = e.target;
     setForm((prev) => ({ ...prev, [id]: value }));
@@ -120,7 +122,7 @@ const CategoriasProductosPage: React.FC<Props> = ({ onChange }) => {
   };
 
   const handleEditInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+      e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { id, value } = e.target;
     setEditForm((prev) => ({ ...prev, [id]: value }));
@@ -160,12 +162,14 @@ const CategoriasProductosPage: React.FC<Props> = ({ onChange }) => {
           imagen: null,
           cat_imagen: "",
         });
+        showSuccess("Categoría actualizada correctamente");
       } else {
-        alert("Error al editar categoría");
+        const errorData = await res.json();
+        showError(errorData.message || "Error desconocido", "No se pudo editar la categoría");
       }
     } catch (error) {
       console.error("Error al enviar la petición:", error);
-      alert("Error al editar categoría");
+      showError(error, "Error al editar categoría");
     } finally {
       setLoading(false);
     }
@@ -193,12 +197,14 @@ const CategoriasProductosPage: React.FC<Props> = ({ onChange }) => {
         onChange?.();
         setIsAddCategoryDialogOpen(false);
         setForm({ cat_nombre: "", cat_descripcion: "", cat_color: "", imagen: null });
+        showSuccess("Categoría creada correctamente");
       } else {
-        alert("Error al crear categoría");
+        const errorData = await res.json();
+        showError(errorData.message || "Error desconocido", "No se pudo crear la categoría");
       }
     } catch (error) {
       console.error("Error al enviar la petición:", error);
-      alert("Error al crear categoría");
+      showError(error, "Error al crear categoría");
     } finally {
       setLoading(false);
     }
@@ -222,12 +228,14 @@ const CategoriasProductosPage: React.FC<Props> = ({ onChange }) => {
         fetchCategorias();
         onChange?.();
         setDeleteTarget(null);
+        showSuccess("Categoría eliminada correctamente");
       } else {
-        alert("Error al eliminar categoría");
+        const errorData = await res.json();
+        showError(errorData.message || "Error desconocido", "No se pudo eliminar la categoría");
       }
     } catch (error) {
       console.error("Error al enviar la petición:", error);
-      alert("Error al eliminar categoría");
+      showError(error, "Error al eliminar categoría");
     } finally {
       setDeleteLoading(false);
     }
@@ -238,17 +246,17 @@ const CategoriasProductosPage: React.FC<Props> = ({ onChange }) => {
   };
 
   return (
-    <>
+      <>
         {/* Buscador y acciones */}
         <div className="flex flex-col md:flex-row gap-4 mb-6">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
-              type="text"
-              placeholder="Buscar categoría de productos..."
-              className="pl-9"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+                type="text"
+                placeholder="Buscar categoría de productos..."
+                className="pl-9"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
           <div className="flex gap-2">
@@ -266,69 +274,69 @@ const CategoriasProductosPage: React.FC<Props> = ({ onChange }) => {
         {/* Lista de categorías */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {filteredCategories.map((categoria) => (
-            <Card key={categoria.cat_id} className="overflow-hidden hover:shadow-md transition-shadow">
-              <CardContent className="p-0">
-                {categoria.cat_imagen && (
-                  <div className="w-full flex justify-center items-center pt-4">
-                    <img
-                      src={API_URL + categoria.cat_imagen}
-                      alt={categoria.cat_nombre}
-                      width={48}
-                      height={48}
-                      style={{
-                        width: "48px",
-                        height: "48px",
-                        objectFit: "cover",
-                        borderRadius: "0.5rem",
-                        border: "1px solid #eee",
-                        background: "#fafafa",
-                      }}
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = "/img/default-category.png";
-                      }}
-                    />
+              <Card key={categoria.cat_id} className="overflow-hidden hover:shadow-md transition-shadow">
+                <CardContent className="p-0">
+                  {categoria.cat_imagen && (
+                      <div className="w-full flex justify-center items-center pt-4">
+                        <img
+                            src={API_URL + categoria.cat_imagen}
+                            alt={categoria.cat_nombre}
+                            width={48}
+                            height={48}
+                            style={{
+                              width: "48px",
+                              height: "48px",
+                              objectFit: "cover",
+                              borderRadius: "0.5rem",
+                              border: "1px solid #eee",
+                              background: "#fafafa",
+                            }}
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = "/img/default-category.png";
+                            }}
+                        />
+                      </div>
+                  )}
+                  <div className="p-4 border-b">
+                    <div className="flex items-center justify-between mb-2">
+                      <Badge variant="outline" className={categoria.cat_color}>
+                        {categoria.cat_nombre}
+                      </Badge>
+                      <span className="text-xs text-gray-500">{formatDate(categoria.creado)}</span>
+                    </div>
+                    <p className="text-sm text-gray-600 line-clamp-2">
+                      {categoria.cat_descripcion}
+                    </p>
                   </div>
-                )}
-                <div className="p-4 border-b">
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="p-4 flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <Package className="h-4 w-4 text-gray-500" />
+                      <span className="text-sm text-gray-500">{categoria.productos ?? 0} productos</span>
+                    </div>
                     <Badge variant="outline" className={categoria.cat_color}>
-                      {categoria.cat_nombre}
+                      Activa
                     </Badge>
-                    <span className="text-xs text-gray-500">{formatDate(categoria.creado)}</span>
                   </div>
-                  <p className="text-sm text-gray-600 line-clamp-2">
-                    {categoria.cat_descripcion}
-                  </p>
-                </div>
-                <div className="p-4 flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <Package className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm text-gray-500">{categoria.productos ?? 0} productos</span>
+                  <div className="p-3 bg-gray-50 border-t flex justify-between">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-blue-600 hover:text-blue-800"
+                        onClick={() => handleEditClick(categoria)}
+                    >
+                      <Pencil className="h-4 w-4 mr-1" /> Editar
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-600 hover:text-red-800"
+                        onClick={() => handleDeleteClick(categoria)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" /> Eliminar
+                    </Button>
                   </div>
-                  <Badge variant="outline" className={categoria.cat_color}>
-                    Activa
-                  </Badge>
-                </div>
-                <div className="p-3 bg-gray-50 border-t flex justify-between">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-blue-600 hover:text-blue-800"
-                    onClick={() => handleEditClick(categoria)}
-                  >
-                    <Pencil className="h-4 w-4 mr-1" /> Editar
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-red-600 hover:text-red-800"
-                    onClick={() => handleDeleteClick(categoria)}
-                  >
-                    <Trash2 className="h-4 w-4 mr-1" /> Eliminar
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
           ))}
         </div>
 
@@ -353,11 +361,11 @@ const CategoriasProductosPage: React.FC<Props> = ({ onChange }) => {
                   Descripción
                 </label>
                 <textarea
-                  id="cat_descripcion"
-                  rows={3}
-                  value={form.cat_descripcion}
-                  onChange={handleInputChange}
-                  className="px-3 py-2 border border-gray-300 rounded-md w-full text-sm"
+                    id="cat_descripcion"
+                    rows={3}
+                    value={form.cat_descripcion}
+                    onChange={handleInputChange}
+                    className="px-3 py-2 border border-gray-300 rounded-md w-full text-sm"
                 />
               </div>
               <div className="grid gap-2">
@@ -413,11 +421,11 @@ const CategoriasProductosPage: React.FC<Props> = ({ onChange }) => {
                   Descripción
                 </label>
                 <textarea
-                  id="cat_descripcion"
-                  rows={3}
-                  value={editForm.cat_descripcion}
-                  onChange={handleEditInputChange}
-                  className="px-3 py-2 border border-gray-300 rounded-md w-full text-sm"
+                    id="cat_descripcion"
+                    rows={3}
+                    value={editForm.cat_descripcion}
+                    onChange={handleEditInputChange}
+                    className="px-3 py-2 border border-gray-300 rounded-md w-full text-sm"
                 />
               </div>
               <div className="grid gap-2">
@@ -441,26 +449,26 @@ const CategoriasProductosPage: React.FC<Props> = ({ onChange }) => {
                   Imagen
                 </label>
                 {editForm.cat_imagen && (
-                  <div className="mb-2">
-                    <img
-                      src={API_URL + editForm.cat_imagen}
-                      alt="Imagen actual"
-                      width={48}
-                      height={48}
-                      style={{
-                        width: "48px",
-                        height: "48px",
-                        objectFit: "cover",
-                        borderRadius: "0.5rem",
-                        border: "1px solid #eee",
-                        background: "#fafafa",
-                      }}
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = "/img/default-category.png";
-                      }}
-                    />
-                    <span className="block text-xs text-gray-500">Imagen actual</span>
-                  </div>
+                    <div className="mb-2">
+                      <img
+                          src={API_URL + editForm.cat_imagen}
+                          alt="Imagen actual"
+                          width={48}
+                          height={48}
+                          style={{
+                            width: "48px",
+                            height: "48px",
+                            objectFit: "cover",
+                            borderRadius: "0.5rem",
+                            border: "1px solid #eee",
+                            background: "#fafafa",
+                          }}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = "/img/default-category.png";
+                          }}
+                      />
+                      <span className="block text-xs text-gray-500">Imagen actual</span>
+                    </div>
                 )}
                 <Input id="imagen" type="file" accept="image/*" onChange={handleEditFileChange} />
               </div>
@@ -475,41 +483,41 @@ const CategoriasProductosPage: React.FC<Props> = ({ onChange }) => {
             </form>
           </DialogContent>
         </Dialog>
-      <Dialog
-        open={!!deleteTarget}
-        onOpenChange={(isOpen) => {
-          if (!isOpen) handleDeleteCancel(); // Cierra el diálogo correctamente
-        }}
+        <Dialog
+            open={!!deleteTarget}
+            onOpenChange={(isOpen) => {
+              if (!isOpen) handleDeleteCancel(); // Cierra el diálogo correctamente
+            }}
         >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Eliminar Categoría</DialogTitle>
-            <DialogDescription>
-              {deleteTarget ? (
-                <>
-                  ¿Estás seguro de que deseas eliminar la categoría "
-                  {deleteTarget.cat_nombre}"? Esta acción no se puede deshacer.
-                </>
-              ) : (
-                "No se ha seleccionado ninguna categoría para eliminar."
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={handleDeleteCancel}>
-              Cancelar
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDeleteConfirm}
-              disabled={deleteLoading}
-            >
-              {deleteLoading ? "Eliminando..." : "Eliminar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Eliminar Categoría</DialogTitle>
+              <DialogDescription>
+                {deleteTarget ? (
+                    <>
+                      ¿Estás seguro de que deseas eliminar la categoría "
+                      {deleteTarget.cat_nombre}"? Esta acción no se puede deshacer.
+                    </>
+                ) : (
+                    "No se ha seleccionado ninguna categoría para eliminar."
+                )}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={handleDeleteCancel}>
+                Cancelar
+              </Button>
+              <Button
+                  variant="destructive"
+                  onClick={handleDeleteConfirm}
+                  disabled={deleteLoading}
+              >
+                {deleteLoading ? "Eliminando..." : "Eliminar"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </>
   );
 };
 

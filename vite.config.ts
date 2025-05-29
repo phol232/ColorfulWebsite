@@ -40,7 +40,6 @@ export default defineConfig(async ({ mode }) => {
       host: "0.0.0.0",
       port: 5000,
       strictPort: true,
-      // Añade aquí todos los hosts desde los que sirvas tu frontend
       allowedHosts: [
         "localhost",
         "yamicorp.areallc.tech",
@@ -48,7 +47,7 @@ export default defineConfig(async ({ mode }) => {
       ],
       proxy: {
         "/api": {
-          target: env.VITE_API_URL,  // <- usa tu variable de entorno
+          target: env.VITE_API_URL,
           changeOrigin: true,
           secure: false,
         },

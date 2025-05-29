@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { API_URL } from "@/config";
+import { useNotifications } from "@/hooks/useNotifications";
 
 interface Categoria { cat_id: string; cat_nombre: string; }
 interface Proveedor { prov_id: string; prov_nombre: string; }
@@ -67,6 +68,7 @@ interface ProductosPageProps {
 
 const ProductosPage: FC<ProductosPageProps> = ({ onChange }) => {
     const queryClient = useQueryClient();
+    const { showSuccess, showError } = useNotifications();
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [selected, setSelected] = useState<Producto | null>(null);
@@ -97,6 +99,10 @@ const ProductosPage: FC<ProductosPageProps> = ({ onChange }) => {
             queryClient.invalidateQueries({ queryKey: ["productos"] });
             setPreview(null);
             if (onChange) onChange();
+            showSuccess("Producto creado correctamente");
+        },
+        onError: (error) => {
+            showError(error, "No se pudo crear el producto");
         },
     });
 
@@ -110,6 +116,10 @@ const ProductosPage: FC<ProductosPageProps> = ({ onChange }) => {
                 queryClient.invalidateQueries({ queryKey: ["productos"] });
                 setEditPreview(null);
                 if (onChange) onChange();
+                showSuccess("Producto actualizado correctamente");
+            },
+            onError: (error) => {
+                showError(error, "No se pudo actualizar el producto");
             },
         }
     );
@@ -119,6 +129,10 @@ const ProductosPage: FC<ProductosPageProps> = ({ onChange }) => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["productos"] });
             if (onChange) onChange();
+            showSuccess("Producto eliminado correctamente");
+        },
+        onError: (error) => {
+            showError(error, "No se pudo eliminar el producto");
         },
     });
 
