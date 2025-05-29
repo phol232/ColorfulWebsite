@@ -47,14 +47,14 @@ const MicrosoftCallback: React.FC = () => {
                 .then(response => response.json())
                 .then(data => {
                     console.log("Datos de usuario recibidos:", data);
-                    if (data.status && data.token) {
-                        console.log("Autenticación exitosa, redirigiendo...");
-                        login(data.token, data.usuario);
+                    // Ajuste: solo verifica que haya datos de usuario
+                    const usuario = data.usuario || data.user || data;
+                    if (usuario) {
+                        login(token, usuario); // Usa el token ya recibido y el perfil
                         setStatus('success');
                         showSuccess("Autenticación con Microsoft exitosa");
                     } else {
-                        console.error("Error en la respuesta:", data);
-                        const errorMessage = data.message || 'Error de autenticación';
+                        const errorMessage = data.message || 'No se pudo obtener el perfil de usuario';
                         setError(errorMessage);
                         setStatus('error');
                         showError(errorMessage, "Error de autenticación con Microsoft");

@@ -27,11 +27,15 @@ import {
     CrearConfiguracionAlertaPayload, CategoriaSimple,
 } from '@/types/alertas';
 import { useAuth } from '@/context/AuthContext';
+// Agrega la siguiente línea para importar useToast
+import { useToast } from '@/hooks/use-toast';
 
 const AlertasPage: React.FC = () => {
     const queryClient = useQueryClient();
     const { showSuccess, showError } = useNotifications();
     const { userProfile, isAuthenticated } = useAuth();
+    // Obtén la función toast del hook
+    const { toast } = useToast();
 
     // --- ESTADOS ---
     const [searchTerm, setSearchTerm] = useState('');

@@ -110,6 +110,7 @@ const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
     const [editando, setEditando] = useState<Movimiento | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [movimientoAEliminar, setMovimientoAEliminar] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null); // <-- Agregado para manejar errores
     // Importar el hook useUserId directamente para evitar problemas de disponibilidad
     const { userProfile } = useAuth();
     const userId = useUserId() || "DEV-USR-001"; // Asegurarse de que siempre haya un ID disponible
@@ -345,6 +346,7 @@ const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
         setProductosSeleccionados([{ producto: "", cantidad: 1, costo: 0 }]);
         setSearchQuery("");
         setProductosEncontrados([]);
+        setError(null); // Limpiar error al limpiar el formulario
     };
 
     // Preparar datos para edición
@@ -404,6 +406,7 @@ const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
     // Manejar envío del formulario
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        setError(null); // Limpiar error antes de validar
         const formData = new FormData(e.currentTarget);
 
         // Usar el userId del hook useUserId que maneja todos los casos de formato de ID
@@ -701,6 +704,12 @@ const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
                         </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleSubmit} className="py-2">
+                        {/* Mostrar error si existe */}
+                        {error && (
+                            <div className="mb-4 p-3 bg-red-100 border border-red-300 text-red-800 rounded">
+                                {error}
+                            </div>
+                        )}
                         <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
                             {/* Columna Izquierda - Datos principales */}
                             <div className="md:col-span-5 space-y-3">

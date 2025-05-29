@@ -21,6 +21,7 @@ import {
   Briefcase,
 } from "lucide-react";
 import { API_URL } from "@/config";
+import { useNotifications } from "@/hooks/useNotifications";
 
 interface CategoriaProveedor {
   prov_cat_id: string;
@@ -38,6 +39,9 @@ const CategoriasProveedoresPage: React.FC<Props> = ({ onChange }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [items, setItems] = useState<CategoriaProveedor[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Notificaciones
+  const { showError } = useNotifications();
 
   // Estados para CRUD
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -345,7 +349,6 @@ const CategoriasProveedoresPage: React.FC<Props> = ({ onChange }) => {
                   <option value="bg-amber-100 text-amber-800 border-amber-400">Ámbar</option>
                   <option value="bg-teal-100 text-teal-800 border-teal-400">Verde Azulado</option>
                   <option value="bg-gray-100 text-gray-800 border-gray-400">Gris</option>
-                  {/* …más opciones según tu paleta */}
                 </select>
               </div>
               <DialogFooter>

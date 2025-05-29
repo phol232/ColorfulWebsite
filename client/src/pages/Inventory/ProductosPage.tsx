@@ -1,4 +1,3 @@
-
 import React, { useState, FC } from "react";
 import axios from "axios";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -76,6 +75,8 @@ const ProductosPage: FC<ProductosPageProps> = ({ onChange }) => {
     const [editPreview, setEditPreview] = useState<string | null>(null);
     const [search, setSearch] = useState("");
     const [stockFilter, setStockFilter] = useState<"all"|"low"|"medium"|"high">("all");
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [productoAEliminar, setProductoAEliminar] = useState<Producto | null>(null);
 
     const { data: productos = [], isLoading: loadingProds, isError: prodError } =
         useQuery<Producto[], Error>({
@@ -389,7 +390,10 @@ const ProductosPage: FC<ProductosPageProps> = ({ onChange }) => {
                                     <Button
                                         size="sm"
                                         variant="destructive"
-                                        onClick={() => deleteProducto.mutate(prod.pro_id)}
+                                        onClick={() => {
+                                            setProductoAEliminar(prod);
+                                            setDeleteDialogOpen(true);
+                                        }}
                                     >
                                         <Trash2 />
                                     </Button>
@@ -539,6 +543,38 @@ const ProductosPage: FC<ProductosPageProps> = ({ onChange }) => {
                             </DialogFooter>
                         </form>
                     )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Modal de confirmación de eliminación */}
+            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>¿Eliminar producto?</DialogTitle>
+                        <DialogDescription>
+                            ¿Estás seguro de que deseas eliminar el producto{' '}
+                            <span className="font-semibold">{productoAEliminar?.pro_nombre}</span>? Esta acción no se puede deshacer.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <DialogClose asChild>
+                            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+                                Cancelar
+                            </Button>
+                        </DialogClose>
+                        <Button
+                            variant="destructive"
+                            onClick={() => {
+                                if (productoAEliminar) {
+                                    deleteProducto.mutate(productoAEliminar.pro_id);
+                                }
+                                setDeleteDialogOpen(false);
+                                setProductoAEliminar(null);
+                            }}
+                        >
+                            Eliminar
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </>

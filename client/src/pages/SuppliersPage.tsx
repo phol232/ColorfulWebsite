@@ -72,7 +72,7 @@ const SuppliersPage: React.FC = () => {
   const [categories, setCategories] = useState<Categoria[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
-  const [currentTab, setCurrentTab] = useState<"todos" | "inactivos">("todos");
+  const [currentTab, setCurrentTab] = useState<string>("todos");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [newDialog, setNewDialog] = useState(false);
   const [editDialog, setEditDialog] = useState(false);
