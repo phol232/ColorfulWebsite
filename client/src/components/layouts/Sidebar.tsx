@@ -77,7 +77,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
 
   const toolsItems = [
     { name: "Categorías", icon: <Tags className="h-5 w-5" />, path: "/categories" },
-    { name: "Pagos", icon: <CreditCard className="h-5 w-5" />, path: "/payments" },
+    { name: "Pagos", icon: <CreditCard className="h-5 w-5" />, path: "/payment-methods" },
     { name: "Configuración", icon: <Settings className="h-5 w-5" />, path: "/settings" },
   ];
 
