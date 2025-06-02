@@ -15,7 +15,7 @@ import {
     Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
+import { useNotifications } from '@/hooks/useNotifications';
 import {
     Search as SearchIcon, AlertTriangle, Bell, Edit, Trash2, PlusCircle, Settings,
     RefreshCcw, Loader2, MessageSquareWarning, Info, CheckCircle2, XCircle, ShieldAlert, Skull,
@@ -27,11 +27,15 @@ import {
     CrearConfiguracionAlertaPayload, CategoriaSimple,
 } from '@/types/alertas';
 import { useAuth } from '@/context/AuthContext';
+// Agrega la siguiente línea para importar useToast
+import { useToast } from '@/hooks/use-toast';
 
 const AlertasPage: React.FC = () => {
     const queryClient = useQueryClient();
-    const { toast } = useToast();
+    const { showSuccess, showError } = useNotifications();
     const { userProfile, isAuthenticated } = useAuth();
+    // Obtén la función toast del hook
+    const { toast } = useToast();
 
     // --- ESTADOS ---
     const [searchTerm, setSearchTerm] = useState('');
@@ -96,14 +100,26 @@ const AlertasPage: React.FC = () => {
             const { alerta_stock_id, ...payload } = alertaActualizada;
             return axios.put(`${API_URL}/api/inventario/alertas-stock/${alerta_stock_id}`, payload);
         },
-        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['alertasStock'] }); toast({ title: 'Éxito', description: 'Alerta actualizada.' }); setIsEditModalOpen(false); },
-        onError: (error: any) => { toast({ title: 'Error', description: error.response?.data?.message || 'No se pudo actualizar.', variant: 'destructive' }); },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['alertasStock'] });
+            showSuccess('Alerta actualizada correctamente');
+            setIsEditModalOpen(false);
+        },
+        onError: (error: any) => {
+            showError(error, 'No se pudo actualizar la alerta');
+        },
     });
 
     const deleteAlertaMutation = useMutation({
         mutationFn: (alertaId: number) => axios.delete(`${API_URL}/api/inventario/alertas-stock/${alertaId}`),
-        onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['alertasStock'] }); toast({ title: 'Éxito', description: 'Alerta eliminada.' }); setIsDeleteModalOpen(false); },
-        onError: (error: any) => { toast({ title: 'Error', description: error.response?.data?.message || 'No se pudo eliminar.', variant: 'destructive' }); },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['alertasStock'] });
+            showSuccess('Alerta eliminada correctamente');
+            setIsDeleteModalOpen(false);
+        },
+        onError: (error: any) => {
+            showError(error, 'No se pudo eliminar la alerta');
+        },
     });
 
     const crearAlertaManualMutation = useMutation({

@@ -20,6 +20,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
 import { Toaster } from "./components/ui/toaster";
 import { queryClient } from "./lib/queryClient";
+import PaymentMethodsPage from "./pages/PaymentMethodsPage";
 
 const App: React.FC = () => {
     return (
@@ -47,6 +48,7 @@ const App: React.FC = () => {
                         <Route path="/orders" component={OrdersPage} />
                         <Route path="/sales" component={SalesPage} />
                         <Route path="/invoices" component={InvoicesPage} />
+                        <Route path="/payment-methods" component={PaymentMethodsPage} />
 
                         <Route path="/categories" component={CategoriesPage} />
                         <Route path="/categories/productos" component={CategoriesPage} />

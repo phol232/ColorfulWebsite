@@ -3,6 +3,7 @@ import axios from "axios";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
 import { useUserId } from "@/hooks/useUserId";
+import { useNotifications } from "@/hooks/useNotifications";
 import {
     Card,
     CardHeader,
@@ -97,6 +98,7 @@ interface MovimientosPageProps {
 
 const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
     const queryClient = useQueryClient();
+    const { showSuccess, showError } = useNotifications();
     const [search, setSearch] = useState("");
     const [tipoFiltro, setTipoFiltro] = useState<"todos" | "Entrada" | "Salida">("todos");
     const [fechaDesde, setFechaDesde] = useState("");
@@ -108,7 +110,7 @@ const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
     const [editando, setEditando] = useState<Movimiento | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [movimientoAEliminar, setMovimientoAEliminar] = useState<string | null>(null);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(null); // <-- Agregado para manejar errores
     // Importar el hook useUserId directamente para evitar problemas de disponibilidad
     const { userProfile } = useAuth();
     const userId = useUserId() || "DEV-USR-001"; // Asegurarse de que siempre haya un ID disponible
@@ -122,7 +124,7 @@ const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
                 return response.data;
             } catch (error) {
                 console.error("Error al cargar movimientos:", error);
-                setError("Error al cargar los movimientos del inventario");
+                showError(error, "Error al cargar los movimientos del inventario");
                 return [];
             }
         },
@@ -255,10 +257,10 @@ const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
             if (onChange) onChange();
             setIsDialogOpen(false);
             limpiarFormulario();
+            showSuccess("Movimiento creado correctamente");
         },
         onError: (error) => {
-            console.error("Error al crear movimiento:", error);
-            setError("Error al crear el movimiento");
+            showError(error, "No se pudo crear el movimiento");
         }
     });
 
@@ -278,10 +280,10 @@ const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
             setIsDialogOpen(false);
             setEditando(null);
             limpiarFormulario();
+            showSuccess("Movimiento actualizado correctamente");
         },
         onError: (error) => {
-            console.error("Error al editar movimiento:", error);
-            setError("Error al editar el movimiento");
+            showError(error, "No se pudo actualizar el movimiento");
         }
     });
 
@@ -297,10 +299,10 @@ const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
             if (onChange) onChange();
             setIsDeleteDialogOpen(false);
             setMovimientoAEliminar(null);
+            showSuccess("Movimiento eliminado correctamente");
         },
         onError: (error) => {
-            console.error("Error al eliminar movimiento:", error);
-            setError("Error al eliminar el movimiento");
+            showError(error, "No se pudo eliminar el movimiento");
         }
     });
 
@@ -344,6 +346,7 @@ const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
         setProductosSeleccionados([{ producto: "", cantidad: 1, costo: 0 }]);
         setSearchQuery("");
         setProductosEncontrados([]);
+        setError(null); // Limpiar error al limpiar el formulario
     };
 
     // Preparar datos para edición
@@ -403,6 +406,7 @@ const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
     // Manejar envío del formulario
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        setError(null); // Limpiar error antes de validar
         const formData = new FormData(e.currentTarget);
 
         // Usar el userId del hook useUserId que maneja todos los casos de formato de ID
@@ -488,18 +492,6 @@ const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
 
     return (
         <>
-            {error && (
-                <div className="bg-red-50 border border-red-200 text-red-800 p-4 mb-4 rounded-md">
-                    {error}
-                    <button
-                        className="ml-2 text-red-600 hover:text-red-800"
-                        onClick={() => setError(null)}
-                    >
-                        <X className="h-4 w-4 inline" />
-                    </button>
-                </div>
-            )}
-
             {/* Búsqueda y Filtros */}
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
                 <div className="relative flex-1">
@@ -712,6 +704,12 @@ const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
                         </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleSubmit} className="py-2">
+                        {/* Mostrar error si existe */}
+                        {error && (
+                            <div className="mb-4 p-3 bg-red-100 border border-red-300 text-red-800 rounded">
+                                {error}
+                            </div>
+                        )}
                         <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
                             {/* Columna Izquierda - Datos principales */}
                             <div className="md:col-span-5 space-y-3">
