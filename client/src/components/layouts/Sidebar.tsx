@@ -14,6 +14,7 @@ import {
   Receipt,
   Store,
   Tags,
+  FileText,
 } from "lucide-react";
 import Logo from "../ui/Logo";
 import { useAuth } from "../../context/AuthContext";
@@ -71,8 +72,6 @@ const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
   const salesItems = [
     { name: "Punto de Venta", icon: <Store className="h-5 w-5" />, path: "/pos" },
     { name: "Pedidos", icon: <ClipboardList className="h-5 w-5" />, path: "/orders" },
-    { name: "Ventas", icon: <ShoppingCart className="h-5 w-5" />, path: "/sales" },
-    { name: "Facturas", icon: <Receipt className="h-5 w-5" />, path: "/invoices" },
   ];
 
   const toolsItems = [
@@ -132,6 +131,23 @@ const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
                     {renderMenuItem(item)}
                   </li>
               ))}
+            </ul>
+          </div>
+
+          <div className="mb-6">
+            <h3 className="text-gray-500 font-medium text-xs uppercase tracking-wider px-3 mb-3">Comprobantes</h3>
+            <ul className="space-y-1">
+              <li>
+                {renderMenuItem({ name: "Boletas", icon: <Receipt className="h-5 w-5" />, path: "/boletas" })}
+              </li>
+              <Link href="/invoices">
+                <div className="flex items-center p-2.5 rounded-md transition-colors cursor-pointer text-gray-700 hover:bg-gray-100">
+                  <span className="text-gray-500">
+                    <FileText className="h-5 w-5" />
+                  </span>
+                  <span className="ml-3 text-sm">Facturas</span>
+                </div>
+              </Link>
             </ul>
           </div>
 

@@ -21,6 +21,7 @@ import { CartProvider } from "./context/CartContext";
 import { Toaster } from "./components/ui/toaster";
 import { queryClient } from "./lib/queryClient";
 import PaymentMethodsPage from "./pages/PaymentMethodsPage";
+import BoletasPage from "./pages/BoletasPage";
 
 const App: React.FC = () => {
     return (
@@ -47,6 +48,7 @@ const App: React.FC = () => {
                         <Route path="/pos" component={POSPage} />
                         <Route path="/orders" component={OrdersPage} />
                         <Route path="/sales" component={SalesPage} />
+                        <Route path="/boletas" component={BoletasPage} />
                         <Route path="/invoices" component={InvoicesPage} />
                         <Route path="/payment-methods" component={PaymentMethodsPage} />
 
