@@ -34,6 +34,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { useQuery } from "@tanstack/react-query";
 import { API_URL } from "@/config";
 import { useToast } from "@/hooks/use-toast";
+import { useUserId } from "@/hooks/useUserId";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -90,6 +91,9 @@ const POSPage: React.FC = () => {
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
 
   const { toast } = useToast();
+
+  // Obtener ID del usuario logueado usando el hook
+  const userId = useUserId();
 
   // Fetch products
   const { data: productos = [], isLoading: loadingProducts, refetch: refetchProducts } = useQuery<Producto[]>({
@@ -244,7 +248,7 @@ const POSPage: React.FC = () => {
       const token = localStorage.getItem("token");
       const orderData = {
         cliente_nombre: selectedCliente?.cli_nombre || clienteSearch.trim(),
-        usr_id: 72890842, // ID del usuario desde el ejemplo
+        usr_id: userId,
         forma_entrega: formaEntrega,
         notas: notas.trim() || null,
         items: cart.map(item => ({

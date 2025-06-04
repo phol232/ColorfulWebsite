@@ -22,7 +22,8 @@ import {
     Hash,
     Clock,
     CheckCircle,
-    AlertCircle
+    AlertCircle,
+    Package
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -47,28 +48,30 @@ interface Boleta {
         ped_estado: string;
         ped_tipo: string;
         ped_forma_entrega: string;
-        cli_nombre: string;
-        usr_nombre: string;
+        cli_id: string;
+        usr_id: string;
+        ped_notas?: string;
         detalles?: Array<{
             det_id: string;
             det_cantidad: number;
             det_precio_unitario: number;
             det_subtotal: number;
-            producto?: {
-                pro_nombre: string;
-                pro_descripcion?: string;
-            };
+            prod_id: string;
         }>;
     };
-    pagos?: Array<{
-        pago_id: string;
-        monto: number;
-        fecha_pago: string;
-        nota_pago?: string;
-        metodo_pago?: {
-            met_nombre: string;
-            met_tipo?: string;
-            met_banco?: string;
+    metodos_pago?: Array<{
+        met_id: string;
+        met_nombre: string;
+        met_descripcion?: string;
+        met_estado: string;
+        met_tipo?: string;
+        met_banco?: string;
+        pivot: {
+            boleta_id: string;
+            met_id: string;
+            monto: number;
+            referencia: string;
+            fecha_registro: string;
         };
     }>;
 }
@@ -109,16 +112,107 @@ const BoletasPage: React.FC = () => {
         }
     });
 
+    // Fetch clientes para obtener nombres
+    const { data: clientes = [] } = useQuery<Array<{cli_id: string, cli_nombre: string}>>({
+        queryKey: ['/api/clientes'],
+        queryFn: async () => {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_URL}/api/clientes`, {
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : '',
+                    'Content-Type': 'application/json',
+                }
+            });
+            if (!response.ok) return [];
+            const data = await response.json();
+            return data.data || data;
+        }
+    });
+
+    // Fetch usuarios para obtener nombres
+    const { data: usuarios = [] } = useQuery<Array<{usr_id: string, usr_nombre: string}>>({
+        queryKey: ['/api/usuarios'],
+        queryFn: async () => {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_URL}/api/usuarios`, {
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : '',
+                    'Content-Type': 'application/json',
+                }
+            });
+            if (!response.ok) return [];
+            const data = await response.json();
+            return data.data || data;
+        }
+    });
+
+    // Fetch productos para obtener nombres
+    const { data: productos = [] } = useQuery<Array<{pro_id: string, pro_nombre: string}>>({
+        queryKey: ['/api/productos'],
+        queryFn: async () => {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_URL}/api/productos`, {
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : '',
+                    'Content-Type': 'application/json',
+                }
+            });
+            if (!response.ok) return [];
+            const data = await response.json();
+            return data.data || data;
+        }
+    });
+
+    // Obtener información del usuario logueado
+    const { data: usuarioLogueado } = useQuery<{usr_id: string, usr_nombre: string}>({
+        queryKey: ['/api/auth/me'],
+        queryFn: async () => {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_URL}/api/auth/me`, {
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : '',
+                    'Content-Type': 'application/json',
+                }
+            });
+            if (!response.ok) throw new Error('Error fetching user info');
+            const data = await response.json();
+            return data.data || data;
+        }
+    });
+
+    // Función para obtener el nombre del cliente
+    const getClienteName = (cli_id?: string) => {
+        if (!cli_id) return 'Cliente no disponible';
+        const cliente = clientes.find(c => c.cli_id === cli_id);
+        return cliente?.cli_nombre || `Cliente ${cli_id}`;
+    };
+
+    // Función para obtener el nombre del usuario
+    const getUsuarioName = (usr_id?: string) => {
+        if (!usr_id) return 'Usuario no disponible';
+        const usuario = usuarios.find(u => u.usr_id === usr_id);
+        return usuario?.usr_nombre || `Usuario ${usr_id}`;
+    };
+
+    // Función para obtener el nombre del producto
+    const getProductoName = (prod_id?: string) => {
+        if (!prod_id) return 'Producto no disponible';
+        const producto = productos.find(p => p.pro_id === prod_id);
+        return producto?.pro_nombre || `Producto ${prod_id}`;
+    };
+
     // Filtrar boletas según la búsqueda
     const filteredBoletas = boletas.filter(boleta => {
         if (!searchQuery) return true;
 
         const searchLower = searchQuery.toLowerCase();
+        const clientName = getClienteName(boleta.pedido?.cli_id);
+
         return (
             boleta.boleta_numero.toLowerCase().includes(searchLower) ||
             boleta.boleta_id.toLowerCase().includes(searchLower) ||
             boleta.ped_id.toLowerCase().includes(searchLower) ||
-            boleta.pedido?.cli_nombre?.toLowerCase().includes(searchLower)
+            clientName.toLowerCase().includes(searchLower)
         );
     });
 
@@ -283,7 +377,7 @@ const BoletasPage: React.FC = () => {
                                 <div className="flex items-center gap-2">
                                     <User className="h-4 w-4 text-gray-400" />
                                     <div>
-                                        <p className="font-medium">{boleta.pedido?.cli_nombre || 'Cliente'}</p>
+                                        <p className="font-medium">{getClienteName(boleta.pedido?.cli_id)}</p>
                                         <p className="text-sm text-muted-foreground">Pedido: {boleta.ped_id}</p>
                                     </div>
                                 </div>
@@ -323,13 +417,13 @@ const BoletasPage: React.FC = () => {
                                     </div>
                                 )}
 
-                                {boleta.pagos && boleta.pagos.length > 0 && (
+                                {boleta.metodos_pago && boleta.metodos_pago.length > 0 && (
                                     <div className="text-sm">
                                         <span className="text-gray-500">Métodos de pago: </span>
                                         <div className="flex flex-wrap gap-1 mt-1">
-                                            {boleta.pagos.map((pago, index) => (
+                                            {boleta.metodos_pago.map((metodo, index) => (
                                                 <Badge key={index} variant="outline" className="text-xs">
-                                                    {pago.metodo_pago?.met_nombre}: {formatCurrency(pago.monto)}
+                                                    {metodo.met_nombre}: {formatCurrency(metodo.pivot.monto)}
                                                 </Badge>
                                             ))}
                                         </div>
@@ -383,150 +477,230 @@ const BoletasPage: React.FC = () => {
             {/* Modal de Detalles de la Boleta */}
             {selectedBoleta && (
                 <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-                    <DialogContent className="sm:max-w-3xl">
+                    <DialogContent className="sm:max-w-6xl max-h-[90vh] overflow-y-auto">
                         <DialogHeader>
-                            <DialogTitle>Detalles de la Boleta</DialogTitle>
+                            <DialogTitle className="flex items-center gap-2">
+                                <Receipt className="h-5 w-5" />
+                                Detalles de la Boleta {selectedBoleta.boleta_numero}
+                            </DialogTitle>
                             <DialogDescription>
-                                Información completa de la boleta {selectedBoleta.boleta_numero}
+                                Información completa de la boleta emitida el {formatDate(selectedBoleta.boleta_fecha)}
                             </DialogDescription>
                         </DialogHeader>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
-                            <div className="space-y-4">
-                                <div>
-                                    <h3 className="text-lg font-semibold mb-2">Información de la Boleta</h3>
-                                    <div className="space-y-2">
-                                        <div className="flex justify-between">
-                                            <span className="text-gray-600">Número:</span>
-                                            <span className="font-medium">{selectedBoleta.boleta_numero}</span>
+                        <div className="space-y-6 py-4">
+                            {/* Header elegante con información de la boleta */}
+                            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 shadow-sm">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="bg-blue-600 p-3 rounded-lg">
+                                            <Receipt className="h-6 w-6 text-white" />
                                         </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-gray-600">Fecha:</span>
-                                            <span>{formatDate(selectedBoleta.boleta_fecha)}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-gray-600">Estado:</span>
-                                            <span>{getStatusBadge(selectedBoleta.boleta_estado)}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-gray-600">Pedido:</span>
-                                            <span>{selectedBoleta.ped_id}</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <Separator />
-
-                                <div>
-                                    <h3 className="text-lg font-semibold mb-2">Cliente</h3>
-                                    <div className="space-y-2">
-                                        <div className="flex justify-between">
-                                            <span className="text-gray-600">Nombre:</span>
-                                            <span>{selectedBoleta.pedido?.cli_nombre || 'No disponible'}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-gray-600">Atendido por:</span>
-                                            <span>{selectedBoleta.pedido?.usr_nombre || 'No disponible'}</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {selectedBoleta.boleta_notas && (
-                                    <>
-                                        <Separator />
                                         <div>
-                                            <h3 className="text-lg font-semibold mb-2">Notas</h3>
-                                            <p className="text-sm bg-gray-50 p-2 rounded">{selectedBoleta.boleta_notas}</p>
+                                            <h3 className="text-xl font-bold text-gray-800">{selectedBoleta.boleta_numero}</h3>
+                                            <p className="text-sm text-gray-600">{formatDate(selectedBoleta.boleta_fecha)}</p>
                                         </div>
-                                    </>
-                                )}
+                                    </div>
+                                    <div className="text-right">
+                                        {getStatusBadge(selectedBoleta.boleta_estado)}
+                                        <p className="text-2xl font-bold text-gray-800 mt-1">{formatCurrency(selectedBoleta.boleta_total)}</p>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    {/* Información del Cliente */}
+                                    <div className="bg-white p-4 rounded-lg border border-gray-200">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <User className="h-5 w-5 text-blue-600" />
+                                            <h4 className="font-semibold text-gray-800">Cliente</h4>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <div>
+                                                <p className="text-sm text-gray-500">Nombre</p>
+                                                <p className="font-medium text-gray-800">{getClienteName(selectedBoleta.pedido?.cli_id)}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm text-gray-500">Forma de entrega</p>
+                                                <p className="text-sm text-gray-700">{selectedBoleta.pedido?.ped_forma_entrega || 'Para Llevar'}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Información del Pedido */}
+                                    <div className="bg-white p-4 rounded-lg border border-gray-200">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <Hash className="h-5 w-5 text-green-600" />
+                                            <h4 className="font-semibold text-gray-800">Pedido</h4>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <div>
+                                                <p className="text-sm text-gray-500">ID del Pedido</p>
+                                                <p className="font-medium text-gray-800">{selectedBoleta.ped_id}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm text-gray-500">Atendido por</p>
+                                                <p className="text-sm text-gray-700">
+                                                    {usuarioLogueado ? (
+                                                        <span className="flex items-center gap-1">
+                              <User className="h-3 w-3" />
+                                                            {usuarioLogueado.usr_id}: {usuarioLogueado.usr_nombre}
+                            </span>
+                                                    ) : (
+                                                        getUsuarioName(selectedBoleta.pedido?.usr_id)
+                                                    )}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-sm text-gray-500">Productos</p>
+                                                <p className="text-sm text-gray-700">{selectedBoleta.pedido?.detalles?.length || 0} items</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Resumen de Pagos */}
+                                    <div className="bg-white p-4 rounded-lg border border-gray-200">
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <DollarSign className="h-5 w-5 text-green-600" />
+                                            <h4 className="font-semibold text-gray-800">Resumen</h4>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-gray-600">Subtotal:</span>
+                                                <span className="text-gray-800">{formatCurrency(selectedBoleta.boleta_subtotal)}</span>
+                                            </div>
+                                            <div className="flex justify-between text-sm">
+                                                <span className="text-gray-600">Impuestos:</span>
+                                                <span className="text-gray-800">{formatCurrency(selectedBoleta.boleta_impuestos)}</span>
+                                            </div>
+                                            {selectedBoleta.boleta_descuento > 0 && (
+                                                <div className="flex justify-between text-sm">
+                                                    <span className="text-red-600">Descuento:</span>
+                                                    <span className="text-red-600">-{formatCurrency(selectedBoleta.boleta_descuento)}</span>
+                                                </div>
+                                            )}
+                                            <Separator className="my-2" />
+                                            <div className="flex justify-between font-bold">
+                                                <span className="text-gray-800">Total:</span>
+                                                <span className="text-lg text-gray-900">{formatCurrency(selectedBoleta.boleta_total)}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
-                            <div className="space-y-4">
-                                {/* Productos del pedido */}
-                                {selectedBoleta.pedido?.detalles && (
-                                    <div>
-                                        <h3 className="text-lg font-semibold mb-2">Productos</h3>
-                                        <div className="border rounded-md divide-y max-h-64 overflow-y-auto">
+                            {/* Contenido principal en horizontal */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                {/* Productos */}
+                                <div className="space-y-3">
+                                    <div className="flex items-center gap-2">
+                                        <Package className="h-5 w-5 text-primary" />
+                                        <h3 className="text-lg font-semibold">Productos</h3>
+                                    </div>
+
+                                    {selectedBoleta.pedido?.detalles && selectedBoleta.pedido.detalles.length > 0 ? (
+                                        <div className="border rounded-md divide-y max-h-80 overflow-y-auto">
                                             {selectedBoleta.pedido.detalles.map((detalle, index) => (
-                                                <div key={index} className="p-3">
-                                                    <div className="flex justify-between items-start">
-                                                        <div className="flex-1">
-                                                            <p className="font-medium text-sm">
-                                                                {detalle.producto?.pro_nombre || 'Producto'}
-                                                            </p>
-                                                            <p className="text-sm text-gray-500">
-                                                                {formatCurrency(detalle.det_precio_unitario)} x {detalle.det_cantidad}
-                                                            </p>
-                                                        </div>
-                                                        <p className="font-medium">{formatCurrency(detalle.det_subtotal)}</p>
+                                                <div key={index} className="p-3 flex items-center gap-3">
+                                                    <div className="w-10 h-10 bg-gray-200 rounded flex items-center justify-center flex-shrink-0">
+                                                        <Package className="h-5 w-5 text-gray-400" />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="font-medium text-sm truncate">
+                                                            {getProductoName(detalle.prod_id)}
+                                                        </p>
+                                                        <p className="text-xs text-gray-500">
+                                                            {formatCurrency(detalle.det_precio_unitario)} × {detalle.det_cantidad}
+                                                        </p>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <p className="font-medium text-sm">{formatCurrency(detalle.det_subtotal)}</p>
                                                     </div>
                                                 </div>
                                             ))}
                                         </div>
-                                    </div>
-                                )}
+                                    ) : (
+                                        <div className="text-center py-8 text-gray-500">
+                                            <Package className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                                            <p>No hay productos disponibles</p>
+                                        </div>
+                                    )}
+                                </div>
 
                                 {/* Métodos de pago */}
-                                {selectedBoleta.pagos && selectedBoleta.pagos.length > 0 && (
-                                    <div>
-                                        <h3 className="text-lg font-semibold mb-2">Métodos de Pago</h3>
-                                        <div className="border rounded-md divide-y">
-                                            {selectedBoleta.pagos.map((pago, index) => (
-                                                <div key={index} className="p-3 flex justify-between items-center">
-                                                    <div>
-                                                        <p className="font-medium text-sm">{pago.metodo_pago?.met_nombre}</p>
-                                                        {pago.nota_pago && (
-                                                            <p className="text-xs text-gray-500">{pago.nota_pago}</p>
-                                                        )}
+                                <div className="space-y-3">
+                                    <div className="flex items-center gap-2">
+                                        <CreditCard className="h-5 w-5 text-primary" />
+                                        <h3 className="text-lg font-semibold">Métodos de Pago</h3>
+                                    </div>
+
+                                    {selectedBoleta.metodos_pago && selectedBoleta.metodos_pago.length > 0 ? (
+                                        <div className="space-y-3">
+                                            {selectedBoleta.metodos_pago.map((metodo, index) => (
+                                                <div key={index} className="border rounded-lg p-4">
+                                                    <div className="flex justify-between items-start mb-2">
+                                                        <div>
+                                                            <p className="font-medium text-sm">{metodo.met_nombre}</p>
+                                                            <p className="text-xs text-gray-500">{metodo.met_tipo}</p>
+                                                            {metodo.met_banco && (
+                                                                <p className="text-xs text-gray-400">{metodo.met_banco}</p>
+                                                            )}
+                                                        </div>
+                                                        <p className="font-bold text-green-600 text-lg">
+                                                            {formatCurrency(metodo.pivot.monto)}
+                                                        </p>
                                                     </div>
-                                                    <p className="font-bold text-green-600">{formatCurrency(pago.monto)}</p>
+
+                                                    {metodo.pivot.referencia && (
+                                                        <div className="text-xs text-gray-500 mt-2">
+                                                            <span className="font-medium">Ref:</span> {metodo.pivot.referencia}
+                                                        </div>
+                                                    )}
+
+                                                    <div className="flex items-center gap-1 text-xs text-gray-400 mt-1">
+                                                        <Clock className="h-3 w-3" />
+                                                        {formatDate(metodo.pivot.fecha_registro)}
+                                                    </div>
                                                 </div>
                                             ))}
                                         </div>
-                                    </div>
-                                )}
-
-                                {/* Resumen financiero */}
-                                <div className="bg-gray-50 p-3 rounded-md">
-                                    <div className="space-y-1">
-                                        <div className="flex justify-between">
-                                            <span className="text-gray-600">Subtotal:</span>
-                                            <span>{formatCurrency(selectedBoleta.boleta_subtotal)}</span>
+                                    ) : (
+                                        <div className="text-center py-8 text-gray-500">
+                                            <CreditCard className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                                            <p>No hay métodos de pago registrados</p>
                                         </div>
-                                        <div className="flex justify-between">
-                                            <span className="text-gray-600">Impuestos:</span>
-                                            <span>{formatCurrency(selectedBoleta.boleta_impuestos)}</span>
-                                        </div>
-                                        {selectedBoleta.boleta_descuento > 0 && (
-                                            <div className="flex justify-between text-red-600">
-                                                <span>Descuento:</span>
-                                                <span>-{formatCurrency(selectedBoleta.boleta_descuento)}</span>
-                                            </div>
-                                        )}
-                                        <Separator className="my-2" />
-                                        <div className="flex justify-between font-bold">
-                                            <span>Total:</span>
-                                            <span>{formatCurrency(selectedBoleta.boleta_total)}</span>
-                                        </div>
-                                    </div>
+                                    )}
                                 </div>
                             </div>
+
+                            {/* Notas (si existen) */}
+                            {selectedBoleta.boleta_notas && (
+                                <div className="border-t pt-4">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <FileText className="h-4 w-4 text-primary" />
+                                        <h4 className="font-semibold text-sm">Notas adicionales</h4>
+                                    </div>
+                                    <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
+                                        <p className="text-sm text-yellow-800">{selectedBoleta.boleta_notas}</p>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
-                        <DialogFooter className="flex gap-2">
+                        <DialogFooter className="flex gap-2 border-t pt-4">
                             <Button
                                 variant="outline"
                                 onClick={() => handlePrint(selectedBoleta)}
+                                className="flex items-center gap-2"
                             >
-                                <Printer className="h-4 w-4 mr-2" />
+                                <Printer className="h-4 w-4" />
                                 Imprimir
                             </Button>
                             <Button
                                 variant="outline"
                                 onClick={() => handleDownload(selectedBoleta)}
+                                className="flex items-center gap-2"
                             >
-                                <Download className="h-4 w-4 mr-2" />
+                                <Download className="h-4 w-4" />
                                 Descargar
                             </Button>
                         </DialogFooter>
