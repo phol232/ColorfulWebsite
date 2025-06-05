@@ -23,7 +23,6 @@ import {
   ShoppingBag,
 } from "lucide-react";
 import { API_URL } from "@/config";
-import { useNotifications } from "@/hooks/useNotifications";
 
 interface CategoriaProducto {
   cat_id: string;
@@ -40,7 +39,6 @@ interface Props {
 }
 
 const CategoriasProductosPage: React.FC<Props> = ({ onChange }) => {
-  const { showSuccess, showError } = useNotifications();
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddCategoryDialogOpen, setIsAddCategoryDialogOpen] = useState(false);
   const [isEditCategoryDialogOpen, setIsEditCategoryDialogOpen] = useState(false);
@@ -64,11 +62,32 @@ const CategoriasProductosPage: React.FC<Props> = ({ onChange }) => {
   const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Cargar categorías desde API
-  const fetchCategorias = () => {
-    fetch(`${API_URL}/api/categorias`)
-        .then((res) => res.json())
-        .then((data) => setCategoriasProductos(data))
-        .catch((err) => console.error("Error al cargar categorías:", err));
+  const fetchCategorias = async () => {
+    try {
+      // Obtener categorías
+      const categoriasRes = await fetch(`${API_URL}/api/categorias`);
+      const categorias = await categoriasRes.json();
+
+      // Obtener productos para calcular el conteo por categoría
+      const productosRes = await fetch(`${API_URL}/api/productos`);
+      const productos = await productosRes.json();
+
+      // Mapear categorías con el conteo de productos
+      const categoriasConConteo = categorias.map((categoria: any) => {
+        const productosEnCategoria = productos.filter((producto: any) =>
+            producto.detalles?.cat_id === categoria.cat_id
+        ).length;
+
+        return {
+          ...categoria,
+          productos: productosEnCategoria
+        };
+      });
+
+      setCategoriasProductos(categoriasConConteo);
+    } catch (err) {
+      console.error("Error al cargar categorías:", err);
+    }
   };
 
   useEffect(() => {
@@ -162,14 +181,12 @@ const CategoriasProductosPage: React.FC<Props> = ({ onChange }) => {
           imagen: null,
           cat_imagen: "",
         });
-        showSuccess("Categoría actualizada correctamente");
       } else {
-        const errorData = await res.json();
-        showError(errorData.message || "Error desconocido", "No se pudo editar la categoría");
+        alert("Error al editar categoría");
       }
     } catch (error) {
       console.error("Error al enviar la petición:", error);
-      showError(error, "Error al editar categoría");
+      alert("Error al editar categoría");
     } finally {
       setLoading(false);
     }
@@ -197,14 +214,12 @@ const CategoriasProductosPage: React.FC<Props> = ({ onChange }) => {
         onChange?.();
         setIsAddCategoryDialogOpen(false);
         setForm({ cat_nombre: "", cat_descripcion: "", cat_color: "", imagen: null });
-        showSuccess("Categoría creada correctamente");
       } else {
-        const errorData = await res.json();
-        showError(errorData.message || "Error desconocido", "No se pudo crear la categoría");
+        alert("Error al crear categoría");
       }
     } catch (error) {
       console.error("Error al enviar la petición:", error);
-      showError(error, "Error al crear categoría");
+      alert("Error al crear categoría");
     } finally {
       setLoading(false);
     }
@@ -228,14 +243,12 @@ const CategoriasProductosPage: React.FC<Props> = ({ onChange }) => {
         fetchCategorias();
         onChange?.();
         setDeleteTarget(null);
-        showSuccess("Categoría eliminada correctamente");
       } else {
-        const errorData = await res.json();
-        showError(errorData.message || "Error desconocido", "No se pudo eliminar la categoría");
+        alert("Error al eliminar categoría");
       }
     } catch (error) {
       console.error("Error al enviar la petición:", error);
-      showError(error, "Error al eliminar categoría");
+      alert("Error al eliminar categoría");
     } finally {
       setDeleteLoading(false);
     }

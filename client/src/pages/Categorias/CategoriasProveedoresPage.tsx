@@ -21,7 +21,6 @@ import {
   Briefcase,
 } from "lucide-react";
 import { API_URL } from "@/config";
-import { useNotifications } from "@/hooks/useNotifications";
 
 interface CategoriaProveedor {
   prov_cat_id: string;
@@ -29,6 +28,7 @@ interface CategoriaProveedor {
   prov_cat_descripcion: string;
   prov_cat_estado: string;
   prov_cat_color: string;
+  proveedoresCount?: number;
 }
 
 interface Props {
@@ -39,9 +39,6 @@ const CategoriasProveedoresPage: React.FC<Props> = ({ onChange }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [items, setItems] = useState<CategoriaProveedor[]>([]);
   const [loading, setLoading] = useState(false);
-
-  // Notificaciones
-  const { showError } = useNotifications();
 
   // Estados para CRUD
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -66,14 +63,33 @@ const CategoriasProveedoresPage: React.FC<Props> = ({ onChange }) => {
   });
 
   // Traer lista
-  const fetchItems = () => {
-    fetch(`${API_URL}/api/categorias-proveedores`)
-        .then((r) => r.json())
-        .then((d: CategoriaProveedor[]) => {
-          setItems(d);
-          onChange?.();
-        })
-        .catch(console.error);
+  const fetchItems = async () => {
+    try {
+      // Obtener categorías
+      const categoriasRes = await fetch(`${API_URL}/api/categorias-proveedores`);
+      const categorias = await categoriasRes.json();
+
+      // Obtener proveedores para calcular el conteo por categoría
+      const proveedoresRes = await fetch(`${API_URL}/api/proveedores`);
+      const proveedores = await proveedoresRes.json();
+
+      // Mapear categorías con el conteo de proveedores
+      const categoriasConConteo = categorias.map((categoria: CategoriaProveedor) => {
+        const proveedoresEnCategoria = proveedores.filter((proveedor: any) =>
+            proveedor.categorias?.some((cat: any) => cat.prov_cat_id === categoria.prov_cat_id)
+        ).length;
+
+        return {
+          ...categoria,
+          proveedoresCount: proveedoresEnCategoria
+        };
+      });
+
+      setItems(categoriasConConteo);
+      onChange?.();
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   useEffect(() => {
@@ -140,7 +156,7 @@ const CategoriasProveedoresPage: React.FC<Props> = ({ onChange }) => {
       }
     } catch (err) {
       console.error(err);
-      showError(err, "Error de red al crear categoría");
+      alert("Error de red");
     } finally {
       setLoading(false);
     }
@@ -182,7 +198,7 @@ const CategoriasProveedoresPage: React.FC<Props> = ({ onChange }) => {
       }
     } catch (err) {
       console.error(err);
-      showError(err, "Error de red al editar categoría");
+      alert("Error de red");
     } finally {
       setLoading(false);
     }
@@ -207,7 +223,7 @@ const CategoriasProveedoresPage: React.FC<Props> = ({ onChange }) => {
       }
     } catch (err) {
       console.error(err);
-      showError(err, "Error de red al eliminar categoría");
+      alert("Error de red");
     } finally {
       setLoading(false);
     }
@@ -253,6 +269,10 @@ const CategoriasProveedoresPage: React.FC<Props> = ({ onChange }) => {
                   <p className="text-sm text-gray-600 line-clamp-2">
                     {cat.prov_cat_descripcion}
                   </p>
+                  <div className="flex items-center gap-2 mt-2 text-sm text-gray-500">
+                    <Briefcase className="h-4 w-4" />
+                    <span>{cat.proveedoresCount || 0} proveedores</span>
+                  </div>
                   <div className="mt-4 flex justify-between">
                     <Button
                         variant="ghost"
@@ -349,6 +369,7 @@ const CategoriasProveedoresPage: React.FC<Props> = ({ onChange }) => {
                   <option value="bg-amber-100 text-amber-800 border-amber-400">Ámbar</option>
                   <option value="bg-teal-100 text-teal-800 border-teal-400">Verde Azulado</option>
                   <option value="bg-gray-100 text-gray-800 border-gray-400">Gris</option>
+                  {/* …más opciones según tu paleta */}
                 </select>
               </div>
               <DialogFooter>

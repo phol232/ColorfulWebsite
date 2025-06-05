@@ -22,7 +22,6 @@ import {
   Users,
 } from "lucide-react";
 import { API_URL } from "@/config";
-import { useNotifications } from "@/hooks/useNotifications";
 
 interface CategoriaCliente {
   cli_cat_id: string;
@@ -30,6 +29,7 @@ interface CategoriaCliente {
   cli_cat_descripcion: string;
   cli_cat_estado: string;
   cli_color: string;
+  clientesCount?: number;
 }
 
 interface Props {
@@ -37,7 +37,6 @@ interface Props {
 }
 
 const CategoriasClientesPage: React.FC<Props> = ({ onChange }) => {
-  const { showSuccess, showError } = useNotifications();
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -58,20 +57,35 @@ const CategoriasClientesPage: React.FC<Props> = ({ onChange }) => {
   const [loading, setLoading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<null | CategoriaCliente>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
-  const fetchCategoriasClientes = () => {
+
+  const fetchCategoriasClientes = async () => {
     console.log("Solicitando categorías...");
-    fetch(`${API_URL}/api/categorias-clientes`)
-        .then((res) => {
-          console.log("Status respuesta:", res.status);
-          return res.json();
-        })
-        .then((data) => {
-          console.log("Datos recibidos:", data.length, "categorías");
-          setCategoriasClientes(data);
-        })
-        .catch((err) => {
-          console.error("Error al cargar categorías:", err);
-        });
+    try {
+      // Obtener categorías
+      const categoriasRes = await fetch(`${API_URL}/api/categorias-clientes`);
+      const categorias = await categoriasRes.json();
+
+      // Obtener clientes para calcular el conteo por categoría
+      const clientesRes = await fetch(`${API_URL}/api/clientes`);
+      const clientes = await clientesRes.json();
+
+      // Mapear categorías con el conteo de clientes
+      const categoriasConConteo = categorias.map((categoria: CategoriaCliente) => {
+        const clientesEnCategoria = clientes.filter((cliente: any) =>
+            cliente.categorias?.some((cat: any) => cat.cli_cat_id === categoria.cli_cat_id)
+        ).length;
+
+        return {
+          ...categoria,
+          clientesCount: clientesEnCategoria
+        };
+      });
+
+      console.log("Datos recibidos:", categoriasConConteo.length, "categorías");
+      setCategoriasClientes(categoriasConConteo);
+    } catch (err) {
+      console.error("Error al cargar categorías:", err);
+    }
   };
 
   useEffect(() => {
@@ -147,15 +161,17 @@ const CategoriasClientesPage: React.FC<Props> = ({ onChange }) => {
           cli_cat_estado: "Activo",
           cli_color: "",
         });
-        showSuccess("Categoría de cliente actualizada correctamente");
       } else {
         const errorData = await res.json();
         console.error("Error en respuesta:", errorData);
-        showError(errorData.message || res.statusText, "No se pudo editar la categoría de cliente");
+        alert(
+            "Error al editar categoría de cliente: " +
+            (errorData.message || res.statusText)
+        );
       }
     } catch (error) {
       console.error("Error al enviar la petición:", error);
-      showError(error, "Error al editar categoría de cliente");
+      alert("Error al editar categoría de cliente");
     } finally {
       setLoading(false);
     }
@@ -193,15 +209,17 @@ const CategoriasClientesPage: React.FC<Props> = ({ onChange }) => {
           cli_cat_estado: "Activo",
           cli_color: "",
         });
-        showSuccess("Categoría de cliente creada correctamente");
       } else {
         const errorData = await res.json();
         console.error("Error en respuesta:", errorData);
-        showError(errorData.message || res.statusText, "No se pudo crear la categoría de cliente");
+        alert(
+            "Error al crear categoría de cliente: " +
+            (errorData.message || res.statusText)
+        );
       }
     } catch (error) {
       console.error("Error al enviar la petición:", error);
-      showError(error, "Error al crear categoría de cliente");
+      alert("Error al crear categoría de cliente");
     } finally {
       setLoading(false);
     }
@@ -228,15 +246,17 @@ const CategoriasClientesPage: React.FC<Props> = ({ onChange }) => {
         fetchCategoriasClientes();
         onChange?.();
         setDeleteTarget(null);
-        showSuccess("Categoría de cliente eliminada correctamente");
       } else {
         const errorData = await res.json();
         console.error("Error en respuesta:", errorData);
-        showError(errorData.message || res.statusText, "No se pudo eliminar la categoría de cliente");
+        alert(
+            "Error al eliminar categoría de cliente: " +
+            (errorData.message || res.statusText)
+        );
       }
     } catch (error) {
       console.error("Error al enviar la petición:", error);
-      showError(error, "Error al eliminar categoría de cliente");
+      alert("Error al eliminar categoría de cliente");
     } finally {
       setDeleteLoading(false);
     }
@@ -295,6 +315,10 @@ const CategoriasClientesPage: React.FC<Props> = ({ onChange }) => {
                   <p className="text-sm text-gray-600 line-clamp-2">
                     {categoria.cli_cat_descripcion}
                   </p>
+                  <div className="flex items-center gap-2 mt-2 text-sm text-gray-500">
+                    <Users className="h-4 w-4" />
+                    <span>{categoria.clientesCount || 0} clientes</span>
+                  </div>
                   <div className="mt-4 flex justify-between">
                     <Button
                         variant="ghost"

@@ -180,6 +180,13 @@ const OrdersPage: React.FC = () => {
       });
       if (!response.ok) throw new Error('Error fetching orders');
       const data = await response.json();
+
+      console.log('Pedidos obtenidos del backend:', data);
+      console.log('Muestra de estados:', data.slice(0, 3).map((p: any) => ({
+        id: p.ped_id,
+        estado: p.ped_estado
+      })));
+
       return data;
     }
   });
@@ -231,10 +238,80 @@ const OrdersPage: React.FC = () => {
     return nombre.toLowerCase().includes(productSearch.toLowerCase());
   });
 
+  // Mutation específica para actualizar solo el estado del pedido
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ pedidoId, ped_estado }: { pedidoId: string; ped_estado: string }) => {
+      const token = localStorage.getItem('token');
+
+      console.log('Enviando actualización de estado al servidor:', {
+        url: `${API_URL}/api/pedidos/${pedidoId}/estado`,
+        data: { ped_estado }
+      });
+
+      const response = await fetch(`${API_URL}/api/pedidos/${pedidoId}/estado`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : ''
+        },
+        body: JSON.stringify({ ped_estado })
+      });
+
+      const responseData = await response.json();
+
+      console.log('Respuesta del servidor al actualizar estado:', {
+        status: response.status,
+        ok: response.ok,
+        data: responseData
+      });
+
+      if (!response.ok) {
+        throw new Error(responseData.message || `Error ${response.status}: ${response.statusText}`);
+      }
+
+      return responseData;
+    },
+    onSuccess: async (data, variables) => {
+      console.log('Estado actualizado exitosamente:', data);
+      console.log('Variables enviadas:', variables);
+
+      // Invalidar las consultas para refrescar los datos
+      await queryClient.invalidateQueries({ queryKey: ['/api/pedidos'] });
+
+      // Forzar refetch para asegurar que los datos se actualicen
+      await refetch();
+
+      toast({
+        title: "Estado actualizado",
+        description: `El pedido se ha actualizado a "${variables.ped_estado}" correctamente.`
+      });
+
+      // Cerrar el modal de actualización de estado
+      setIsStatusUpdateOpen(false);
+      setIsOrderDetailsOpen(false);
+      setSelectedOrder(null);
+      setNewStatus("");
+    },
+    onError: (error: any) => {
+      console.error('Error al actualizar estado del pedido:', error);
+      toast({
+        title: "Error al actualizar estado",
+        description: error.message || "Error al actualizar el estado del pedido",
+        variant: "destructive"
+      });
+    }
+  });
+
   // Mutation para actualizar pedido
   const updatePedidoMutation = useMutation({
     mutationFn: async ({ pedidoId, updateData }: { pedidoId: string; updateData: any }) => {
       const token = localStorage.getItem('token');
+
+      console.log('Enviando actualización al servidor:', {
+        url: `${API_URL}/api/pedidos/${pedidoId}`,
+        data: updateData
+      });
+
       const response = await fetch(`${API_URL}/api/pedidos/${pedidoId}`, {
         method: 'PUT',
         headers: {
@@ -243,23 +320,61 @@ const OrdersPage: React.FC = () => {
         },
         body: JSON.stringify(updateData)
       });
-      if (!response.ok) throw new Error('Error updating order');
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/pedidos'] });
-      toast({
-        title: "Pedido actualizado",
-        description: "El pedido se ha actualizado correctamente."
+
+      const responseData = await response.json();
+
+      console.log('Respuesta completa del servidor:', {
+        status: response.status,
+        ok: response.ok,
+        data: responseData
       });
+
+      if (!response.ok) {
+        throw new Error(responseData.message || `Error ${response.status}: ${response.statusText}`);
+      }
+
+      return responseData;
+    },
+    onSuccess: async (data, variables) => {
+      console.log('Actualización exitosa - Respuesta del servidor:', data);
+      console.log('Variables que se enviaron:', variables);
+
+      // Invalidar las consultas para refrescar los datos
+      await queryClient.invalidateQueries({ queryKey: ['/api/pedidos'] });
+
+      // Forzar refetch para asegurar que los datos se actualicen
+      await refetch();
+
+      // Mostrar mensaje de éxito específico
+      if (variables.updateData.ped_estado) {
+        toast({
+          title: "Estado actualizado",
+          description: `El pedido se ha actualizado a "${variables.updateData.ped_estado}" correctamente.`
+        });
+      } else if (variables.updateData.estado) {
+        toast({
+          title: "Estado actualizado",
+          description: `El pedido se ha actualizado a "${variables.updateData.estado}" correctamente.`
+        });
+      } else {
+        toast({
+          title: "Pedido actualizado",
+          description: "El pedido se ha actualizado correctamente."
+        });
+      }
+
+      // Cerrar los modales apropiados
       setIsEditDialogOpen(false);
       setIsStatusUpdateOpen(false);
+      setIsOrderDetailsOpen(false);
       setSelectedOrder(null);
+      setNewStatus("");
       resetEditForm();
     },
     onError: (error: any) => {
+      console.error('Error completo al actualizar pedido:', error);
       toast({
-        title: "Error",
+        title: "Error al actualizar",
         description: error.message || "Error al actualizar el pedido",
         variant: "destructive"
       });
@@ -671,20 +786,16 @@ const OrdersPage: React.FC = () => {
   const handleUpdateStatus = () => {
     if (!selectedOrder || !newStatus) return;
 
-    updatePedidoMutation.mutate({
+    console.log('Actualizando estado del pedido:', {
       pedidoId: selectedOrder.ped_id,
-      updateData: {
-        cliente_nombre: selectedOrder.cli_nombre,
-        usr_id: selectedOrder.usr_id,
-        forma_entrega: selectedOrder.ped_forma_entrega,
-        notas: selectedOrder.ped_notas,
-        estado: newStatus,
-        items: selectedOrder.detalles?.map(d => ({
-          prod_id: d.prod_id,
-          cantidad: d.det_cantidad,
-          precio_unitario: d.det_precio_unitario
-        })) || []
-      }
+      estadoAnterior: selectedOrder.ped_estado,
+      nuevoEstado: newStatus
+    });
+
+    // Usar la nueva ruta específica para actualizar solo el estado
+    updateStatusMutation.mutate({
+      pedidoId: selectedOrder.ped_id,
+      ped_estado: newStatus
     });
   };
 
@@ -1492,9 +1603,9 @@ const OrdersPage: React.FC = () => {
                   </Button>
                   <Button
                       onClick={handleUpdateStatus}
-                      disabled={updatePedidoMutation.isPending || !newStatus}
+                      disabled={updateStatusMutation.isPending || !newStatus}
                   >
-                    {updatePedidoMutation.isPending ? "Guardando..." : "Guardar Cambios"}
+                    {updateStatusMutation.isPending ? "Guardando..." : "Guardar Cambios"}
                   </Button>
                 </DialogFooter>
               </DialogContent>
