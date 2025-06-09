@@ -11,10 +11,21 @@ import {
   ChevronLeft,
   ChevronRight,
   User as UserIcon,
+  Settings,
+  LogOut,
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/context/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { API_URL } from "@/config";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -22,21 +33,21 @@ interface MainLayoutProps {
 
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const isMobile = useIsMobile();
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { userProfile } = useAuth();
+  const { userProfile, logout } = useAuth();
 
   const toggleSidebar = () => setSidebarOpen((v) => !v);
   const toggleMobileMenu = () => setMobileMenuOpen((v) => !v);
 
   // Para obtener las iniciales
   const getInitials = () => {
-    if (userProfile.perfil && userProfile.perfil.usrp_nombre) {
+    if (userProfile?.perfil?.usrp_nombre) {
       const nombre = userProfile.perfil.usrp_nombre;
       const apellido = userProfile.perfil.usrp_apellido || "";
       return `${nombre[0] || ""}${apellido[0] || ""}`.toUpperCase();
-    } else if (userProfile.name) {
+    } else if (userProfile?.name) {
       return userProfile.name
           .split(" ")
           .map((n: string) => n[0])
@@ -48,10 +59,10 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   };
 
   const getFullName = () => {
-    if (userProfile.perfil && userProfile.perfil.usrp_nombre) {
+    if (userProfile?.perfil?.usrp_nombre) {
       return `${userProfile.perfil.usrp_nombre} ${userProfile.perfil.usrp_apellido || ""}`;
     }
-    return userProfile.name || "Usuario";
+    return "Usuario";
   };
 
   return (
@@ -127,27 +138,50 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full"></span>
               </button>
 
-              <div className="flex items-center">
-                <div className="mr-2 text-right hidden md:block">
-                  <p className="text-sm font-medium">{getFullName()}</p>
-                  <p className="text-xs text-gray-500">
-                    {userProfile.role || "Usuario"}
-                  </p>
-                </div>
-                <Avatar className="h-8 w-8 border border-gray-300">
-                  <AvatarImage
-                      src={
-                          userProfile.avatar ||
-                          userProfile.perfil?.usrp_imagen ||
-                          ""
-                      }
-                      alt="User avatar"
-                  />
-                  <AvatarFallback>
-                    {getInitials() || <UserIcon className="h-4 w-4" />}
-                  </AvatarFallback>
-                </Avatar>
-              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <div className="flex items-center cursor-pointer hover:bg-gray-50 rounded-lg p-2">
+                    <div className="mr-2 text-right hidden md:block">
+                      <p className="text-sm font-medium">{getFullName()}</p>
+                      <p className="text-xs text-gray-500">
+                        {userProfile?.role || "Usuario"}
+                      </p>
+                    </div>
+                    <Avatar className="h-8 w-8 border border-gray-300">
+                      <AvatarImage
+                          src={
+                            userProfile?.perfil?.usrp_imagen
+                                ? `${API_URL}/storage/${userProfile.perfil.usrp_imagen}`
+                                : userProfile?.avatar || ""
+                          }
+                          alt="User avatar"
+                      />
+                      <AvatarFallback>
+                        {getInitials() || <UserIcon className="h-4 w-4" />}
+                      </AvatarFallback>
+                    </Avatar>
+                  </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>Mi Cuenta</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                      onClick={() => setLocation('/settings')}
+                      className="cursor-pointer"
+                  >
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Configuración</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                      onClick={() => logout()}
+                      className="cursor-pointer text-red-600"
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Cerrar Sesión</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </header>
 

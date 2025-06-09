@@ -616,38 +616,49 @@ const OrdersPage: React.FC = () => {
       // Actualizar el estado del pedido a "Completado" después de crear la boleta
       if (selectedOrder) {
         try {
-          await updatePedidoMutation.mutateAsync({
+          console.log('Actualizando pedido a Completado después del pago:', selectedOrder.ped_id);
+
+          // Usar la mutation específica para actualizar solo el estado
+          await updateStatusMutation.mutateAsync({
             pedidoId: selectedOrder.ped_id,
-            updateData: {
-              cliente_nombre: selectedOrder.cli_nombre,
-              usr_id: selectedOrder.usr_id,
-              forma_entrega: selectedOrder.ped_forma_entrega,
-              notas: selectedOrder.ped_notas,
-              estado: "Completado",
-              items: selectedOrder.detalles?.map(d => ({
-                prod_id: d.prod_id,
-                cantidad: d.det_cantidad,
-                precio_unitario: d.det_precio_unitario
-              })) || []
-            }
+            ped_estado: "Completado"
           });
+
+          // Actualizar el selectedOrder localmente para reflejar el cambio inmediatamente
+          setSelectedOrder({
+            ...selectedOrder,
+            ped_estado: "Completado"
+          });
+
         } catch (error) {
-          console.error('Error updating order status:', error);
+          console.error('Error updating order status to Completado:', error);
+          // Mostrar error pero no fallar todo el proceso
+          toast({
+            title: "Advertencia",
+            description: "El pago se procesó correctamente, pero hubo un problema al actualizar el estado del pedido",
+            variant: "destructive"
+          });
         }
       }
 
       toast({
         title: "Pago completado",
-        description: `Se ha generado la boleta ${data.boleta_id} y el pedido se marcó como completado`
+        description: `Se ha generado la boleta ${data.boleta_numero || data.boleta_id} y el pedido se marcó como completado`,
+        duration: 5000
       });
+
       setIsPaymentDialogOpen(false);
-      setSelectedOrder(null);
       resetPaymentForm();
-      queryClient.invalidateQueries({ queryKey: ['/api/pedidos'] });
+
+      // Refrescar datos después de un breve delay para asegurar que el backend se actualice
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['/api/pedidos'] });
+        refetch();
+      }, 1000);
     },
     onError: (error: any) => {
       toast({
-        title: "Error",
+        title: "Error al procesar pago",
         description: error.message || "Error al crear la boleta",
         variant: "destructive"
       });
@@ -760,7 +771,7 @@ const OrdersPage: React.FC = () => {
       case "completado":
         return <Badge variant="outline" className="bg-green-100 text-green-800 border-green-400">Completado</Badge>;
       case "cancelado":
-        return <Badge variant="outline" className="bg-red-100 text-red-800 border-red-400">Cancelado</Badge>;
+        return <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-400">Cancelado (Editable)</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -1010,9 +1021,17 @@ const OrdersPage: React.FC = () => {
                                   variant="outline"
                                   size="icon"
                                   onClick={() => openEditDialog(pedido)}
-                                  className="text-blue-600 hover:text-blue-700"
-                                  disabled={pedido.ped_estado.toLowerCase() === "completado" || pedido.ped_estado.toLowerCase() === "cancelado"}
-                                  title={pedido.ped_estado.toLowerCase() === "completado" || pedido.ped_estado.toLowerCase() === "cancelado" ? "No se puede editar un pedido completado o cancelado" : "Editar pedido"}
+                                  className={pedido.ped_estado.toLowerCase() === "completado"
+                                      ? "text-gray-400 cursor-not-allowed bg-gray-100"
+                                      : pedido.ped_estado.toLowerCase() === "cancelado"
+                                          ? "text-orange-600 hover:text-orange-700"
+                                          : "text-blue-600 hover:text-blue-700"}
+                                  disabled={pedido.ped_estado.toLowerCase() === "completado"}
+                                  title={pedido.ped_estado.toLowerCase() === "completado"
+                                      ? "No se puede editar un pedido completado"
+                                      : pedido.ped_estado.toLowerCase() === "cancelado"
+                                          ? "Editar pedido cancelado (permite correcciones)"
+                                          : "Editar pedido"}
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
@@ -1020,7 +1039,13 @@ const OrdersPage: React.FC = () => {
                                   variant="outline"
                                   size="icon"
                                   onClick={() => setDeleteOpen(pedido.ped_id)}
-                                  className="text-red-600 hover:text-red-700"
+                                  className={pedido.ped_estado.toLowerCase() === "completado"
+                                      ? "text-gray-400 cursor-not-allowed bg-gray-100"
+                                      : "text-red-600 hover:text-red-700"}
+                                  disabled={pedido.ped_estado.toLowerCase() === "completado"}
+                                  title={pedido.ped_estado.toLowerCase() === "completado"
+                                      ? "No se puede eliminar un pedido completado"
+                                      : "Eliminar pedido"}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -1187,29 +1212,70 @@ const OrdersPage: React.FC = () => {
                     <FileText className="h-4 w-4 mr-2" />
                     Imprimir
                   </Button>
+
+                  {/* Botón de Pago - Dinámico según el estado */}
+                  {selectedOrder.ped_estado.toLowerCase() === "completado" ? (
+                      <Button
+                          variant="outline"
+                          className="bg-green-100 text-green-700 border-green-300 cursor-default"
+                          disabled
+                      >
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        PEDIDO PAGADO
+                      </Button>
+                  ) : selectedOrder.ped_estado.toLowerCase() === "cancelado" ? (
+                      <Button
+                          variant="outline"
+                          className="bg-orange-600 text-white hover:bg-orange-700"
+                          onClick={() => openPaymentDialog(selectedOrder)}
+                      >
+                        <CreditCard className="h-4 w-4 mr-2" />
+                        VOLVER A PAGAR
+                      </Button>
+                  ) : (
+                      <Button
+                          variant="outline"
+                          className="bg-green-600 text-white hover:bg-green-700"
+                          onClick={() => openPaymentDialog(selectedOrder)}
+                      >
+                        <CreditCard className="h-4 w-4 mr-2" />
+                        PAGAR PEDIDO
+                      </Button>
+                  )}
+
+                  {/* Botón de Actualizar Estado */}
                   <Button
-                      variant="outline"
-                      className={selectedOrder.ped_estado.toLowerCase() === "completado" || selectedOrder.ped_estado.toLowerCase() === "cancelado"
-                          ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                          : "bg-green-600 text-white hover:bg-green-700"}
-                      onClick={() => openPaymentDialog(selectedOrder)}
-                      disabled={selectedOrder.ped_estado.toLowerCase() === "completado" || selectedOrder.ped_estado.toLowerCase() === "cancelado"}
-                      title={selectedOrder.ped_estado.toLowerCase() === "completado" ? "El pedido ya fue pagado" : selectedOrder.ped_estado.toLowerCase() === "cancelado" ? "No se puede pagar un pedido cancelado" : "Procesar pago"}
-                  >
-                    <CreditCard className="h-4 w-4 mr-2" />
-                    {selectedOrder.ped_estado.toLowerCase() === "completado" ? "PAGADO" : "PAGAR"}
-                  </Button>
-                  <Button
-                      variant={selectedOrder.ped_estado.toLowerCase() === "cancelado" || selectedOrder.ped_estado.toLowerCase() === "completado" ? "outline" : "default"}
+                      variant={selectedOrder.ped_estado.toLowerCase() === "completado" ? "outline" : "default"}
                       onClick={() => {
                         setIsOrderDetailsOpen(false);
                         updateOrderStatus(selectedOrder);
                       }}
-                      disabled={selectedOrder.ped_estado.toLowerCase() === "cancelado" || selectedOrder.ped_estado.toLowerCase() === "completado"}
-                      title={selectedOrder.ped_estado.toLowerCase() === "completado" || selectedOrder.ped_estado.toLowerCase() === "cancelado" ? "No se puede cambiar el estado de un pedido completado o cancelado" : "Actualizar estado del pedido"}
+                      disabled={selectedOrder.ped_estado.toLowerCase() === "completado"}
+                      className={selectedOrder.ped_estado.toLowerCase() === "completado"
+                          ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                          : ""}
+                      title={selectedOrder.ped_estado.toLowerCase() === "completado"
+                          ? "El pedido está completado y no se puede modificar"
+                          : selectedOrder.ped_estado.toLowerCase() === "cancelado"
+                              ? "Pedido cancelado por boleta anulada - Puede reactivarlo cambiando el estado"
+                              : "Actualizar estado del pedido"}
                   >
-                    <ArrowRightCircle className="h-4 w-4 mr-2" />
-                    {selectedOrder.ped_estado.toLowerCase() === "completado" || selectedOrder.ped_estado.toLowerCase() === "cancelado" ? "Estado Final" : "Actualizar Estado"}
+                    {selectedOrder.ped_estado.toLowerCase() === "completado" ? (
+                        <>
+                          <AlertCircle className="h-4 w-4 mr-2" />
+                          Estado Final
+                        </>
+                    ) : selectedOrder.ped_estado.toLowerCase() === "cancelado" ? (
+                        <>
+                          <RefreshCcw className="h-4 w-4 mr-2" />
+                          Reactivar Pedido
+                        </>
+                    ) : (
+                        <>
+                          <ArrowRightCircle className="h-4 w-4 mr-2" />
+                          Actualizar Estado
+                        </>
+                    )}
                   </Button>
                 </DialogFooter>
               </DialogContent>

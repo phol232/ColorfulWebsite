@@ -11,11 +11,10 @@ import {
   EyeOff
 } from "lucide-react";
 import { Label } from "@/components/ui/label";
-import { registerApi } from "@/lib/api";  // asegúrate de exportarlo ahí
-import { useNotifications } from "@/hooks/useNotifications";
+import { registerApi } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
 
 const RegisterPage: React.FC = () => {
-  const { showSuccess, showError } = useNotifications();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     usrp_nombre: "",
@@ -27,6 +26,9 @@ const RegisterPage: React.FC = () => {
     acceptTerms: false
   });
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const { login } = useAuth();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -45,9 +47,10 @@ const RegisterPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMsg(null);
 
     if (!formData.acceptTerms) {
-      showError("Debes aceptar los términos y condiciones.", "Error de validación");
+      setErrorMsg("Debes aceptar los términos y condiciones.");
       return;
     }
 
@@ -61,15 +64,18 @@ const RegisterPage: React.FC = () => {
         password: formData.password,
         password_confirmation: formData.password_confirmation
       });
-      if (res.status && 'token' in res) {
-        localStorage.setItem("token", String(res.token));
-        showSuccess("Registro exitoso");
-        window.location.href = "/dashboard";
+      if (res.status && res.data) {
+        // Usar el contexto de autenticación igual que en LoginPage
+        const userData = {
+          ...res.data.usuario,
+          perfil: res.data.usuario?.perfil || {}
+        };
+        login(res.data.token, userData);
       } else {
-        showError(res.message || "Error al registrar el usuario.", "Error en el registro");
+        setErrorMsg(res.message || "Error al registrar el usuario.");
       }
-    } catch (error) {
-      showError(error, "No se pudo conectar con el servidor");
+    } catch {
+      setErrorMsg("No se pudo conectar con el servidor.");
     } finally {
       setLoading(false);
     }
@@ -110,6 +116,12 @@ const RegisterPage: React.FC = () => {
               <p className="text-gray-600 mb-8">
                 Completa los siguientes datos para registrarte.
               </p>
+
+              {errorMsg && (
+                  <div className="bg-red-100 text-red-700 px-3 py-2 rounded mb-4">
+                    {errorMsg}
+                  </div>
+              )}
 
               <form onSubmit={handleSubmit}>
                 <div className="grid grid-cols-2 gap-4 mb-4">

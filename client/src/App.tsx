@@ -22,6 +22,7 @@ import { Toaster } from "./components/ui/toaster";
 import { queryClient } from "./lib/queryClient";
 import PaymentMethodsPage from "./pages/PaymentMethodsPage";
 import BoletasPage from "./pages/BoletasPage";
+import SettingsPage from "./pages/SettingsPage";
 
 const App: React.FC = () => {
     return (
@@ -56,6 +57,8 @@ const App: React.FC = () => {
                         <Route path="/categories/productos" component={CategoriesPage} />
                         <Route path="/categories/clientes" component={CategoriesPage} />
                         <Route path="/categories/proveedores" component={CategoriesPage} />
+
+                        <Route path="/settings" component={SettingsPage} />
 
                         <Route path="/:rest*" component={NotFoundPage} />
                     </Switch>

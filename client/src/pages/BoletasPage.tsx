@@ -23,13 +23,15 @@ import {
     Clock,
     CheckCircle,
     AlertCircle,
-    Package
+    Package,
+    X
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { API_URL } from "@/config";
 import { useToast } from "@/hooks/use-toast";
+
 
 interface Boleta {
     boleta_id: string;
@@ -92,8 +94,10 @@ const BoletasPage: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedBoleta, setSelectedBoleta] = useState<Boleta | null>(null);
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+    const [anularBoletaId, setAnularBoletaId] = useState<string | null>(null);
 
     const { toast } = useToast();
+    const queryClient = useQueryClient();
 
     // Fetch boletas desde el backend
     const { data: boletas = [], isLoading, refetch } = useQuery<Boleta[]>({
@@ -180,6 +184,65 @@ const BoletasPage: React.FC = () => {
         }
     });
 
+    // Mutation para anular boleta
+    const anularBoletaMutation = useMutation({
+        mutationFn: async (boletaId: string) => {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_URL}/api/boletas/${boletaId}/cancelar`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : '',
+                    'Content-Type': 'application/json',
+                }
+            });
+            if (!response.ok) throw new Error('Error al anular boleta');
+            return response.json();
+        },
+        onSuccess: async (data, boletaId) => {
+            // Buscar la boleta anulada para obtener el pedido asociado
+            const boletaAnulada = boletas.find(b => b.boleta_id === boletaId);
+
+            if (boletaAnulada && boletaAnulada.ped_id) {
+                // Actualizar el estado del pedido a "Cancelado"
+                try {
+                    const token = localStorage.getItem('token');
+                    const updateResponse = await fetch(`${API_URL}/api/pedidos/${boletaAnulada.ped_id}/estado`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': token ? `Bearer ${token}` : ''
+                        },
+                        body: JSON.stringify({ ped_estado: "Cancelado" })
+                    });
+
+                    if (!updateResponse.ok) {
+                        console.error('Error al actualizar estado del pedido');
+                    } else {
+                        // Invalidar también la consulta de pedidos para refrescar OrdersPage
+                        queryClient.invalidateQueries({ queryKey: ['/api/pedidos'] });
+                    }
+                } catch (error) {
+                    console.error('Error updating order status:', error);
+                }
+            }
+
+            queryClient.invalidateQueries({ queryKey: ['/api/boletas'] });
+            toast({
+                title: "Boleta anulada",
+                description: "La boleta ha sido anulada correctamente y el pedido ha sido marcado como cancelado."
+            });
+            setAnularBoletaId(null);
+            setIsDetailsOpen(false);
+        },
+        onError: (error: any) => {
+            toast({
+                title: "Error",
+                description: error.message || "No se pudo anular la boleta",
+                variant: "destructive"
+            });
+        }
+    });
+
     // Función para obtener el nombre del cliente
     const getClienteName = (cli_id?: string) => {
         if (!cli_id) return 'Cliente no disponible';
@@ -229,6 +292,7 @@ const BoletasPage: React.FC = () => {
             case "emitido":
                 return <Badge className="bg-green-100 text-green-800 border-green-300">Emitido</Badge>;
             case "anulado":
+            case "cancelado":
                 return <Badge className="bg-red-100 text-red-800 border-red-300">Anulado</Badge>;
             case "pendiente":
                 return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300">Pendiente</Badge>;
@@ -242,6 +306,7 @@ const BoletasPage: React.FC = () => {
             case "emitido":
                 return <CheckCircle className="h-5 w-5 text-green-500" />;
             case "anulado":
+            case "cancelado":
                 return <AlertCircle className="h-5 w-5 text-red-500" />;
             case "pendiente":
                 return <Clock className="h-5 w-5 text-yellow-500" />;
@@ -255,19 +320,94 @@ const BoletasPage: React.FC = () => {
         setIsDetailsOpen(true);
     };
 
-    const handlePrint = (boleta: Boleta) => {
-        toast({
-            title: "Imprimiendo boleta",
-            description: `La boleta ${boleta.boleta_numero} se está imprimiendo.`
-        });
+    const handlePrint = async (boleta: Boleta) => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_URL}/api/boletas/${boleta.boleta_id}/pdf`, {
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : '',
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (!response.ok) throw new Error('Error al generar PDF');
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+
+            // Crear iframe invisible para imprimir
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = url;
+            document.body.appendChild(iframe);
+
+            iframe.onload = () => {
+                iframe.contentWindow?.print();
+                setTimeout(() => {
+                    document.body.removeChild(iframe);
+                    window.URL.revokeObjectURL(url);
+                }, 1000);
+            };
+
+            toast({
+                title: "Imprimiendo boleta",
+                description: `La boleta ${boleta.boleta_numero} se está enviando a la impresora.`
+            });
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: "No se pudo imprimir la boleta",
+                variant: "destructive"
+            });
+        }
     };
 
-    const handleDownload = (boleta: Boleta) => {
-        toast({
-            title: "Descargando boleta",
-            description: `La boleta ${boleta.boleta_numero} se está descargando.`
-        });
+    const handleDownload = async (boleta: Boleta) => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_URL}/api/boletas/${boleta.boleta_id}/pdf`, {
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : '',
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (!response.ok) throw new Error('Error al generar PDF');
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `Boleta_${boleta.boleta_numero.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+
+            toast({
+                title: "PDF descargado",
+                description: `La boleta ${boleta.boleta_numero} se ha descargado correctamente.`
+            });
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: "No se pudo descargar el PDF",
+                variant: "destructive"
+            });
+        }
     };
+
+    const handleAnular = (boletaId: string) => {
+        setAnularBoletaId(boletaId);
+    };
+
+    const confirmAnular = () => {
+        if (anularBoletaId) {
+            anularBoletaMutation.mutate(anularBoletaId);
+        }
+    };
+
+
 
     if (isLoading) {
         return (
@@ -447,6 +587,8 @@ const BoletasPage: React.FC = () => {
                                             size="icon"
                                             onClick={() => handlePrint(boleta)}
                                             className="text-blue-600 hover:text-blue-700"
+                                            disabled={boleta.boleta_estado.toLowerCase() === 'anulado' || boleta.boleta_estado.toLowerCase() === 'cancelado'}
+                                            title={boleta.boleta_estado.toLowerCase() === 'anulado' || boleta.boleta_estado.toLowerCase() === 'cancelado' ? "No se puede imprimir una boleta anulada" : "Imprimir"}
                                         >
                                             <Printer className="h-4 w-4" />
                                         </Button>
@@ -455,9 +597,22 @@ const BoletasPage: React.FC = () => {
                                             size="icon"
                                             onClick={() => handleDownload(boleta)}
                                             className="text-green-600 hover:text-green-700"
+                                            disabled={boleta.boleta_estado.toLowerCase() === 'anulado' || boleta.boleta_estado.toLowerCase() === 'cancelado'}
+                                            title={boleta.boleta_estado.toLowerCase() === 'anulado' || boleta.boleta_estado.toLowerCase() === 'cancelado' ? "No se puede descargar una boleta anulada" : "Descargar"}
                                         >
                                             <Download className="h-4 w-4" />
                                         </Button>
+                                        {(boleta.boleta_estado.toLowerCase() === 'emitido') && (
+                                            <Button
+                                                variant="outline"
+                                                size="icon"
+                                                onClick={() => handleAnular(boleta.boleta_id)}
+                                                className="text-red-600 hover:text-red-700"
+                                                title="Anular boleta"
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </Button>
+                                        )}
                                     </div>
                                 </div>
                             </CardFooter>
@@ -477,135 +632,100 @@ const BoletasPage: React.FC = () => {
             {/* Modal de Detalles de la Boleta */}
             {selectedBoleta && (
                 <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-                    <DialogContent className="sm:max-w-6xl max-h-[90vh] overflow-y-auto">
-                        <DialogHeader>
-                            <DialogTitle className="flex items-center gap-2">
-                                <Receipt className="h-5 w-5" />
-                                Detalles de la Boleta {selectedBoleta.boleta_numero}
+                    <DialogContent className="sm:max-w-3xl max-h-[95vh] overflow-hidden">
+                        <DialogHeader className="pb-2">
+                            <DialogTitle className="flex items-center gap-2 text-lg">
+                                <Receipt className="h-4 w-4" />
+                                Boleta {selectedBoleta.boleta_numero}
                             </DialogTitle>
-                            <DialogDescription>
-                                Información completa de la boleta emitida el {formatDate(selectedBoleta.boleta_fecha)}
+                            <DialogDescription className="text-sm">
+                                {formatDate(selectedBoleta.boleta_fecha)} - {getStatusBadge(selectedBoleta.boleta_estado)}
                             </DialogDescription>
                         </DialogHeader>
 
-                        <div className="space-y-6 py-4">
-                            {/* Header elegante con información de la boleta */}
-                            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 shadow-sm">
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="bg-blue-600 p-3 rounded-lg">
-                                            <Receipt className="h-6 w-6 text-white" />
+                        <div className="space-y-3 py-2 overflow-y-auto max-h-[78vh]">
+                            {/* Header compacto */}
+                            <div className="bg-blue-50 border rounded-lg p-3">
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                        <div className="bg-blue-600 p-1.5 rounded">
+                                            <Receipt className="h-3 w-3 text-white" />
                                         </div>
                                         <div>
-                                            <h3 className="text-xl font-bold text-gray-800">{selectedBoleta.boleta_numero}</h3>
-                                            <p className="text-sm text-gray-600">{formatDate(selectedBoleta.boleta_fecha)}</p>
+                                            <h3 className="text-sm font-bold text-gray-800">{selectedBoleta.boleta_numero}</h3>
+                                            <p className="text-xs text-gray-600">{formatDate(selectedBoleta.boleta_fecha)}</p>
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        {getStatusBadge(selectedBoleta.boleta_estado)}
-                                        <p className="text-2xl font-bold text-gray-800 mt-1">{formatCurrency(selectedBoleta.boleta_total)}</p>
+                                        <p className="text-lg font-bold text-gray-800">{formatCurrency(selectedBoleta.boleta_total)}</p>
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    {/* Información del Cliente */}
-                                    <div className="bg-white p-4 rounded-lg border border-gray-200">
-                                        <div className="flex items-center gap-2 mb-3">
-                                            <User className="h-5 w-5 text-blue-600" />
-                                            <h4 className="font-semibold text-gray-800">Cliente</h4>
+                                <div className="grid grid-cols-3 gap-3 text-xs">
+                                    {/* Cliente */}
+                                    <div className="bg-white p-2 rounded border">
+                                        <div className="flex items-center gap-1 mb-1">
+                                            <User className="h-3 w-3 text-blue-600" />
+                                            <span className="font-medium text-gray-700">Cliente</span>
                                         </div>
-                                        <div className="space-y-2">
-                                            <div>
-                                                <p className="text-sm text-gray-500">Nombre</p>
-                                                <p className="font-medium text-gray-800">{getClienteName(selectedBoleta.pedido?.cli_id)}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-sm text-gray-500">Forma de entrega</p>
-                                                <p className="text-sm text-gray-700">{selectedBoleta.pedido?.ped_forma_entrega || 'Para Llevar'}</p>
-                                            </div>
-                                        </div>
+                                        <p className="font-medium text-gray-800 text-xs">{getClienteName(selectedBoleta.pedido?.cli_id)}</p>
+                                        <p className="text-xs text-gray-500">{selectedBoleta.pedido?.ped_forma_entrega || 'Para Llevar'}</p>
                                     </div>
 
-                                    {/* Información del Pedido */}
-                                    <div className="bg-white p-4 rounded-lg border border-gray-200">
-                                        <div className="flex items-center gap-2 mb-3">
-                                            <Hash className="h-5 w-5 text-green-600" />
-                                            <h4 className="font-semibold text-gray-800">Pedido</h4>
+                                    {/* Pedido */}
+                                    <div className="bg-white p-2 rounded border">
+                                        <div className="flex items-center gap-1 mb-1">
+                                            <Hash className="h-3 w-3 text-green-600" />
+                                            <span className="font-medium text-gray-700">Pedido</span>
                                         </div>
-                                        <div className="space-y-2">
-                                            <div>
-                                                <p className="text-sm text-gray-500">ID del Pedido</p>
-                                                <p className="font-medium text-gray-800">{selectedBoleta.ped_id}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-sm text-gray-500">Atendido por</p>
-                                                <p className="text-sm text-gray-700">
-                                                    {usuarioLogueado ? (
-                                                        <span className="flex items-center gap-1">
-                              <User className="h-3 w-3" />
-                                                            {usuarioLogueado.usr_id}: {usuarioLogueado.usr_nombre}
-                            </span>
-                                                    ) : (
-                                                        getUsuarioName(selectedBoleta.pedido?.usr_id)
-                                                    )}
-                                                </p>
-                                            </div>
-                                            <div>
-                                                <p className="text-sm text-gray-500">Productos</p>
-                                                <p className="text-sm text-gray-700">{selectedBoleta.pedido?.detalles?.length || 0} items</p>
-                                            </div>
-                                        </div>
+                                        <p className="font-medium text-gray-800 text-xs">{selectedBoleta.ped_id}</p>
+                                        <p className="text-xs text-gray-500">{selectedBoleta.pedido?.detalles?.length || 0} productos</p>
                                     </div>
 
-                                    {/* Resumen de Pagos */}
-                                    <div className="bg-white p-4 rounded-lg border border-gray-200">
-                                        <div className="flex items-center gap-2 mb-3">
-                                            <DollarSign className="h-5 w-5 text-green-600" />
-                                            <h4 className="font-semibold text-gray-800">Resumen</h4>
+                                    {/* Totales */}
+                                    <div className="bg-white p-2 rounded border">
+                                        <div className="flex items-center gap-1 mb-1">
+                                            <DollarSign className="h-3 w-3 text-green-600" />
+                                            <span className="font-medium text-gray-700">Totales</span>
                                         </div>
-                                        <div className="space-y-1">
-                                            <div className="flex justify-between text-sm">
-                                                <span className="text-gray-600">Subtotal:</span>
-                                                <span className="text-gray-800">{formatCurrency(selectedBoleta.boleta_subtotal)}</span>
+                                        <div className="space-y-0.5 text-xs">
+                                            <div className="flex justify-between">
+                                                <span>Subtotal:</span>
+                                                <span>{formatCurrency(selectedBoleta.boleta_subtotal)}</span>
                                             </div>
-                                            <div className="flex justify-between text-sm">
-                                                <span className="text-gray-600">Impuestos:</span>
-                                                <span className="text-gray-800">{formatCurrency(selectedBoleta.boleta_impuestos)}</span>
+                                            <div className="flex justify-between">
+                                                <span>IGV:</span>
+                                                <span>{formatCurrency(selectedBoleta.boleta_impuestos)}</span>
                                             </div>
                                             {selectedBoleta.boleta_descuento > 0 && (
-                                                <div className="flex justify-between text-sm">
-                                                    <span className="text-red-600">Descuento:</span>
-                                                    <span className="text-red-600">-{formatCurrency(selectedBoleta.boleta_descuento)}</span>
+                                                <div className="flex justify-between text-red-600">
+                                                    <span>Descuento:</span>
+                                                    <span>-{formatCurrency(selectedBoleta.boleta_descuento)}</span>
                                                 </div>
                                             )}
-                                            <Separator className="my-2" />
-                                            <div className="flex justify-between font-bold">
-                                                <span className="text-gray-800">Total:</span>
-                                                <span className="text-lg text-gray-900">{formatCurrency(selectedBoleta.boleta_total)}</span>
-                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Contenido principal en horizontal */}
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* Contenido principal compacto */}
+                            <div className="grid grid-cols-2 gap-3">
                                 {/* Productos */}
-                                <div className="space-y-3">
-                                    <div className="flex items-center gap-2">
-                                        <Package className="h-5 w-5 text-primary" />
-                                        <h3 className="text-lg font-semibold">Productos</h3>
+                                <div>
+                                    <div className="flex items-center gap-1 mb-2">
+                                        <Package className="h-4 w-4 text-primary" />
+                                        <h3 className="text-sm font-semibold">Productos</h3>
                                     </div>
 
                                     {selectedBoleta.pedido?.detalles && selectedBoleta.pedido.detalles.length > 0 ? (
-                                        <div className="border rounded-md divide-y max-h-80 overflow-y-auto">
+                                        <div className="border rounded divide-y max-h-48 overflow-y-auto">
                                             {selectedBoleta.pedido.detalles.map((detalle, index) => (
-                                                <div key={index} className="p-3 flex items-center gap-3">
-                                                    <div className="w-10 h-10 bg-gray-200 rounded flex items-center justify-center flex-shrink-0">
-                                                        <Package className="h-5 w-5 text-gray-400" />
+                                                <div key={index} className="p-2 flex items-center gap-2 text-xs">
+                                                    <div className="w-6 h-6 bg-gray-200 rounded flex items-center justify-center flex-shrink-0">
+                                                        <Package className="h-3 w-3 text-gray-400" />
                                                     </div>
                                                     <div className="flex-1 min-w-0">
-                                                        <p className="font-medium text-sm truncate">
+                                                        <p className="font-medium truncate text-xs">
                                                             {getProductoName(detalle.prod_id)}
                                                         </p>
                                                         <p className="text-xs text-gray-500">
@@ -613,100 +733,168 @@ const BoletasPage: React.FC = () => {
                                                         </p>
                                                     </div>
                                                     <div className="text-right">
-                                                        <p className="font-medium text-sm">{formatCurrency(detalle.det_subtotal)}</p>
+                                                        <p className="font-medium text-xs">{formatCurrency(detalle.det_subtotal)}</p>
                                                     </div>
                                                 </div>
                                             ))}
                                         </div>
                                     ) : (
-                                        <div className="text-center py-8 text-gray-500">
-                                            <Package className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-                                            <p>No hay productos disponibles</p>
+                                        <div className="text-center py-4 text-gray-500 text-xs">
+                                            <Package className="h-6 w-6 mx-auto mb-1 text-gray-300" />
+                                            <p>No hay productos</p>
                                         </div>
                                     )}
                                 </div>
 
                                 {/* Métodos de pago */}
-                                <div className="space-y-3">
-                                    <div className="flex items-center gap-2">
-                                        <CreditCard className="h-5 w-5 text-primary" />
-                                        <h3 className="text-lg font-semibold">Métodos de Pago</h3>
+                                <div>
+                                    <div className="flex items-center gap-1 mb-2">
+                                        <CreditCard className="h-4 w-4 text-primary" />
+                                        <h3 className="text-sm font-semibold">Métodos de Pago</h3>
                                     </div>
 
                                     {selectedBoleta.metodos_pago && selectedBoleta.metodos_pago.length > 0 ? (
-                                        <div className="space-y-3">
+                                        <div className="space-y-2 max-h-48 overflow-y-auto">
                                             {selectedBoleta.metodos_pago.map((metodo, index) => (
-                                                <div key={index} className="border rounded-lg p-4">
-                                                    <div className="flex justify-between items-start mb-2">
+                                                <div key={index} className="border rounded p-2">
+                                                    <div className="flex justify-between items-start mb-1">
                                                         <div>
-                                                            <p className="font-medium text-sm">{metodo.met_nombre}</p>
+                                                            <p className="font-medium text-xs">{metodo.met_nombre}</p>
                                                             <p className="text-xs text-gray-500">{metodo.met_tipo}</p>
                                                             {metodo.met_banco && (
                                                                 <p className="text-xs text-gray-400">{metodo.met_banco}</p>
                                                             )}
                                                         </div>
-                                                        <p className="font-bold text-green-600 text-lg">
+                                                        <p className="font-bold text-green-600 text-sm">
                                                             {formatCurrency(metodo.pivot.monto)}
                                                         </p>
                                                     </div>
 
                                                     {metodo.pivot.referencia && (
-                                                        <div className="text-xs text-gray-500 mt-2">
+                                                        <div className="text-xs text-gray-500">
                                                             <span className="font-medium">Ref:</span> {metodo.pivot.referencia}
                                                         </div>
                                                     )}
-
-                                                    <div className="flex items-center gap-1 text-xs text-gray-400 mt-1">
-                                                        <Clock className="h-3 w-3" />
-                                                        {formatDate(metodo.pivot.fecha_registro)}
-                                                    </div>
                                                 </div>
                                             ))}
                                         </div>
                                     ) : (
-                                        <div className="text-center py-8 text-gray-500">
-                                            <CreditCard className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-                                            <p>No hay métodos de pago registrados</p>
+                                        <div className="text-center py-4 text-gray-500 text-xs">
+                                            <CreditCard className="h-6 w-6 mx-auto mb-1 text-gray-300" />
+                                            <p>Sin métodos de pago</p>
                                         </div>
                                     )}
                                 </div>
                             </div>
 
-                            {/* Notas (si existen) */}
+                        </div>
+
+                        <DialogFooter className="flex flex-col gap-2 border-t pt-3">
+                            {/* Notas compactas en el footer */}
                             {selectedBoleta.boleta_notas && (
-                                <div className="border-t pt-4">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <FileText className="h-4 w-4 text-primary" />
-                                        <h4 className="font-semibold text-sm">Notas adicionales</h4>
-                                    </div>
-                                    <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
-                                        <p className="text-sm text-yellow-800">{selectedBoleta.boleta_notas}</p>
+                                <div className="w-full">
+                                    <div className="flex items-center gap-1 mb-2">
+                                        <FileText className="h-3 w-3 text-amber-600" />
+                                        <span className="font-medium text-xs text-gray-700">Notas:</span>
+                                        <span className="text-xs text-gray-600 bg-amber-50 px-2 py-1 rounded border border-amber-200">
+                      {selectedBoleta.boleta_notas}
+                    </span>
                                     </div>
                                 </div>
                             )}
-                        </div>
 
-                        <DialogFooter className="flex gap-2 border-t pt-4">
-                            <Button
-                                variant="outline"
-                                onClick={() => handlePrint(selectedBoleta)}
-                                className="flex items-center gap-2"
-                            >
-                                <Printer className="h-4 w-4" />
-                                Imprimir
-                            </Button>
-                            <Button
-                                variant="outline"
-                                onClick={() => handleDownload(selectedBoleta)}
-                                className="flex items-center gap-2"
-                            >
-                                <Download className="h-4 w-4" />
-                                Descargar
-                            </Button>
+                            {/* Botones de acción */}
+                            <div className="flex gap-2 justify-end">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handlePrint(selectedBoleta)}
+                                    className="flex items-center gap-1"
+                                    disabled={selectedBoleta.boleta_estado.toLowerCase() === 'anulado' || selectedBoleta.boleta_estado.toLowerCase() === 'cancelado'}
+                                >
+                                    <Printer className="h-3 w-3" />
+                                    Imprimir
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleDownload(selectedBoleta)}
+                                    className="flex items-center gap-1"
+                                    disabled={selectedBoleta.boleta_estado.toLowerCase() === 'anulado' || selectedBoleta.boleta_estado.toLowerCase() === 'cancelado'}
+                                >
+                                    <Download className="h-3 w-3" />
+                                    Descargar
+                                </Button>
+                                {(selectedBoleta.boleta_estado.toLowerCase() === 'emitido') && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => {
+                                            setIsDetailsOpen(false);
+                                            handleAnular(selectedBoleta.boleta_id);
+                                        }}
+                                        className="flex items-center gap-1 text-red-600 hover:text-red-700 border-red-300"
+                                    >
+                                        <X className="h-3 w-3" />
+                                        Anular
+                                    </Button>
+                                )}
+                            </div>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
             )}
+
+            {/* Modal de Confirmación para Anular Boleta */}
+            <Dialog open={anularBoletaId !== null} onOpenChange={() => setAnularBoletaId(null)}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <AlertCircle className="h-5 w-5 text-red-500" />
+                            Anular Boleta
+                        </DialogTitle>
+                        <DialogDescription>
+                            ¿Estás seguro de que deseas anular esta boleta? Esta acción restaurará el stock de los productos y no se puede deshacer.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="py-4">
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                            <div className="flex items-center gap-2 mb-2">
+                                <AlertCircle className="h-4 w-4 text-red-600" />
+                                <span className="font-medium text-red-800">Advertencia</span>
+                            </div>
+                            <p className="text-sm text-red-700">
+                                Al anular esta boleta:
+                            </p>
+                            <ul className="text-sm text-red-700 mt-1 ml-4 list-disc">
+                                <li>Se restaurará el stock de todos los productos</li>
+                                <li>La boleta cambiará a estado "Anulado"</li>
+                                <li>No se podrá imprimir ni descargar</li>
+                                <li>Esta acción es irreversible</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button
+                            variant="outline"
+                            onClick={() => setAnularBoletaId(null)}
+                            disabled={anularBoletaMutation.isPending}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={confirmAnular}
+                            disabled={anularBoletaMutation.isPending}
+                            className="bg-red-600 hover:bg-red-700"
+                        >
+                            {anularBoletaMutation.isPending ? "Anulando..." : "Sí, Anular Boleta"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </MainLayout>
     );
 };
