@@ -42,6 +42,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { API_URL, MICROSERVICE_URL } from "@/config";
 import { useToast } from "@/hooks/use-toast";
+import { initMercadoPago } from '@mercadopago/sdk-react';
 
 // Interface basada en el controlador de pedidos
 interface Pedido {
@@ -141,6 +142,32 @@ const OrdersPage: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState("");
     const [newStatus, setNewStatus] = useState("");
     const [deleteOpen, setDeleteOpen] = useState<string | null>(null);
+
+    // Inicializar MercadoPago
+    useEffect(() => {
+        const isSandbox = import.meta.env.VITE_USE_SANDBOX === 'true';
+        const publicKey = import.meta.env.VITE_MERCADOPAGO_PUBLIC_KEY;
+
+        console.log('=== INICIALIZANDO MERCADOPAGO ===');
+        console.log('isSandbox:', isSandbox);
+        console.log('publicKey:', publicKey ? `${publicKey.substring(0, 20)}...` : 'NO CONFIGURADA');
+        console.log('VITE_USE_SANDBOX env:', import.meta.env.VITE_USE_SANDBOX);
+        console.log('VITE_MERCADOPAGO_PUBLIC_KEY env:', import.meta.env.VITE_MERCADOPAGO_PUBLIC_KEY ? 'CONFIGURADA' : 'NO CONFIGURADA');
+
+        if (publicKey) {
+            try {
+                initMercadoPago(publicKey, {
+                    locale: 'es-PE'
+                });
+                console.log('✅ MercadoPago inicializado correctamente');
+            } catch (error) {
+                console.error('❌ Error al inicializar MercadoPago:', error);
+            }
+        } else {
+            console.warn('⚠️ No se encontró VITE_MERCADOPAGO_PUBLIC_KEY');
+        }
+        console.log('================================');
+    }, []);
 
     // Estados para edición
     const [clienteSearch, setClienteSearch] = useState("");
@@ -779,7 +806,6 @@ const OrdersPage: React.FC = () => {
                 console.log('=== RESPUESTA DEL SERVIDOR ===');
                 console.log('Status:', response.status);
                 console.log('Status Text:', response.statusText);
-                console.log('Headers:', [...response.headers.entries()]);
 
                 if (!response.ok) {
                     const errorText = await response.text();
@@ -822,17 +848,16 @@ const OrdersPage: React.FC = () => {
             console.log('Tipo de data:', typeof data);
             console.log('Keys de data:', Object.keys(data));
 
-            // Verificar múltiples posibles ubicaciones de la URL
-            const redirectUrl = data.sandbox_init_point ||
-                data.init_point ||
-                data.preference?.sandbox_init_point ||
-                data.preference?.init_point ||
-                data.response?.sandbox_init_point ||
-                data.response?.init_point;
+            // Usar la variable de entorno para determinar si estamos en sandbox
+            const isSandbox = import.meta.env.VITE_USE_SANDBOX === 'true';
+            console.log('isSandbox desde env:', isSandbox);
+
+            // Seleccionar la URL correcta según el entorno
+            const redirectUrl = isSandbox ? data.sandbox_init_point : data.init_point;
 
             console.log('sandbox_init_point:', data.sandbox_init_point);
             console.log('init_point:', data.init_point);
-            console.log('URL final de redirección:', redirectUrl);
+            console.log('URL seleccionada (isSandbox=' + isSandbox + '):', redirectUrl);
 
             if (redirectUrl) {
                 console.log('✅ REDIRIGIENDO A MERCADOPAGO:', redirectUrl);
