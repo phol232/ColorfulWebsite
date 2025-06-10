@@ -153,18 +153,21 @@ const OrdersPage: React.FC = () => {
         console.log('publicKey:', publicKey ? `${publicKey.substring(0, 20)}...` : 'NO CONFIGURADA');
         console.log('VITE_USE_SANDBOX env:', import.meta.env.VITE_USE_SANDBOX);
         console.log('VITE_MERCADOPAGO_PUBLIC_KEY env:', import.meta.env.VITE_MERCADOPAGO_PUBLIC_KEY ? 'CONFIGURADA' : 'NO CONFIGURADA');
+        console.log('Environment mode:', import.meta.env.MODE);
+        console.log('All env vars:', Object.keys(import.meta.env).filter(key => key.startsWith('VITE_')));
 
         if (publicKey) {
             try {
                 initMercadoPago(publicKey, {
                     locale: 'es-PE'
                 });
-                console.log('✅ MercadoPago inicializado correctamente');
+                console.log('✅ MercadoPago inicializado correctamente con clave:', publicKey.startsWith('TEST-') ? 'TEST (Sandbox)' : 'PRODUCCIÓN');
             } catch (error) {
                 console.error('❌ Error al inicializar MercadoPago:', error);
             }
         } else {
             console.warn('⚠️ No se encontró VITE_MERCADOPAGO_PUBLIC_KEY');
+            console.warn('Variables disponibles:', Object.keys(import.meta.env));
         }
         console.log('================================');
     }, []);
@@ -850,27 +853,46 @@ const OrdersPage: React.FC = () => {
 
             // Usar la variable de entorno para determinar si estamos en sandbox
             const isSandbox = import.meta.env.VITE_USE_SANDBOX === 'true';
+            const publicKey = import.meta.env.VITE_MERCADOPAGO_PUBLIC_KEY;
+
             console.log('isSandbox desde env:', isSandbox);
+            console.log('publicKey es TEST?:', publicKey?.startsWith('TEST-'));
+            console.log('Entorno detectado:', isSandbox ? 'SANDBOX' : 'PRODUCCIÓN');
+
+            // Forzar sandbox si la clave es de TEST
+            const useSandbox = isSandbox || (publicKey && publicKey.startsWith('TEST-'));
 
             // Seleccionar la URL correcta según el entorno
-            const redirectUrl = isSandbox ? data.sandbox_init_point : data.init_point;
+            const redirectUrl = useSandbox ? data.sandbox_init_point : data.init_point;
 
             console.log('sandbox_init_point:', data.sandbox_init_point);
             console.log('init_point:', data.init_point);
-            console.log('URL seleccionada (isSandbox=' + isSandbox + '):', redirectUrl);
+            console.log('useSandbox final:', useSandbox);
+            console.log('URL seleccionada:', redirectUrl);
 
             if (redirectUrl) {
                 console.log('✅ REDIRIGIENDO A MERCADOPAGO:', redirectUrl);
-                console.log('Iniciando redirección en 1 segundo...');
+                toast({
+                    title: "Redirigiendo a MercadoPago",
+                    description: "Serás redirigido al formulario de pago...",
+                    duration: 2000
+                });
 
-                // Agregar un pequeño delay para que se vean los logs
-                setTimeout(() => {
-                    window.location.href = redirectUrl;
-                }, 1000);
+                // Redirección inmediata para evitar bloqueos
+                window.location.href = redirectUrl;
             } else {
                 console.error('❌ NO SE ENCONTRÓ URL DE REDIRECCIÓN');
                 console.error('Estructura completa de respuesta:', JSON.stringify(data, null, 2));
-                throw new Error('No se recibió URL de redirección de MercadoPago');
+                console.error('useSandbox:', useSandbox);
+                console.error('sandbox_init_point existe?:', !!data.sandbox_init_point);
+                console.error('init_point existe?:', !!data.init_point);
+
+                // Mostrar error más específico
+                const errorMsg = useSandbox
+                    ? 'No se recibió sandbox_init_point para el entorno de pruebas'
+                    : 'No se recibió init_point para el entorno de producción';
+
+                throw new Error(errorMsg);
             }
         },
         onError: (error: any) => {
@@ -1047,6 +1069,26 @@ const OrdersPage: React.FC = () => {
             });
             return;
         }
+
+        // Validar configuración de MercadoPago
+        const publicKey = import.meta.env.VITE_MERCADOPAGO_PUBLIC_KEY;
+        const isSandbox = import.meta.env.VITE_USE_SANDBOX === 'true';
+
+        if (!publicKey) {
+            toast({
+                title: "Error de configuración",
+                description: "No se encontró la clave pública de MercadoPago. Verifica las variables de entorno en Netlify.",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        console.log('=== VALIDACIÓN DE CONFIGURACIÓN ===');
+        console.log('Public Key configurada:', publicKey ? 'SÍ' : 'NO');
+        console.log('Es TEST key?:', publicKey?.startsWith('TEST-'));
+        console.log('VITE_USE_SANDBOX:', isSandbox);
+        console.log('Configuración válida para sandbox:', publicKey?.startsWith('TEST-') && isSandbox);
+        console.log('==================================');
 
         setIsCreatingPayment(true);
 
