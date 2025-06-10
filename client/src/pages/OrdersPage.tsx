@@ -797,7 +797,12 @@ const OrdersPage: React.FC = () => {
                 }
 
                 const responseData = await response.json();
-                console.log('Respuesta exitosa:', responseData);
+                console.log('=== RESPUESTA EXITOSA COMPLETA ===');
+                console.log('Response data structure:', Object.keys(responseData));
+                console.log('Response data:', JSON.stringify(responseData, null, 2));
+                console.log('sandbox_init_point:', responseData.sandbox_init_point);
+                console.log('init_point:', responseData.init_point);
+                console.log('===================================');
                 return responseData;
 
             } catch (fetchError: any) {
@@ -812,21 +817,40 @@ const OrdersPage: React.FC = () => {
             }
         },
         onSuccess: (data) => {
-            console.log('=== REDIRIGIENDO A MERCADOPAGO ===');
-            console.log('Data recibida:', data);
+            console.log('=== INICIANDO PROCESO DE REDIRECCIÓN ===');
+            console.log('Data recibida en onSuccess:', data);
+            console.log('Tipo de data:', typeof data);
+            console.log('Keys de data:', Object.keys(data));
 
-            // Redirigir a la pasarela de MercadoPago (usar sandbox en desarrollo)
-            const redirectUrl = data.sandbox_init_point || data.init_point;
-            console.log('URL de redirección:', redirectUrl);
+            // Verificar múltiples posibles ubicaciones de la URL
+            const redirectUrl = data.sandbox_init_point ||
+                data.init_point ||
+                data.preference?.sandbox_init_point ||
+                data.preference?.init_point ||
+                data.response?.sandbox_init_point ||
+                data.response?.init_point;
+
+            console.log('sandbox_init_point:', data.sandbox_init_point);
+            console.log('init_point:', data.init_point);
+            console.log('URL final de redirección:', redirectUrl);
 
             if (redirectUrl) {
-                window.location.href = redirectUrl;
+                console.log('✅ REDIRIGIENDO A MERCADOPAGO:', redirectUrl);
+                console.log('Iniciando redirección en 1 segundo...');
+
+                // Agregar un pequeño delay para que se vean los logs
+                setTimeout(() => {
+                    window.location.href = redirectUrl;
+                }, 1000);
             } else {
+                console.error('❌ NO SE ENCONTRÓ URL DE REDIRECCIÓN');
+                console.error('Estructura completa de respuesta:', JSON.stringify(data, null, 2));
                 throw new Error('No se recibió URL de redirección de MercadoPago');
             }
         },
         onError: (error: any) => {
-            console.error('Error completo en mutation:', error);
+            console.error('❌ Error completo en mutation:', error);
+            console.error('Error stack:', error.stack);
             toast({
                 title: "Error al crear preferencia de pago",
                 description: error.message || "Error al conectar con MercadoPago",
