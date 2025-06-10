@@ -188,22 +188,6 @@ const SettingsPage: React.FC = () => {
             });
             console.log('========================');
 
-            // Primero probar la conectividad básica
-            try {
-                console.log('1. Probando conectividad básica...');
-                const testResponse = await fetch(`${API_URL}/api/test`, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json'
-                    }
-                });
-                console.log('Test response status:', testResponse.status);
-                console.log('Test response URL:', testResponse.url);
-            } catch (testError) {
-                console.error('Error en test de conectividad:', testError);
-            }
-
             console.log('2. Enviando petición principal...');
             const response = await fetch(requestUrl, {
                 method: 'POST',
@@ -244,10 +228,8 @@ const SettingsPage: React.FC = () => {
 
                 console.log("Perfil normalizado después de actualizar:", normalizedProfile);
 
-                // Actualizar estado local
                 setProfile(normalizedProfile);
 
-                // Actualizar el contexto de autenticación
                 if (updateUserProfile) {
                     updateUserProfile({
                         ...userProfile,
