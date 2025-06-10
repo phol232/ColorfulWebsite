@@ -1032,11 +1032,8 @@ const OrdersPage: React.FC = () => {
             return;
         }
 
-        // Generar email válido para el cliente
-        const clienteEmailSafe = selectedOrder.cli_nombre
-            .toLowerCase()
-            .replace(/[^a-z0-9]/g, '')
-            .substring(0, 20);
+        // Usar email de usuario de prueba de MercadoPago
+        const testUserEmail = "TESTUSER2138424710@testuser.com";
 
         const paymentData = {
             pedido_id: selectedOrder.ped_id,
@@ -1053,9 +1050,9 @@ const OrdersPage: React.FC = () => {
                 pending: `${window.location.origin}/orders?payment=pending&order=${selectedOrder.ped_id}`
             },
             auto_return: "approved",
-            // Campo requerido por MercadoPago
+            // Campo requerido por MercadoPago - usando usuario de prueba
             payer: {
-                email: `prueba+${clienteEmailSafe}@gmail.com`
+                email: testUserEmail
             },
             // Referencia externa para vincular el pago con el pedido
             external_reference: selectedOrder.ped_id
