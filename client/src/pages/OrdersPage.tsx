@@ -1123,8 +1123,8 @@ const OrdersPage: React.FC = () => {
             return;
         }
 
-        // Usar email de usuario de prueba de MercadoPago
-        const testUserEmail = "TESTUSER2138424710@testuser.com";
+        // Usar email de usuario de prueba válido de MercadoPago (sin verificación)
+        const testUserEmail = "test_user_1325692@testuser.com";
 
         const paymentData = {
             pedido_id: selectedOrder.ped_id,
@@ -1141,10 +1141,12 @@ const OrdersPage: React.FC = () => {
                 pending: `${window.location.origin}/orders?payment=pending&order=${selectedOrder.ped_id}`
             },
             auto_return: "approved",
-            // Campo requerido por MercadoPago - usando usuario de prueba
+            // Configurar payer como opcional para pruebas
             payer: {
                 email: testUserEmail
             },
+            // Configuración adicional para evitar verificaciones en sandbox
+            additional_info: "Pedido de prueba - No requiere verificación",
             // Referencia externa para vincular el pago con el pedido
             external_reference: selectedOrder.ped_id
         };
