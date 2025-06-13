@@ -42,7 +42,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { API_URL, MICROSERVICE_URL } from "@/config";
 import { useToast } from "@/hooks/use-toast";
-import { initMercadoPago } from '@mercadopago/sdk-react';
+// Removido: import de MercadoPago ya no se usa
 
 // Interface basada en el controlador de pedidos
 interface Pedido {
@@ -143,34 +143,7 @@ const OrdersPage: React.FC = () => {
     const [newStatus, setNewStatus] = useState("");
     const [deleteOpen, setDeleteOpen] = useState<string | null>(null);
 
-    // Inicializar MercadoPago
-    useEffect(() => {
-        const isSandbox = import.meta.env.VITE_USE_SANDBOX === 'true';
-        const publicKey = import.meta.env.VITE_MERCADOPAGO_PUBLIC_KEY;
-
-        console.log('=== INICIALIZANDO MERCADOPAGO ===');
-        console.log('isSandbox:', isSandbox);
-        console.log('publicKey:', publicKey ? `${publicKey.substring(0, 20)}...` : 'NO CONFIGURADA');
-        console.log('VITE_USE_SANDBOX env:', import.meta.env.VITE_USE_SANDBOX);
-        console.log('VITE_MERCADOPAGO_PUBLIC_KEY env:', import.meta.env.VITE_MERCADOPAGO_PUBLIC_KEY ? 'CONFIGURADA' : 'NO CONFIGURADA');
-        console.log('Environment mode:', import.meta.env.MODE);
-        console.log('All env vars:', Object.keys(import.meta.env).filter(key => key.startsWith('VITE_')));
-
-        if (publicKey) {
-            try {
-                initMercadoPago(publicKey, {
-                    locale: 'es-PE'
-                });
-                console.log('✅ MercadoPago inicializado correctamente con clave:', publicKey.startsWith('TEST-') ? 'TEST (Sandbox)' : 'PRODUCCIÓN');
-            } catch (error) {
-                console.error('❌ Error al inicializar MercadoPago:', error);
-            }
-        } else {
-            console.warn('⚠️ No se encontró VITE_MERCADOPAGO_PUBLIC_KEY');
-            console.warn('Variables disponibles:', Object.keys(import.meta.env));
-        }
-        console.log('================================');
-    }, []);
+    // Eliminado: Inicialización de MercadoPago ya no necesaria
 
     // Estados para edición
     const [clienteSearch, setClienteSearch] = useState("");
@@ -194,10 +167,8 @@ const OrdersPage: React.FC = () => {
     const [montoActual, setMontoActual] = useState<number>(0);
     const [notaActual, setNotaActual] = useState<string>("");
 
-    // Estados para MercadoPago + SUNAT
-    const [paymentType, setPaymentType] = useState<"tradicional" | "mercadopago">("tradicional");
-    const [mercadoPagoPaymentId, setMercadoPagoPaymentId] = useState<string>("");
-    const [isCreatingPayment, setIsCreatingPayment] = useState(false);
+    // Solo flujo tradicional con SUNAT
+    const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
     const { toast } = useToast();
     const queryClient = useQueryClient();
@@ -231,57 +202,7 @@ const OrdersPage: React.FC = () => {
         }
     });
 
-    // Manejar retorno de MercadoPago
-    useEffect(() => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const payment = urlParams.get('payment');
-        const orderId = urlParams.get('order');
-        const paymentId = urlParams.get('payment_id');
-        const status = urlParams.get('status');
-        const externalReference = urlParams.get('external_reference');
-
-        if (payment && orderId) {
-            // Limpiar URL
-            window.history.replaceState({}, document.title, window.location.pathname);
-
-            if (payment === 'success' && paymentId) {
-                // Mostrar modal de pago exitoso con opción de procesar con microservicio
-                setMercadoPagoPaymentId(paymentId);
-
-                // Buscar el pedido por ID
-                const pedido = pedidos.find(p => p.ped_id === orderId);
-                if (pedido) {
-                    setSelectedOrder(pedido);
-                    setPaymentType("tradicional"); // Cambiar a tradicional para procesar el payment_id
-                    setIsPaymentDialogOpen(true);
-
-                    // Generar número de boleta automático
-                    const now = new Date();
-                    const timestamp = now.getTime().toString().slice(-6);
-                    setBoletaNumero(`001-${timestamp}`);
-
-                    toast({
-                        title: "Pago exitoso en MercadoPago",
-                        description: `Payment ID: ${paymentId}. Complete la información de la boleta para generar el comprobante con SUNAT.`,
-                        duration: 8000
-                    });
-                }
-            } else if (payment === 'failure') {
-                toast({
-                    title: "Pago cancelado",
-                    description: "El pago en MercadoPago fue cancelado o falló",
-                    variant: "destructive",
-                    duration: 5000
-                });
-            } else if (payment === 'pending') {
-                toast({
-                    title: "Pago pendiente",
-                    description: "El pago está en proceso de verificación",
-                    duration: 5000
-                });
-            }
-        }
-    }, [pedidos]);
+    // Eliminado: Manejo de retorno de MercadoPago ya no necesario
 
 
 
@@ -675,10 +596,11 @@ const OrdersPage: React.FC = () => {
         setIsOrderDetailsOpen(false);
         setIsPaymentDialogOpen(true);
 
-        // Generar número de boleta automático
+        // Generar número de boleta automático con formato correcto para boletas electrónicas
+        // Formato: B + 3 dígitos de serie + guion + 8 dígitos correlativos
         const now = new Date();
-        const timestamp = now.getTime().toString().slice(-6);
-        setBoletaNumero(`001-${timestamp}`);
+        const correlativo = now.getTime().toString().slice(-8).padStart(8, '0'); // 8 dígitos con ceros a la izquierda
+        setBoletaNumero(`B001-${correlativo}`);
 
         // Limpiar pagos anteriores
         setPagosMetodos([]);
@@ -688,8 +610,8 @@ const OrdersPage: React.FC = () => {
         setSelectedPaymentMethod("");
     };
 
-    // Mutation para crear boleta tradicional
-    const createBoletaMutation = useMutation({
+    // Mutation para crear boleta con validación SUNAT
+    const createBoletaSunatMutation = useMutation({
         mutationFn: async (boletaData: any) => {
             const token = localStorage.getItem('token');
             const response = await fetch(`${API_URL}/api/boletas`, {
@@ -707,44 +629,127 @@ const OrdersPage: React.FC = () => {
             return response.json();
         },
         onSuccess: async (data) => {
-            // Actualizar el estado del pedido a "Completado" después de crear la boleta
+            // Actualizar el estado del pedido a "Completado"
             if (selectedOrder) {
                 try {
-                    console.log('Actualizando pedido a Completado después del pago:', selectedOrder.ped_id);
-
-                    // Usar la mutation específica para actualizar solo el estado
                     await updateStatusMutation.mutateAsync({
                         pedidoId: selectedOrder.ped_id,
                         ped_estado: "Completado"
                     });
-
-                    // Actualizar el selectedOrder localmente para reflejar el cambio inmediatamente
                     setSelectedOrder({
                         ...selectedOrder,
                         ped_estado: "Completado"
                     });
-
                 } catch (error) {
-                    console.error('Error updating order status to Completado:', error);
-                    // Mostrar error pero no fallar todo el proceso
-                    toast({
-                        title: "Advertencia",
-                        description: "El pago se procesó correctamente, pero hubo un problema al actualizar el estado del pedido",
-                        variant: "destructive"
-                    });
+                    console.error('Error updating order status:', error);
                 }
             }
 
-            toast({
-                title: "Pago completado",
-                description: `Se ha generado la boleta ${data.boleta_numero || data.boleta_id} y el pedido se marcó como completado`,
-                duration: 5000
-            });
+            // Emitir boleta en SUNAT y obtener documentId
+            try {
+                const token = localStorage.getItem('token');
+
+                // 🔍 DEBUG: Log completo del payload que se enviará
+                console.log('=== PAYLOAD COMPLETO A SUNAT ===');
+                console.log('Boleta ID:', data.boleta.boleta_id);
+                console.log('URL destino:', `${API_URL}/api/boletas/${data.boleta.boleta_id}/sunat-json`);
+                console.log('Token auth:', token ? 'Presente' : 'Ausente');
+                console.log('Datos boleta completos:', JSON.stringify(data.boleta, null, 2));
+                console.log('================================');
+
+                const sunatResponse = await fetch(`${API_URL}/api/boletas/${data.boleta.boleta_id}/sunat-json`, {
+                    headers: {
+                        'Authorization': token ? `Bearer ${token}` : ''
+                    }
+                });
+
+                if (sunatResponse.ok) {
+                    const contentType = sunatResponse.headers.get('content-type');
+
+                    // 🔍 DEBUG: Log completo de respuesta SUNAT
+                    console.log('=== RESPUESTA COMPLETA DE SUNAT ===');
+                    console.log('Status:', sunatResponse.status);
+                    console.log('Content-Type:', contentType);
+                    console.log('===================================');
+
+                    // Si es PDF (respuesta directa), descargar automáticamente
+                    if (contentType && contentType.includes('application/pdf')) {
+                        const blob = await sunatResponse.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.style.display = 'none';
+                        a.href = url;
+                        a.download = `BOL-${data.boleta.boleta_numero}.pdf`;
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+
+                        toast({
+                            title: "Boleta generada exitosamente",
+                            description: `Boleta ${data.boleta.boleta_numero} validada con SUNAT. PDF descargado automáticamente.`,
+                            duration: 5000
+                        });
+                    }
+                    // Si es JSON (respuesta con URL), manejar URL
+                    else if (contentType && contentType.includes('application/json')) {
+                        const sunatData = await sunatResponse.json();
+                        console.log('Respuesta JSON:', JSON.stringify(sunatData, null, 2));
+
+                        if (sunatData.url) {
+                            // Descargar desde URL proporcionada
+                            const pdfResponse = await fetch(sunatData.url);
+                            if (pdfResponse.ok) {
+                                const blob = await pdfResponse.blob();
+                                const url = window.URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.style.display = 'none';
+                                a.href = url;
+                                a.download = `BOL-${data.boleta.boleta_numero}.pdf`;
+                                document.body.appendChild(a);
+                                a.click();
+                                window.URL.revokeObjectURL(url);
+
+                                toast({
+                                    title: "Boleta generada exitosamente",
+                                    description: `Boleta ${data.boleta.boleta_numero} validada con SUNAT. PDF descargado automáticamente.`,
+                                    duration: 5000
+                                });
+                            } else {
+                                throw new Error('Error al descargar PDF desde URL');
+                            }
+                        } else {
+                            toast({
+                                title: "Boleta enviada a SUNAT",
+                                description: sunatData.message || `Boleta ${data.boleta.boleta_numero} procesada correctamente.`,
+                                duration: 5000
+                            });
+                        }
+                    } else {
+                        toast({
+                            title: "Boleta creada",
+                            description: `Boleta ${data.boleta.boleta_numero} creada. Respuesta inesperada de SUNAT.`,
+                            variant: "destructive"
+                        });
+                    }
+                } else {
+                    const errorData = await sunatResponse.text();
+                    console.log('=== ERROR DE SUNAT ===');
+                    console.log('Status:', sunatResponse.status);
+                    console.log('Error completo:', errorData);
+                    console.log('======================');
+                    throw new Error(`Error al comunicar con SUNAT: ${sunatResponse.status} - ${errorData}`);
+                }
+            } catch (error) {
+                toast({
+                    title: "Boleta creada, pero error en SUNAT",
+                    description: "La boleta se creó correctamente, pero hubo un problema con SUNAT",
+                    variant: "destructive"
+                });
+            }
 
             setIsPaymentDialogOpen(false);
             resetPaymentForm();
 
-            // Refrescar datos después de un breve delay para asegurar que el backend se actualice
             setTimeout(() => {
                 queryClient.invalidateQueries({ queryKey: ['/api/pedidos'] });
                 refetch();
@@ -759,252 +764,7 @@ const OrdersPage: React.FC = () => {
         }
     });
 
-    // Mutation para crear preferencia de pago en MercadoPago
-    const createPaymentPreferenceMutation = useMutation({
-        mutationFn: async (orderData: any) => {
-            const token = localStorage.getItem('token');
-
-            console.log('=== ENVIANDO A BACKEND MERCADOPAGO ===');
-            console.log('URL completa:', `${API_URL}/api/mercadopago/create-preference`);
-            console.log('Método HTTP:', 'POST');
-            console.log('Headers:', {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'Authorization': token ? `Bearer ${token}` : ''
-            });
-            console.log('Datos a enviar:', JSON.stringify(orderData, null, 2));
-
-            // Verificar que existan detalles
-            if (!orderData.detalles || !Array.isArray(orderData.detalles) || orderData.detalles.length === 0) {
-                throw new Error('No se encontraron detalles del pedido para procesar el pago');
-            }
-
-            // Verificar que existan items transformados para MercadoPago
-            if (!orderData.items || !Array.isArray(orderData.items) || orderData.items.length === 0) {
-                throw new Error('Error al transformar los productos para MercadoPago');
-            }
-
-            // Verificar que back_urls esté correctamente estructurado
-            if (!orderData.back_urls || typeof orderData.back_urls !== 'object') {
-                throw new Error('back_urls debe ser un objeto válido');
-            }
-
-            if (!orderData.back_urls.success || !orderData.back_urls.failure || !orderData.back_urls.pending) {
-                throw new Error('back_urls debe contener success, failure y pending');
-            }
-
-            try {
-                // Enviar directamente los datos del pedido al backend
-                // El backend de Laravel se encargará de estructurar los datos para MercadoPago
-                const response = await fetch(`${API_URL}/api/mercadopago/create-preference`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'Authorization': token ? `Bearer ${token}` : ''
-                    },
-                    body: JSON.stringify(orderData)
-                });
-
-                console.log('=== RESPUESTA DEL SERVIDOR ===');
-                console.log('Status:', response.status);
-                console.log('Status Text:', response.statusText);
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('Error response texto completo:', errorText);
-
-                    let errorData;
-                    try {
-                        errorData = JSON.parse(errorText);
-                    } catch (e) {
-                        errorData = { message: errorText };
-                    }
-
-                    console.error('Error en respuesta MercadoPago:', errorData);
-                    throw new Error(errorData.message || `Error HTTP ${response.status}: ${response.statusText}`);
-                }
-
-                const responseData = await response.json();
-                console.log('=== RESPUESTA EXITOSA COMPLETA ===');
-                console.log('Response data structure:', Object.keys(responseData));
-                console.log('Response data:', JSON.stringify(responseData, null, 2));
-                console.log('sandbox_init_point:', responseData.sandbox_init_point);
-                console.log('init_point:', responseData.init_point);
-                console.log('===================================');
-                return responseData;
-
-            } catch (fetchError: any) {
-                console.error('Error en fetch:', fetchError);
-                console.error('Stack trace:', fetchError.stack);
-
-                if (fetchError.name === 'TypeError' && fetchError.message.includes('fetch')) {
-                    throw new Error('Error de conexión con el servidor. Verifica que el backend esté ejecutándose.');
-                }
-
-                throw fetchError;
-            }
-        },
-        onSuccess: (data) => {
-            console.log('=== INICIANDO PROCESO DE REDIRECCIÓN ===');
-            console.log('Data recibida en onSuccess:', data);
-            console.log('Tipo de data:', typeof data);
-            console.log('Keys de data:', Object.keys(data));
-
-            // Usar la variable de entorno para determinar si estamos en sandbox
-            const isSandbox = import.meta.env.VITE_USE_SANDBOX === 'true';
-            const publicKey = import.meta.env.VITE_MERCADOPAGO_PUBLIC_KEY;
-
-            console.log('isSandbox desde env:', isSandbox);
-            console.log('publicKey es TEST?:', publicKey?.startsWith('TEST-'));
-            console.log('Entorno detectado:', isSandbox ? 'SANDBOX' : 'PRODUCCIÓN');
-
-            // Forzar sandbox si la clave es de TEST
-            const useSandbox = isSandbox || (publicKey && publicKey.startsWith('TEST-'));
-
-            // Seleccionar la URL correcta según el entorno
-            const redirectUrl = useSandbox ? data.sandbox_init_point : data.init_point;
-
-            console.log('sandbox_init_point:', data.sandbox_init_point);
-            console.log('init_point:', data.init_point);
-            console.log('useSandbox final:', useSandbox);
-            console.log('URL seleccionada:', redirectUrl);
-
-            if (redirectUrl) {
-                console.log('✅ REDIRIGIENDO A MERCADOPAGO:', redirectUrl);
-                toast({
-                    title: "Redirigiendo a MercadoPago",
-                    description: "Serás redirigido al formulario de pago...",
-                    duration: 2000
-                });
-
-                // Redirección inmediata para evitar bloqueos
-                window.location.href = redirectUrl;
-            } else {
-                console.error('❌ NO SE ENCONTRÓ URL DE REDIRECCIÓN');
-                console.error('Estructura completa de respuesta:', JSON.stringify(data, null, 2));
-                console.error('useSandbox:', useSandbox);
-                console.error('sandbox_init_point existe?:', !!data.sandbox_init_point);
-                console.error('init_point existe?:', !!data.init_point);
-
-                // Mostrar error más específico
-                const errorMsg = useSandbox
-                    ? 'No se recibió sandbox_init_point para el entorno de pruebas'
-                    : 'No se recibió init_point para el entorno de producción';
-
-                throw new Error(errorMsg);
-            }
-        },
-        onError: (error: any) => {
-            console.error('❌ Error completo en mutation:', error);
-            console.error('Error stack:', error.stack);
-            toast({
-                title: "Error al crear preferencia de pago",
-                description: error.message || "Error al conectar con MercadoPago",
-                variant: "destructive"
-            });
-            setIsCreatingPayment(false);
-        }
-    });
-
-    // Mutation para procesar pago con MercadoPago + SUNAT
-    const processPaymentMutation = useMutation({
-        mutationFn: async ({ paymentId, boletaData }: { paymentId: string; boletaData: any }) => {
-            const token = localStorage.getItem('token');
-
-            // Primero crear la boleta con payment_id
-            const boletaResponse = await fetch(`${API_URL}/api/boletas`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': token ? `Bearer ${token}` : ''
-                },
-                body: JSON.stringify({
-                    ...boletaData,
-                    payment_id: paymentId // Enviar el payment_id de MercadoPago
-                })
-            });
-
-            if (!boletaResponse.ok) {
-                const error = await boletaResponse.json();
-                throw new Error(error.message || 'Error creating boleta');
-            }
-
-            const boletaResult = await boletaResponse.json();
-
-            // Llamar al microservicio de facturación
-            const facturacionResponse = await fetch(`${MICROSERVICE_URL}/api/facturar`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': token ? `Bearer ${token}` : ''
-                },
-                body: JSON.stringify({
-                    payment_id: paymentId,
-                    boleta: boletaResult.boleta || boletaResult
-                })
-            });
-
-            if (!facturacionResponse.ok) {
-                const errorData = await facturacionResponse.text();
-                throw new Error(`Error processing with microservice: ${errorData}`);
-            }
-
-            // El microservicio devuelve el PDF
-            const blob = await facturacionResponse.blob();
-
-            // Crear URL para descarga automática
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.style.display = 'none';
-            a.href = url;
-            a.download = `boleta-${boletaResult.boleta_numero || boletaResult.boleta?.boleta_numero}.pdf`;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
-
-            return boletaResult;
-        },
-        onSuccess: async (data) => {
-            if (selectedOrder) {
-                try {
-                    await updateStatusMutation.mutateAsync({
-                        pedidoId: selectedOrder.ped_id,
-                        ped_estado: "Completado"
-                    });
-
-                    setSelectedOrder({
-                        ...selectedOrder,
-                        ped_estado: "Completado"
-                    });
-                } catch (error) {
-                    console.error('Error updating order status:', error);
-                }
-            }
-
-            toast({
-                title: "Pago procesado con MercadoPago",
-                description: `Boleta ${data.boleta_id} generada con SUNAT. PDF descargado automáticamente.`,
-                duration: 5000
-            });
-
-            setIsPaymentDialogOpen(false);
-            resetPaymentForm();
-
-            setTimeout(() => {
-                queryClient.invalidateQueries({ queryKey: ['/api/pedidos'] });
-                refetch();
-            }, 1000);
-        },
-        onError: (error: any) => {
-            toast({
-                title: "Error al procesar pago con MercadoPago",
-                description: error.message || "Error al procesar el pago",
-                variant: "destructive"
-            });
-        }
-    });
+    // Eliminadas mutations de MercadoPago - Solo usamos SUNAT ahora
 
     const resetPaymentForm = () => {
         setSelectedPaymentMethod("");
@@ -1014,8 +774,7 @@ const OrdersPage: React.FC = () => {
         setPagosMetodos([]);
         setMontoActual(0);
         setNotaActual("");
-        setPaymentType("tradicional");
-        setMercadoPagoPaymentId("");
+        setIsProcessingPayment(false);
     };
 
     const agregarMetodoPago = () => {
@@ -1060,115 +819,6 @@ const OrdersPage: React.FC = () => {
         setPagosMetodos(pagosMetodos.filter((_, i) => i !== index));
     };
 
-    const handleMercadoPagoPayment = () => {
-        if (!selectedOrder || !boletaNumero.trim()) {
-            toast({
-                title: "Error",
-                description: "Complete todos los campos requeridos",
-                variant: "destructive",
-            });
-            return;
-        }
-
-        // Validar configuración de MercadoPago
-        const publicKey = import.meta.env.VITE_MERCADOPAGO_PUBLIC_KEY;
-        const isSandbox = import.meta.env.VITE_USE_SANDBOX === 'true';
-
-        if (!publicKey) {
-            toast({
-                title: "Error de configuración",
-                description: "No se encontró la clave pública de MercadoPago. Verifica las variables de entorno en Netlify.",
-                variant: "destructive",
-            });
-            return;
-        }
-
-        console.log('=== VALIDACIÓN DE CONFIGURACIÓN ===');
-        console.log('Public Key configurada:', publicKey ? 'SÍ' : 'NO');
-        console.log('Es TEST key?:', publicKey?.startsWith('TEST-'));
-        console.log('VITE_USE_SANDBOX:', isSandbox);
-        console.log('Configuración válida para sandbox:', publicKey?.startsWith('TEST-') && isSandbox);
-        console.log('==================================');
-
-        setIsCreatingPayment(true);
-
-        // Transformar detalles del pedido al formato esperado por MercadoPago
-        const items = selectedOrder.detalles?.map((detalle) => {
-            const producto = productos.find(p => p.pro_id === detalle.prod_id);
-            return {
-                title: producto?.pro_nombre || `Producto ${detalle.prod_id}`,
-                quantity: detalle.det_cantidad,
-                unit_price: Number(detalle.det_precio_unitario), // Asegurar que sea número
-                currency_id: 'PEN'
-            };
-        }) || [];
-
-        // Validar que todos los items tengan datos válidos
-        const invalidItems = items.filter(item =>
-            !item.title ||
-            !item.quantity ||
-            item.quantity <= 0 ||
-            !item.unit_price ||
-            item.unit_price <= 0
-        );
-
-        if (invalidItems.length > 0) {
-            console.error('Items inválidos encontrados:', invalidItems);
-            toast({
-                title: "Error",
-                description: "Algunos productos tienen datos inválidos",
-                variant: "destructive",
-            });
-            setIsCreatingPayment(false);
-            return;
-        }
-
-        // Usar email de usuario de prueba válido de MercadoPago (sin verificación)
-        const testUserEmail = "test_user_1325692@testuser.com";
-
-        const paymentData = {
-            pedido_id: selectedOrder.ped_id,
-            cliente_nombre: selectedOrder.cli_nombre,
-            items: items, // Items transformados para MercadoPago
-            detalles: selectedOrder.detalles, // Detalles originales para el backend
-            total_amount: Number(selectedOrder.ped_total),
-            boleta_numero: boletaNumero.trim(),
-            boleta_notas: boletaNotas?.trim() || null,
-            // URLs de retorno agrupadas en back_urls (requerido por MercadoPago)
-            back_urls: {
-                success: `${window.location.origin}/orders?payment=success&order=${selectedOrder.ped_id}`,
-                failure: `${window.location.origin}/orders?payment=failure&order=${selectedOrder.ped_id}`,
-                pending: `${window.location.origin}/orders?payment=pending&order=${selectedOrder.ped_id}`
-            },
-            auto_return: "approved",
-            // Configurar payer como opcional para pruebas
-            payer: {
-                email: testUserEmail
-            },
-            // Configuración adicional para evitar verificaciones en sandbox
-            additional_info: "Pedido de prueba - No requiere verificación",
-            // Referencia externa para vincular el pago con el pedido
-            external_reference: selectedOrder.ped_id
-        };
-
-        console.log('=== CREANDO PREFERENCIA MERCADOPAGO ===');
-        console.log('Order data completa:', JSON.stringify(paymentData, null, 2));
-        console.log('Items transformados para MercadoPago:', items);
-        console.log('Validación de back_urls:');
-        console.log('- success:', paymentData.back_urls.success);
-        console.log('- failure:', paymentData.back_urls.failure);
-        console.log('- pending:', paymentData.back_urls.pending);
-        console.log('Validación de payer:');
-        console.log('- email:', paymentData.payer.email);
-        console.log('Validaciones generales:');
-        console.log('- Tiene detalles?', !!selectedOrder.detalles && selectedOrder.detalles.length > 0);
-        console.log('- Tiene items?', !!items && items.length > 0);
-        console.log('- Total del pedido:', selectedOrder.ped_total);
-        console.log('- External reference:', paymentData.external_reference);
-
-        createPaymentPreferenceMutation.mutate(paymentData);
-    };
-
     const handlePayment = () => {
         if (!selectedOrder) return;
 
@@ -1181,70 +831,37 @@ const OrdersPage: React.FC = () => {
             return;
         }
 
-        if (paymentType === "mercadopago") {
-            // Flujo MercadoPago directo a pasarela
-            handleMercadoPagoPayment();
+        if (pagosMetodos.length === 0) {
+            toast({
+                title: "Error",
+                description: "Debe agregar al menos un método de pago",
+                variant: "destructive",
+            });
             return;
         }
 
-        // Flujo tradicional - verificar si hay un payment_id de retorno de MercadoPago
-        if (paymentType === "tradicional" && mercadoPagoPaymentId.trim()) {
-            // Este es el caso cuando el usuario regresa de MercadoPago
+        const totalPagos = pagosMetodos.reduce((sum, pago) => sum + pago.monto, 0);
+        const totalPedido = Number(selectedOrder.ped_total);
 
-            // Buscar el método de pago de MercadoPago o usar uno por defecto
-            const mercadoPagoMetodo = metodosPago.find(m =>
-                m.met_nombre.toLowerCase().includes('mercado') ||
-                m.met_nombre.toLowerCase().includes('digital')
-            );
-
-            const boletaData = {
-                ped_id: selectedOrder.ped_id,
-                boleta_numero: boletaNumero,
-                boleta_notas: boletaNotas || null,
-                pagos: [{
-                    met_id: mercadoPagoMetodo?.met_id || "1", // Usar ID del método encontrado o un fallback
-                    monto: Number(selectedOrder.ped_total),
-                    fecha_pago: new Date().toISOString().split('T')[0],
-                    nota_pago: `Pago MercadoPago ID: ${mercadoPagoPaymentId}`
-                }]
-            };
-
-            processPaymentMutation.mutate({
-                paymentId: mercadoPagoPaymentId,
-                boletaData
+        if (Math.abs(totalPagos - totalPedido) > 0.01) {
+            toast({
+                title: "Error",
+                description: "El total de pagos debe ser igual al total del pedido",
+                variant: "destructive",
             });
-        } else {
-            // Flujo tradicional
-            if (pagosMetodos.length === 0) {
-                toast({
-                    title: "Error",
-                    description: "Debe agregar al menos un método de pago",
-                    variant: "destructive",
-                });
-                return;
-            }
-
-            const totalPagos = pagosMetodos.reduce((sum, pago) => sum + pago.monto, 0);
-            const totalPedido = Number(selectedOrder.ped_total);
-
-            if (Math.abs(totalPagos - totalPedido) > 0.01) {
-                toast({
-                    title: "Error",
-                    description: "El total de pagos debe ser igual al total del pedido",
-                    variant: "destructive",
-                });
-                return;
-            }
-
-            const boletaData = {
-                ped_id: selectedOrder.ped_id,
-                boleta_numero: boletaNumero,
-                boleta_notas: boletaNotas || null,
-                pagos: pagosMetodos
-            };
-
-            createBoletaMutation.mutate(boletaData);
+            return;
         }
+
+        setIsProcessingPayment(true);
+
+        const boletaData = {
+            ped_id: selectedOrder.ped_id,
+            boleta_numero: boletaNumero,
+            boleta_notas: boletaNotas || null,
+            pagos: pagosMetodos
+        };
+
+        createBoletaSunatMutation.mutate(boletaData);
     };
 
     const getStatusBadge = (status: string) => {
@@ -1304,7 +921,7 @@ const OrdersPage: React.FC = () => {
     if (isLoading) {
         return (
             <MainLayout>
-                <div className="container mx-auto px-4 py-6">
+                <div className="container mx-autopx-4 py-6">
                     <div className="flex items-center justify-center h-64">
                         <div className="text-center">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
@@ -2177,81 +1794,26 @@ const OrdersPage: React.FC = () => {
                         </DialogHeader>
 
                         <div className="py-4 space-y-6 max-h-[70vh] overflow-y-auto">
-                            {/* Selector de tipo de pago */}
-                            <div className="bg-gradient-to-r from-blue-50 to-green-50 p-4 rounded-lg border">
+                            {/* Información del proceso de pago */}
+                            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                                 <h3 className="font-semibold mb-3 flex items-center gap-2">
-                                    <CreditCard className="h-5 w-5 text-blue-600" />
-                                    Tipo de Pago
+                                    <Receipt className="h-5 w-5 text-blue-600" />
+                                    Proceso de Pago con SUNAT
                                 </h3>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <button
-                                        type="button"
-                                        onClick={() => setPaymentType("tradicional")}
-                                        className={`p-3 rounded-lg border-2 transition-all ${
-                                            paymentType === "tradicional"
-                                                ? "border-blue-500 bg-blue-50 text-blue-700"
-                                                : "border-gray-200 hover:border-gray-300"
-                                        }`}
-                                    >
-                                        <div className="text-center">
-                                            <CreditCard className="h-6 w-6 mx-auto mb-1" />
-                                            <div className="font-medium text-sm">Pago Tradicional</div>
-                                            <div className="text-xs text-gray-500">Efectivo, tarjetas, etc.</div>
-                                        </div>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setPaymentType("mercadopago")}
-                                        className={`p-3 rounded-lg border-2 transition-all ${
-                                            paymentType === "mercadopago"
-                                                ? "border-green-500 bg-green-50 text-green-700"
-                                                : "border-gray-200 hover:border-gray-300"
-                                        }`}
-                                    >
-                                        <div className="text-center">
-                                            <Download className="h-6 w-6 mx-auto mb-1" />
-                                            <div className="font-medium text-sm">MercadoPago + SUNAT</div>
-                                            <div className="text-xs text-gray-500">Con validación y PDF</div>
-                                        </div>
-                                    </button>
+                                <div className="bg-white p-3 rounded border">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <CreditCard className="h-5 w-5 text-blue-600" />
+                                        <span className="font-medium">Proceso Automático</span>
+                                    </div>
+                                    <ol className="text-sm text-gray-600 space-y-1 ml-8">
+                                        <li>1. Registrar los métodos de pago utilizados</li>
+                                        <li>2. Crear la boleta en el sistema</li>
+                                        <li>3. Validar automáticamente con SUNAT</li>
+                                        <li>4. Generar y descargar el PDF oficial</li>
+                                        <li>5. Actualizar el estado del pedido</li>
+                                    </ol>
                                 </div>
                             </div>
-
-                            {/* Información para MercadoPago */}
-                            {paymentType === "mercadopago" && (
-                                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                                    <h3 className="font-semibold mb-3 flex items-center gap-2">
-                                        <Download className="h-5 w-5 text-green-600" />
-                                        Pago con MercadoPago
-                                    </h3>
-                                    <div className="space-y-3">
-                                        <div className="bg-white p-3 rounded border">
-                                            <div className="flex items-center gap-3 mb-2">
-                                                <CreditCard className="h-5 w-5 text-green-600" />
-                                                <span className="font-medium">Proceso de Pago</span>
-                                            </div>
-                                            <ol className="text-sm text-gray-600 space-y-1 ml-8">
-                                                <li>1. Se creará una preferencia de pago en MercadoPago</li>
-                                                <li>2. Serás redirigido a la pasarela de pagos</li>
-                                                <li>3. Completa el pago en MercadoPago</li>
-                                                <li>4. Regresarás aquí automáticamente</li>
-                                                <li>5. Se generará la boleta con validación SUNAT</li>
-                                            </ol>
-                                        </div>
-
-                                        <div className="bg-blue-50 p-3 rounded border border-blue-200">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <Info className="h-4 w-4 text-blue-600" />
-                                                <span className="font-medium text-blue-700 text-sm">Información Importante</span>
-                                            </div>
-                                            <p className="text-xs text-blue-600">
-                                                Una vez que hagas clic en "Pagar con MercadoPago", serás redirigido a la página de pagos.
-                                                No cierres esta ventana hasta completar el proceso.
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
 
                             {/* Información de la boleta */}
                             <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
@@ -2314,8 +1876,8 @@ const OrdersPage: React.FC = () => {
                                 </div>
                             </div>
 
-                            {/* Agregar método de pago - Solo para pago tradicional */}
-                            {paymentType === "tradicional" && (
+                            {/* Agregar método de pago */}
+                            {(
                                 <div className="border p-4 rounded-lg">
                                     <h3 className="font-semibold mb-3">Agregar Método de Pago</h3>
                                     <div className="grid grid-cols-2 gap-3 mb-3">
@@ -2371,8 +1933,8 @@ const OrdersPage: React.FC = () => {
                                 </div>
                             )}
 
-                            {/* Lista de métodos de pago agregados - Solo para pago tradicional */}
-                            {paymentType === "tradicional" && pagosMetodos.length > 0 && (
+                            {/* Lista de métodos de pago agregados */}
+                            {pagosMetodos.length > 0 && (
                                 <div className="border p-4 rounded-lg">
                                     <h3 className="font-semibold mb-3">Métodos de Pago Agregados</h3>
                                     <div className="space-y-2">
@@ -2418,7 +1980,7 @@ const OrdersPage: React.FC = () => {
                                 </div>
                             )}
 
-                            {paymentType === "tradicional" && metodosPago.length === 0 && (
+                            {metodosPago.length === 0 && (
                                 <div className="text-center py-6 text-gray-500 border rounded-lg">
                                     <CreditCard className="h-12 w-12 text-gray-300 mx-auto mb-2" />
                                     <p>No hay métodos de pago disponibles</p>
@@ -2438,24 +2000,11 @@ const OrdersPage: React.FC = () => {
                             </Button>
                             <Button
                                 onClick={handlePayment}
-                                disabled={
-                                    (paymentType === "tradicional" && (createBoletaMutation.isPending || pagosMetodos.length === 0)) ||
-                                    (paymentType === "mercadopago" && (isCreatingPayment || createPaymentPreferenceMutation.isPending)) ||
-                                    !boletaNumero.trim()
-                                }
-                                className={paymentType === "mercadopago" ? "bg-green-600 hover:bg-green-700" : "bg-blue-600 hover:bg-blue-700"}
+                                disabled={isProcessingPayment || createBoletaSunatMutation.isPending || pagosMetodos.length === 0 || !boletaNumero.trim()}
+                                className="bg-blue-600 hover:bg-blue-700"
                             >
-                                {paymentType === "mercadopago" ? (
-                                    <>
-                                        <ArrowRightCircle className="h-4 w-4 mr-2" />
-                                        {isCreatingPayment || createPaymentPreferenceMutation.isPending ? "Redirigiendo a MercadoPago..." : "Pagar con MercadoPago"}
-                                    </>
-                                ) : (
-                                    <>
-                                        <CreditCard className="h-4 w-4 mr-2" />
-                                        {createBoletaMutation.isPending ? "Procesando..." : "Generar Boleta"}
-                                    </>
-                                )}
+                                <Receipt className="h-4 w-4 mr-2" />
+                                {isProcessingPayment || createBoletaSunatMutation.isPending ? "Procesando con SUNAT..." : "Generar Boleta con SUNAT"}
                             </Button>
                         </DialogFooter>
                     </DialogContent>

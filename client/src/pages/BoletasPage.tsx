@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import MainLayout from "@/components/layouts/MainLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -323,10 +322,28 @@ const BoletasPage: React.FC = () => {
     const handlePrint = async (boleta: Boleta) => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`${API_URL}/api/boletas/${boleta.boleta_id}/pdf`, {
+
+            // Primero emitir en SUNAT para obtener documentId
+            const sunatResponse = await fetch(`${API_URL}/api/boletas/${boleta.boleta_id}/sunat-json`, {
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : ''
+                }
+            });
+
+            if (!sunatResponse.ok) throw new Error('Error al comunicar con SUNAT');
+
+            const sunatData = await sunatResponse.json();
+            const documentId = sunatData.respuesta?.documentId;
+            const fileName = sunatData.respuesta?.fileName;
+
+            if (!documentId || !fileName) {
+                throw new Error('No se pudo obtener información del documento de SUNAT');
+            }
+
+            // Descargar PDF de SUNAT
+            const response = await fetch(`${API_URL}/api/boletas/${documentId}/pdf/${fileName}`, {
                 headers: {
                     'Authorization': token ? `Bearer ${token}` : '',
-                    'Content-Type': 'application/json',
                 }
             });
 
@@ -365,10 +382,28 @@ const BoletasPage: React.FC = () => {
     const handleDownload = async (boleta: Boleta) => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`${API_URL}/api/boletas/${boleta.boleta_id}/pdf`, {
+
+            // Primero emitir en SUNAT para obtener documentId
+            const sunatResponse = await fetch(`${API_URL}/api/boletas/${boleta.boleta_id}/sunat-json`, {
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : ''
+                }
+            });
+
+            if (!sunatResponse.ok) throw new Error('Error al comunicar con SUNAT');
+
+            const sunatData = await sunatResponse.json();
+            const documentId = sunatData.respuesta?.documentId;
+            const fileName = sunatData.respuesta?.fileName;
+
+            if (!documentId || !fileName) {
+                throw new Error('No se pudo obtener información del documento de SUNAT');
+            }
+
+            // Descargar PDF de SUNAT
+            const response = await fetch(`${API_URL}/api/boletas/${documentId}/pdf/${fileName}`, {
                 headers: {
                     'Authorization': token ? `Bearer ${token}` : '',
-                    'Content-Type': 'application/json',
                 }
             });
 
