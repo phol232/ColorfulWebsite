@@ -323,31 +323,48 @@ const BoletasPage: React.FC = () => {
         try {
             const token = localStorage.getItem('token');
 
-            // Primero emitir en SUNAT para obtener documentId
-            const sunatResponse = await fetch(`${API_URL}/api/boletas/${boleta.boleta_id}/sunat-json`, {
-                headers: {
-                    'Authorization': token ? `Bearer ${token}` : ''
-                }
-            });
+            // Extraer serie y correlativo del número de boleta
+            const [serie, correlativo] = boleta.boleta_numero.split('-');
 
-            if (!sunatResponse.ok) throw new Error('Error al comunicar con SUNAT');
-
-            const sunatData = await sunatResponse.json();
-            const documentId = sunatData.respuesta?.documentId;
-            const fileName = sunatData.respuesta?.fileName;
-
-            if (!documentId || !fileName) {
-                throw new Error('No se pudo obtener información del documento de SUNAT');
+            if (!serie || !correlativo) {
+                throw new Error('Formato de número de boleta inválido');
             }
 
-            // Descargar PDF de SUNAT
-            const response = await fetch(`${API_URL}/api/boletas/${documentId}/pdf/${fileName}`, {
+            // Usar la nueva ruta de facturación para generar PDF
+            // Preparar payload para generar PDF de impresión
+            const facturacionPayload = {
+                boleta_numero: boleta.boleta_numero,
+                boleta_fecha: boleta.boleta_fecha,
+                boleta_subtotal: boleta.boleta_subtotal,
+                boleta_impuestos: boleta.boleta_impuestos,
+                boleta_total: boleta.boleta_total,
+                metodos_pago: boleta.metodos_pago?.map((metodo: any) => ({
+                    met_nombre: metodo.met_nombre || 'Efectivo'
+                })) || [],
+                pedido: {
+                    cliente: {
+                        cli_tipo_doc: '1',
+                        cli_numero_doc: '00000000',
+                        cli_nombre: getClienteName(boleta.pedido?.cli_id)?.split(' ')[0] || 'Cliente',
+                        cli_apellido: getClienteName(boleta.pedido?.cli_id)?.split(' ').slice(1).join(' ') || 'Genérico'
+                    },
+                    detalles: [] // Para impresión simple
+                }
+            };
+
+            const response = await fetch(`${API_URL}/api/facturacion/pdf`, {
+                method: 'POST',
                 headers: {
                     'Authorization': token ? `Bearer ${token}` : '',
-                }
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(facturacionPayload)
             });
 
-            if (!response.ok) throw new Error('Error al generar PDF');
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ message: 'Error desconocido' }));
+                throw new Error(errorData.message || `Error ${response.status}`);
+            }
 
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
@@ -371,62 +388,89 @@ const BoletasPage: React.FC = () => {
                 description: `La boleta ${boleta.boleta_numero} se está enviando a la impresora.`
             });
         } catch (error) {
+            console.error('Error printing PDF:', error);
             toast({
                 title: "Error",
-                description: "No se pudo imprimir la boleta",
+                description: (error as Error).message || "No se pudo imprimir la boleta",
                 variant: "destructive"
             });
         }
     };
 
-    const handleDownload = async (boleta: Boleta) => {
+    // Función para descargar boleta - Generar PDF
+    const handleDownload = async (boleta: any) => {
         try {
+            toast({
+                title: "Generando PDF...",
+                description: `Creando el archivo PDF para la boleta ${boleta.boleta_numero}`,
+            });
+
             const token = localStorage.getItem('token');
 
-            // Primero emitir en SUNAT para obtener documentId
-            const sunatResponse = await fetch(`${API_URL}/api/boletas/${boleta.boleta_id}/sunat-json`, {
-                headers: {
-                    'Authorization': token ? `Bearer ${token}` : ''
+            // Preparar payload para generar PDF
+            const facturacionPayload = {
+                boleta_numero: boleta.boleta_numero,
+                boleta_fecha: boleta.boleta_fecha,
+                boleta_subtotal: boleta.boleta_subtotal,
+                boleta_impuestos: boleta.boleta_impuestos,
+                boleta_total: boleta.boleta_total,
+                metodos_pago: boleta.metodos_pago?.map((metodo: any) => ({
+                    met_nombre: metodo.met_nombre || 'Efectivo'
+                })) || [],
+                pedido: {
+                    cliente: {
+                        cli_tipo_doc: '1',
+                        cli_numero_doc: '00000000',
+                        cli_nombre: boleta.pedido?.cli_nombre?.split(' ')[0] || 'Cliente',
+                        cli_apellido: boleta.pedido?.cli_nombre?.split(' ').slice(1).join(' ') || 'Genérico'
+                    },
+                    detalles: boleta.pedido?.detalles?.map((detalle: any) => ({
+                        det_cantidad: detalle.det_cantidad,
+                        det_precio_unitario: detalle.det_precio_unitario,
+                        det_subtotal: detalle.det_subtotal,
+                        det_impuesto: detalle.det_impuesto || (detalle.det_subtotal * 0.18),
+                        producto: {
+                            pro_id: detalle.prod_id,
+                            pro_nombre: detalle.producto?.pro_nombre || `Producto ${detalle.prod_id}`
+                        }
+                    })) || []
                 }
-            });
+            };
 
-            if (!sunatResponse.ok) throw new Error('Error al comunicar con SUNAT');
-
-            const sunatData = await sunatResponse.json();
-            const documentId = sunatData.respuesta?.documentId;
-            const fileName = sunatData.respuesta?.fileName;
-
-            if (!documentId || !fileName) {
-                throw new Error('No se pudo obtener información del documento de SUNAT');
-            }
-
-            // Descargar PDF de SUNAT
-            const response = await fetch(`${API_URL}/api/boletas/${documentId}/pdf/${fileName}`, {
+            const pdfResponse = await fetch(`${API_URL}/api/facturacion/pdf`, {
+                method: 'POST',
                 headers: {
                     'Authorization': token ? `Bearer ${token}` : '',
-                }
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(facturacionPayload)
             });
 
-            if (!response.ok) throw new Error('Error al generar PDF');
+            if (pdfResponse.ok) {
+                const blob = await pdfResponse.blob();
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `BOL-${boleta.boleta_numero}.pdf`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
 
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `Boleta_${boleta.boleta_numero.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
-
-            toast({
-                title: "PDF descargado",
-                description: `La boleta ${boleta.boleta_numero} se ha descargado correctamente.`
-            });
+                toast({
+                    title: "PDF generado exitosamente",
+                    description: `Boleta ${boleta.boleta_numero} descargada correctamente.`,
+                    duration: 5000
+                });
+            } else {
+                const errorData = await pdfResponse.json().catch(() => ({ message: 'Error desconocido' }));
+                throw new Error(`Error al generar PDF: ${errorData.message}`);
+            }
         } catch (error) {
+            console.error('Error al generar PDF:', error);
             toast({
-                title: "Error",
-                description: "No se pudo descargar el PDF",
+                title: "Error al generar PDF",
+                description: (error as Error).message || "Hubo un problema al generar el archivo PDF",
                 variant: "destructive"
             });
         }
@@ -745,7 +789,7 @@ const BoletasPage: React.FC = () => {
 
                             {/* Contenido principal compacto */}
                             <div className="grid grid-cols-2 gap-3">
-                                {/* Productos */}
+                                {/*Productos */}
                                 <div>
                                     <div className="flex items-center gap-1 mb-2">
                                         <Package className="h-4 w-4 text-primary" />
@@ -858,7 +902,7 @@ const BoletasPage: React.FC = () => {
                                     disabled={selectedBoleta.boleta_estado.toLowerCase() === 'anulado' || selectedBoleta.boleta_estado.toLowerCase() === 'cancelado'}
                                 >
                                     <Download className="h-3 w-3" />
-                                    Descargar
+                                    Generar PDF
                                 </Button>
                                 {(selectedBoleta.boleta_estado.toLowerCase() === 'emitido') && (
                                     <Button

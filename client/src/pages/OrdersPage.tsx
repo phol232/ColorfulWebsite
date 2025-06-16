@@ -40,8 +40,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { API_URL, MICROSERVICE_URL } from "@/config";
+import { API_URL } from "@/config";
 import { useToast } from "@/hooks/use-toast";
+import { useEmitirBoleta } from "@/hooks/useEmitirBoleta";
 // Removido: import de MercadoPago ya no se usa
 
 // Interface basada en el controlador de pedidos
@@ -143,8 +144,6 @@ const OrdersPage: React.FC = () => {
     const [newStatus, setNewStatus] = useState("");
     const [deleteOpen, setDeleteOpen] = useState<string | null>(null);
 
-    // Eliminado: Inicialización de MercadoPago ya no necesaria
-
     // Estados para edición
     const [clienteSearch, setClienteSearch] = useState("");
     const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
@@ -167,20 +166,17 @@ const OrdersPage: React.FC = () => {
     const [montoActual, setMontoActual] = useState<number>(0);
     const [notaActual, setNotaActual] = useState<string>("");
 
-    // Solo flujo tradicional con SUNAT
     const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
     const { toast } = useToast();
     const queryClient = useQueryClient();
+    const { emitirBoleta, testPostmanReplica, loading: emitirBoletaLoading, error: emitirBoletaError, progress, processingTime, successMessage, emitiendo, clearError } = useEmitirBoleta();
 
     // Fetch pedidos desde el backend
     const { data: pedidos = [], isLoading, refetch } = useQuery<Pedido[]>({
         queryKey: ['/api/pedidos'],
         queryFn: async () => {
-            console.log('=== CONFIGURACIÓN DE API ===');
-            console.log('API_URL:', API_URL);
-            console.log('URL completa para pedidos:', `${API_URL}/api/pedidos`);
-            console.log('============================');
+            console.log('Fetching pedidos from:', `${API_URL}/api/pedidos`);
 
             const token = localStorage.getItem('token');
             const response = await fetch(`${API_URL}/api/pedidos`, {
@@ -192,19 +188,11 @@ const OrdersPage: React.FC = () => {
             if (!response.ok) throw new Error('Error fetching orders');
             const data = await response.json();
 
-            console.log('Pedidos obtenidos del backend:', data);
-            console.log('Muestra de estados:', data.slice(0, 3).map((p: any) => ({
-                id: p.ped_id,
-                estado: p.ped_estado
-            })));
+            console.log('Pedidos obtenidos:', data?.length || 0, 'registros');
 
             return data;
         }
     });
-
-    // Eliminado: Manejo de retorno de MercadoPago ya no necesario
-
-
 
     // Fetch productos para búsqueda
     const { data: productos = [] } = useQuery<Producto[]>({
@@ -596,18 +584,19 @@ const OrdersPage: React.FC = () => {
         setIsOrderDetailsOpen(false);
         setIsPaymentDialogOpen(true);
 
-        // Generar número de boleta automático con formato correcto para boletas electrónicas
-        // Formato: B + 3 dígitos de serie + guion + 8 dígitos correlativos
+        // Generar número de boleta automático con formato correcto para SUNAT
+        // Formato: Serie (4 caracteres) + guion + Correlativo (8 dígitos)
         const now = new Date();
         const correlativo = now.getTime().toString().slice(-8).padStart(8, '0'); // 8 dígitos con ceros a la izquierda
         setBoletaNumero(`B001-${correlativo}`);
 
-        // Limpiar pagos anteriores
+        // Limpiar pagos anteriores y errores
         setPagosMetodos([]);
         setMontoActual(0);
         setNotaActual("");
         setBoletaNotas("");
         setSelectedPaymentMethod("");
+        clearError(); // Limpiar errores previos del hook
     };
 
     // Mutation para crear boleta con validación SUNAT
@@ -629,6 +618,12 @@ const OrdersPage: React.FC = () => {
             return response.json();
         },
         onSuccess: async (data) => {
+            console.log('=== RESPUESTA DE CREAR BOLETA ===');
+            console.log('Boleta creada exitosamente:', data);
+            console.log('ID Boleta:', data.boleta?.boleta_id || 'No disponible');
+            console.log('Número Boleta:', data.boleta?.boleta_numero || 'No disponible');
+            console.log('=====================================');
+
             // Actualizar el estado del pedido a "Completado"
             if (selectedOrder) {
                 try {
@@ -645,106 +640,124 @@ const OrdersPage: React.FC = () => {
                 }
             }
 
-            // Emitir boleta en SUNAT y obtener documentId
+            // Emitir boleta con SUNAT usando el nuevo hook y controlador FacturacionController
             try {
-                const token = localStorage.getItem('token');
-
-                // 🔍 DEBUG: Log completo del payload que se enviará
-                console.log('=== PAYLOAD COMPLETO A SUNAT ===');
-                console.log('Boleta ID:', data.boleta.boleta_id);
-                console.log('URL destino:', `${API_URL}/api/boletas/${data.boleta.boleta_id}/sunat-json`);
-                console.log('Token auth:', token ? 'Presente' : 'Ausente');
-                console.log('Datos boleta completos:', JSON.stringify(data.boleta, null, 2));
-                console.log('================================');
-
-                const sunatResponse = await fetch(`${API_URL}/api/boletas/${data.boleta.boleta_id}/sunat-json`, {
-                    headers: {
-                        'Authorization': token ? `Bearer ${token}` : ''
+                // Preparar payload según el formato que funciona con ApisPeru
+                const facturacionPayload = {
+                    boleta_numero: data.boleta.boleta_numero,
+                    boleta_fecha: data.boleta.boleta_fecha,
+                    boleta_subtotal: parseFloat(data.boleta.boleta_subtotal.toString()),
+                    boleta_impuestos: parseFloat(data.boleta.boleta_impuestos.toString()),
+                    boleta_total: parseFloat(data.boleta.boleta_total.toString()),
+                    metodos_pago: pagosMetodos.map(pago => {
+                        const metodo = metodosPago.find(m => m.met_id === pago.met_id);
+                        return {
+                            met_nombre: metodo?.met_nombre || 'Contado'
+                        };
+                    }),
+                    pedido: {
+                        cliente: {
+                            cli_tipo_doc: '1', // DNI por defecto
+                            cli_numero_doc: '00000000', // Cliente genérico por defecto
+                            cli_nombre: selectedOrder?.cli_nombre.split(' ')[0] || 'Cliente',
+                            cli_apellido: selectedOrder?.cli_nombre.split(' ').slice(1).join(' ') || 'Genérico'
+                        },
+                        detalles: selectedOrder?.detalles?.map(detalle => {
+                            return {
+                                det_cantidad: parseInt(detalle.det_cantidad.toString()),
+                                det_precio_unitario: parseFloat(detalle.det_precio_unitario.toString()),
+                                det_subtotal: parseFloat(detalle.det_subtotal.toString()),
+                                det_impuesto: parseFloat(detalle.det_impuesto.toString()),
+                                producto: {
+                                    pro_id: detalle.prod_id,
+                                    pro_nombre: productos.find(p => p.pro_id === detalle.prod_id)?.pro_nombre || `Producto ${detalle.prod_id}`
+                                }
+                            };
+                        }) || []
                     }
-                });
+                };
 
-                if (sunatResponse.ok) {
-                    const contentType = sunatResponse.headers.get('content-type');
+                console.log('=== EMITIENDO BOLETA CON NUEVO HOOK ===');
+                console.log('Payload:', facturacionPayload);
 
-                    // 🔍 DEBUG: Log completo de respuesta SUNAT
-                    console.log('=== RESPUESTA COMPLETA DE SUNAT ===');
-                    console.log('Status:', sunatResponse.status);
-                    console.log('Content-Type:', contentType);
-                    console.log('===================================');
+                // Usar el nuevo hook para emitir la boleta
+                const sunatResponse = await emitirBoleta(facturacionPayload);
 
-                    // Si es PDF (respuesta directa), descargar automáticamente
-                    if (contentType && contentType.includes('application/pdf')) {
-                        const blob = await sunatResponse.blob();
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.style.display = 'none';
-                        a.href = url;
-                        a.download = `BOL-${data.boleta.boleta_numero}.pdf`;
-                        document.body.appendChild(a);
-                        a.click();
-                        window.URL.revokeObjectURL(url);
-
-                        toast({
-                            title: "Boleta generada exitosamente",
-                            description: `Boleta ${data.boleta.boleta_numero} validada con SUNAT. PDF descargado automáticamente.`,
-                            duration: 5000
-                        });
-                    }
-                    // Si es JSON (respuesta con URL), manejar URL
-                    else if (contentType && contentType.includes('application/json')) {
-                        const sunatData = await sunatResponse.json();
-                        console.log('Respuesta JSON:', JSON.stringify(sunatData, null, 2));
-
-                        if (sunatData.url) {
-                            // Descargar desde URL proporcionada
-                            const pdfResponse = await fetch(sunatData.url);
-                            if (pdfResponse.ok) {
-                                const blob = await pdfResponse.blob();
-                                const url = window.URL.createObjectURL(blob);
-                                const a = document.createElement('a');
-                                a.style.display = 'none';
-                                a.href = url;
-                                a.download = `BOL-${data.boleta.boleta_numero}.pdf`;
-                                document.body.appendChild(a);
-                                a.click();
-                                window.URL.revokeObjectURL(url);
-
-                                toast({
-                                    title: "Boleta generada exitosamente",
-                                    description: `Boleta ${data.boleta.boleta_numero} validada con SUNAT. PDF descargado automáticamente.`,
-                                    duration: 5000
-                                });
-                            } else {
-                                throw new Error('Error al descargar PDF desde URL');
-                            }
-                        } else {
-                            toast({
-                                title: "Boleta enviada a SUNAT",
-                                description: sunatData.message || `Boleta ${data.boleta.boleta_numero} procesada correctamente.`,
-                                duration: 5000
-                            });
-                        }
-                    } else {
-                        toast({
-                            title: "Boleta creada",
-                            description: `Boleta ${data.boleta.boleta_numero} creada. Respuesta inesperada de SUNAT.`,
-                            variant: "destructive"
-                        });
-                    }
+                if (sunatResponse?.success) {
+                    console.log('Respuesta SUNAT exitosa:', sunatResponse);
+                    toast({
+                        title: "✅ BOLETA EMITIDA EN SUNAT CORRECTAMENTE",
+                        description: `Boleta ${data.boleta.boleta_numero} validada y registrada exitosamente en SUNAT mediante ApisPeru.`,
+                        duration: 10000,
+                        className: "bg-green-50 border-green-200 text-green-800"
+                    });
                 } else {
-                    const errorData = await sunatResponse.text();
-                    console.log('=== ERROR DE SUNAT ===');
-                    console.log('Status:', sunatResponse.status);
-                    console.log('Error completo:', errorData);
-                    console.log('======================');
-                    throw new Error(`Error al comunicar con SUNAT: ${sunatResponse.status} - ${errorData}`);
+                    throw new Error(emitirBoletaError || 'Error desconocido en la emisión SUNAT');
                 }
+
             } catch (error) {
-                toast({
-                    title: "Boleta creada, pero error en SUNAT",
-                    description: "La boleta se creó correctamente, pero hubo un problema con SUNAT",
-                    variant: "destructive"
-                });
+                console.error('Error al emitir boleta con hook:', error);
+                
+                // Si falla el método normal, probar con la réplica de Postman
+                console.log('🔄 Intentando con réplica de Postman como fallback...');
+                
+                try {
+                    // Definir facturacionPayload antes de usarlo
+                    const facturacionPayload = {
+                        boleta_numero: data.boleta.boleta_numero,
+                        boleta_fecha: data.boleta.boleta_fecha,
+                        boleta_subtotal: parseFloat(data.boleta.boleta_subtotal.toString()),
+                        boleta_impuestos: parseFloat(data.boleta.boleta_impuestos.toString()),
+                        boleta_total: parseFloat(data.boleta.boleta_total.toString()),
+                        metodos_pago: pagosMetodos.map(pago => {
+                            const metodo = metodosPago.find(m => m.met_id === pago.met_id);
+                            return {
+                                met_nombre: metodo?.met_nombre || 'Contado'
+                            };
+                        }),
+                        pedido: {
+                            cliente: {
+                                cli_tipo_doc: '1', // DNI por defecto
+                                cli_numero_doc: '00000000', // Cliente genérico por defecto
+                                cli_nombre: selectedOrder?.cli_nombre.split(' ')[0] || 'Cliente',
+                                cli_apellido: selectedOrder?.cli_nombre.split(' ').slice(1).join(' ') || 'Genérico'
+                            },
+                            detalles: selectedOrder?.detalles?.map(detalle => {
+                                return {
+                                    det_cantidad: parseInt(detalle.det_cantidad.toString()),
+                                    det_precio_unitario: parseFloat(detalle.det_precio_unitario.toString()),
+                                    det_subtotal: parseFloat(detalle.det_subtotal.toString()),
+                                    det_impuesto: parseFloat(detalle.det_impuesto.toString()),
+                                    producto: {
+                                        pro_id: detalle.prod_id,
+                                        pro_nombre: productos.find(p => p.pro_id === detalle.prod_id)?.pro_nombre || `Producto ${detalle.prod_id}`
+                                    }
+                                };
+                            }) || []
+                        }
+                    };
+                    const postmanResponse = await testPostmanReplica(facturacionPayload);
+                    
+                    if (postmanResponse?.success) {
+                        console.log('🎉 ¡ÉXITO con réplica de Postman!');
+                        toast({
+                            title: "✅ BOLETA EMITIDA CON RÉPLICA DE POSTMAN",
+                            description: `Boleta ${data.boleta.boleta_numero} emitida exitosamente usando la configuración exacta de Postman.`,
+                            duration: 10000,
+                            className: "bg-blue-50 border-blue-200 text-blue-800"
+                        });
+                    } else {
+                        throw new Error('Error en réplica de Postman');
+                    }
+                } catch (postmanError) {
+                    console.error('Error al emitir boleta con réplica de Postman:', postmanError);
+                    toast({
+                        title: "❌ Error en ambos métodos",
+                        description: "Falló tanto el método normal como la réplica de Postman. ApisPeru puede estar sobrecargado.",
+                        variant: "destructive",
+                        duration: 8000
+                    });
+                }
             }
 
             setIsPaymentDialogOpen(false);
@@ -763,8 +776,6 @@ const OrdersPage: React.FC = () => {
             });
         }
     });
-
-    // Eliminadas mutations de MercadoPago - Solo usamos SUNAT ahora
 
     const resetPaymentForm = () => {
         setSelectedPaymentMethod("");
@@ -1734,7 +1745,7 @@ const OrdersPage: React.FC = () => {
             {selectedOrder && (
                 <Dialog open={isStatusUpdateOpen} onOpenChange={setIsStatusUpdateOpen}>
                     <DialogContent className="sm:max-w-md">
-                        <DialogHeader>
+                    <DialogHeader>
                             <DialogTitle>Actualizar Estado del Pedido</DialogTitle>
                             <DialogDescription>
                                 Cambia el estado del pedido {selectedOrder.ped_id}
@@ -1798,20 +1809,146 @@ const OrdersPage: React.FC = () => {
                             <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
                                 <h3 className="font-semibold mb-3 flex items-center gap-2">
                                     <Receipt className="h-5 w-5 text-blue-600" />
-                                    Proceso de Pago con SUNAT
+                                    Proceso de Emisión Electrónica SUNAT
                                 </h3>
+                                
+                                {/* Mostrar progreso si está procesando */}
+                                {(isProcessingPayment || createBoletaSunatMutation.isPending || emitirBoletaLoading || emitiendo) && (
+                                    <div className="bg-yellow-50 border border-yellow-200 p-3 rounded mb-3">
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-yellow-600"></div>
+                                            <span className="font-medium text-yellow-800">
+                                                {emitiendo ? "Probando réplica de Postman..." : "Procesando emisión SUNAT..."}
+                                            </span>
+                                        </div>
+                                        <div className="text-sm text-yellow-700">
+                                            {progress && (
+                                                <div className="mb-1">
+                                                    <strong>Estado:</strong> {progress}
+                                                </div>
+                                            )}
+                                            <div>
+                                                <strong>Tiempo transcurrido:</strong> {processingTime}s
+                                            </div>
+                                            <div className="text-xs mt-1 text-yellow-600">
+                                                ⏱️ ApisPeru puede tardar 3-120 segundos en procesar la emisión SUNAT
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Mostrar mensaje de éxito */}
+                                {successMessage && (
+                                    <div className="bg-green-50 border border-green-200 p-3 rounded mb-3">
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <CheckCircle className="h-5 w-5 text-green-600" />
+                                            <span className="font-medium text-green-800">Prueba exitosa</span>
+                                        </div>
+                                        <div className="text-sm text-green-700">
+                                            {successMessage}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Mostrar error si existe */}
+                                {emitirBoletaError && (
+                                    <div className="bg-red-50 border border-red-200 p-3 rounded mb-3">
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <AlertCircle className="h-5 w-5 text-red-600" />
+                                            <span className="font-medium text-red-800">Error en la emisión SUNAT</span>
+                                        </div>
+                                        <div className="text-sm text-red-700">
+                                            {emitirBoletaError}
+                                        </div>
+                                        <Button 
+                                            variant="outline" 
+                                            size="sm" 
+                                            onClick={clearError}
+                                            className="mt-2 text-red-600 hover:text-red-700 border-red-300"
+                                        >
+                                            Limpiar error
+                                        </Button>
+                                    </div>
+                                )}
+                                
                                 <div className="bg-white p-3 rounded border">
                                     <div className="flex items-center gap-3 mb-2">
                                         <CreditCard className="h-5 w-5 text-blue-600" />
-                                        <span className="font-medium">Proceso Automático</span>
+                                        <span className="font-medium">Proceso Automático con ApisPeru</span>
                                     </div>
                                     <ol className="text-sm text-gray-600 space-y-1 ml-8">
                                         <li>1. Registrar los métodos de pago utilizados</li>
-                                        <li>2. Crear la boleta en el sistema</li>
-                                        <li>3. Validar automáticamente con SUNAT</li>
-                                        <li>4. Generar y descargar el PDF oficial</li>
-                                        <li>5. Actualizar el estado del pedido</li>
+                                        <li>2. Crear la boleta en el sistema local</li>
+                                        <li>3. Emitir y validar automáticamente con SUNAT vía ApisPeru</li>
+                                        <li>4. Recibir XML firmado y CDR de aceptación</li>
+                                        <li>5. Generar PDF oficial disponible en Boletas</li>
+                                        <li>6. Actualizar el estado del pedido a "Completado"</li>
                                     </ol>
+                                    <div className="mt-2 text-xs text-blue-600 bg-blue-100 p-2 rounded">
+                                        <strong>✅ Cumple normativa SUNAT:</strong> Emisión electrónica válida con firma digital y validación en tiempo real.
+                                    </div>
+                                    
+                                    {/* Botón de prueba para réplica de Postman */}
+                                    <div className="mt-3 p-2 bg-orange-50 border border-orange-200 rounded">
+                                        <div className="text-xs text-orange-800 mb-2">
+                                            <strong>🔧 Modo de Prueba:</strong> Probar con headers exactos de Postman
+                                        </div>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={async () => {
+                                                if (!selectedOrder) return;
+                                                
+                                                const facturacionPayload = {
+                                                    boleta_numero: boletaNumero,
+                                                    boleta_fecha: new Date().toISOString().split('T')[0],
+                                                    boleta_subtotal: parseFloat(selectedOrder.ped_subtotal.toString()),
+                                                    boleta_impuestos: parseFloat(selectedOrder.ped_impuestos.toString()),
+                                                    boleta_total: parseFloat(selectedOrder.ped_total.toString()),
+                                                    metodos_pago: pagosMetodos.map(pago => {
+                                                        const metodo = metodosPago.find(m => m.met_id === pago.met_id);
+                                                        return {
+                                                            met_nombre: metodo?.met_nombre || 'Contado'
+                                                        };
+                                                    }),
+                                                    pedido: {
+                                                        cliente: {
+                                                            cli_tipo_doc: '1',
+                                                            cli_numero_doc: '00000000',
+                                                            cli_nombre: selectedOrder.cli_nombre.split(' ')[0] || 'Cliente',
+                                                            cli_apellido: selectedOrder.cli_nombre.split(' ').slice(1).join(' ') || 'Genérico'
+                                                        },
+                                                        detalles: selectedOrder.detalles?.map(detalle => {
+                                                            return {
+                                                                det_cantidad: parseInt(detalle.det_cantidad.toString()),
+                                                                det_precio_unitario: parseFloat(detalle.det_precio_unitario.toString()),
+                                                                det_subtotal: parseFloat(detalle.det_subtotal.toString()),
+                                                                det_impuesto: parseFloat(detalle.det_impuesto.toString()),
+                                                                producto: {
+                                                                    pro_id: detalle.prod_id,
+                                                                    pro_nombre: productos.find(p => p.pro_id === detalle.prod_id)?.pro_nombre || `Producto ${detalle.prod_id}`
+                                                                }
+                                                            };
+                                                        }) || []
+                                                    }
+                                                };
+                                                await testPostmanReplica(facturacionPayload);
+                                            }}
+                                            disabled={emitiendo || emitirBoletaLoading || !selectedOrder || pagosMetodos.length === 0}
+                                            className="w-full text-xs border-orange-300 text-orange-700 hover:bg-orange-100"
+                                        >
+                                            {emitiendo ? (
+                                                <>
+                                                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-orange-600 mr-2"></div>
+                                                    Probando Postman...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    🔧 Probar Réplica de Postman
+                                                </>
+                                            )}
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
 
@@ -2000,11 +2137,20 @@ const OrdersPage: React.FC = () => {
                             </Button>
                             <Button
                                 onClick={handlePayment}
-                                disabled={isProcessingPayment || createBoletaSunatMutation.isPending || pagosMetodos.length === 0 || !boletaNumero.trim()}
+                                disabled={isProcessingPayment || createBoletaSunatMutation.isPending || emitirBoletaLoading || pagosMetodos.length === 0 || !boletaNumero.trim()}
                                 className="bg-blue-600 hover:bg-blue-700"
                             >
-                                <Receipt className="h-4 w-4 mr-2" />
-                                {isProcessingPayment || createBoletaSunatMutation.isPending ? "Procesando con SUNAT..." : "Generar Boleta con SUNAT"}
+                                {(isProcessingPayment || createBoletaSunatMutation.isPending || emitirBoletaLoading) ? (
+                                    <>
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                        Emitiendo con SUNAT ({processingTime}s)...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Receipt className="h-4 w-4 mr-2" />
+                                        Emitir Boleta Electrónica SUNAT
+                                    </>
+                                )}
                             </Button>
                         </DialogFooter>
                     </DialogContent>
