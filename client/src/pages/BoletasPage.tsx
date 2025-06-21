@@ -486,6 +486,7 @@ const BoletasPage: React.FC = () => {
         }
     };
 
+    const [deleteOpen, setDeleteOpen] = React.useState(false)
 
 
     if (isLoading) {
@@ -579,18 +580,39 @@ const BoletasPage: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {filteredBoletas.map((boleta) => (
                         <Card key={boleta.boleta_id} className="hover:shadow-md transition-shadow">
-                            <CardHeader className="pb-2 flex flex-row items-start justify-between space-y-0">
-                                <div className="space-y-1">
-                                    <CardTitle className="text-base flex items-center gap-2">
-                                        <Hash className="h-4 w-4" />
-                                        {boleta.boleta_numero}
-                                    </CardTitle>
-                                    <CardDescription>
-                                        {formatDate(boleta.boleta_fecha)}
-                                    </CardDescription>
+                            <CardHeader className="pb-2">
+                            <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-lg font-bold text-gray-800"># {boleta.boleta_numero}</span>
+                                    {boleta.boleta_estado.toLowerCase() === 'emitido' && (
+                                        <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                                            <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                            </svg>
+                                        </div>
+                                    )}
                                 </div>
-                                {getStatusIcon(boleta.boleta_estado)}
-                            </CardHeader>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-gray-400 hover:text-gray-600 p-1"
+                                    title="Copiar número"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                    </svg>
+                                </Button>
+                            </div>
+                            <div className="text-sm text-gray-600 mb-3">
+                                {new Date(boleta.boleta_fecha).toLocaleDateString('es-ES', { 
+                                    day: 'numeric', 
+                                    month: 'short', 
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                })}
+                            </div>
+                        </CardHeader>
 
                             <CardContent className="space-y-3">
                                 <div className="flex items-center gap-2">
@@ -650,22 +672,23 @@ const BoletasPage: React.FC = () => {
                                 )}
                             </CardContent>
 
-                            <CardFooter className="pt-2 border-t">
-                                <div className="w-full flex justify-between">
+                            <CardFooter className="pt-3 border-t bg-gray-50 rounded-b-lg">
+                                <div className="w-full flex justify-between items-center">
                                     <Button
                                         variant="ghost"
                                         size="sm"
-                                        className="text-orange-500 hover:text-orange-600"
+                                        className="text-orange-500 hover:text-orange-600 flex items-center gap-2"
                                         onClick={() => viewBoletaDetails(boleta)}
                                     >
-                                        <Eye className="h-4 w-4 mr-2" /> Ver detalles
+                                        <Eye className="h-4 w-4" />
+                                        Ver detalles
                                     </Button>
                                     <div className="flex gap-2">
                                         <Button
                                             variant="outline"
-                                            size="icon"
+                                            size="sm"
                                             onClick={() => handlePrint(boleta)}
-                                            className="text-blue-600 hover:text-blue-700"
+                                            className="text-blue-600 hover:text-blue-700 border-blue-300 hover:bg-blue-50"
                                             disabled={boleta.boleta_estado.toLowerCase() === 'anulado' || boleta.boleta_estado.toLowerCase() === 'cancelado'}
                                             title={boleta.boleta_estado.toLowerCase() === 'anulado' || boleta.boleta_estado.toLowerCase() === 'cancelado' ? "No se puede imprimir una boleta anulada" : "Imprimir"}
                                         >
@@ -673,28 +696,27 @@ const BoletasPage: React.FC = () => {
                                         </Button>
                                         <Button
                                             variant="outline"
-                                            size="icon"
+                                            size="sm"
                                             onClick={() => handleDownload(boleta)}
-                                            className="text-green-600 hover:text-green-700"
+                                            className="text-green-600 hover:text-green-700 border-green-300 hover:bg-green-50"
                                             disabled={boleta.boleta_estado.toLowerCase() === 'anulado' || boleta.boleta_estado.toLowerCase() === 'cancelado'}
                                             title={boleta.boleta_estado.toLowerCase() === 'anulado' || boleta.boleta_estado.toLowerCase() === 'cancelado' ? "No se puede descargar una boleta anulada" : "Descargar"}
                                         >
                                             <Download className="h-4 w-4" />
                                         </Button>
-                                        {(boleta.boleta_estado.toLowerCase() === 'emitido') && (
-                                            <Button
-                                                variant="outline"
-                                                size="icon"
-                                                onClick={() => handleAnular(boleta.boleta_id)}
-                                                className="text-red-600 hover:text-red-700"
-                                                title="Anular boleta"
-                                            >
-                                                <X className="h-4 w-4" />
-                                            </Button>
-                                        )}
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setAnularBoletaId(boleta.boleta_id)}
+                                            className="text-red-600 hover:text-red-700 border-red-300 hover:bg-red-50"
+                                            disabled={boleta.boleta_estado.toLowerCase() === 'anulado' || boleta.boleta_estado.toLowerCase() === 'cancelado'}
+                                            title={boleta.boleta_estado.toLowerCase() === 'anulado' || boleta.boleta_estado.toLowerCase() === 'cancelado' ? "La boleta ya está anulada" : "Anular boleta"}
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </Button>
                                     </div>
                                 </div>
-                            </CardFooter>
+                        </CardFooter>
                         </Card>
                     ))}
                 </div>

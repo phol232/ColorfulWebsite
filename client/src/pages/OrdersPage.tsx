@@ -43,7 +43,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { API_URL } from "@/config";
 import { useToast } from "@/hooks/use-toast";
 import { useEmitirBoleta } from "@/hooks/useEmitirBoleta";
-// Removido: import de MercadoPago ya no se usa
 
 // Interface basada en el controlador de pedidos
 interface Pedido {
@@ -162,11 +161,13 @@ const OrdersPage: React.FC = () => {
         monto: number;
         fecha_pago: string;
         nota_pago: string;
+        referencia?: string;
     }>>([]);
     const [montoActual, setMontoActual] = useState<number>(0);
     const [notaActual, setNotaActual] = useState<string>("");
 
     const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+    const [isProcessingSunat, setIsProcessingSunat] = useState(false);
 
     const { toast } = useToast();
     const queryClient = useQueryClient();
@@ -240,6 +241,8 @@ const OrdersPage: React.FC = () => {
         const nombre = producto.pro_nombre ?? "";
         return nombre.toLowerCase().includes(productSearch.toLowerCase());
     });
+
+
 
     // Mutation específica para actualizar solo el estado del pedido
     const updateStatusMutation = useMutation({
@@ -599,183 +602,179 @@ const OrdersPage: React.FC = () => {
         clearError(); // Limpiar errores previos del hook
     };
 
-    // Mutation para crear boleta con validación SUNAT
-    const createBoletaSunatMutation = useMutation({
-        mutationFn: async (boletaData: any) => {
+    // Función para emitir boleta LOCAL (solo crear en sistema, sin SUNAT)
+    const handleEmitirBoleta = async () => {
+        if (!selectedOrder || pagosMetodos.length === 0) return;
+
+        setIsProcessingPayment(true);
+
+        try {
+            // Preparar datos según el formato del controlador emitirBoleta (Route::post('facturacion/emitir'))
+            const boletaPayload = {
+                boleta_numero: boletaNumero,
+                boleta_fecha: new Date().toISOString().split('T')[0],
+                boleta_subtotal: parseFloat(selectedOrder.ped_subtotal.toString()),
+                boleta_impuestos: parseFloat(selectedOrder.ped_impuestos.toString()),
+                boleta_descuento: parseFloat(selectedOrder.ped_descuento?.toString() || '0'),
+                boleta_total: parseFloat(selectedOrder.ped_total.toString()),
+                boleta_estado: 'EMITIDA',
+                boleta_notas: boletaNotas,
+                ped_id: selectedOrder.ped_id,
+                metodos_pago: pagosMetodos.map(pago => {
+                    const metodo = metodosPago.find(m => m.met_id === pago.met_id);
+                    return {
+                        met_nombre: metodo?.met_nombre || 'Contado',
+                        monto: pago.monto,
+                        fecha_pago: pago.fecha_pago,
+                        nota_pago: pago.nota_pago
+                    };
+                })
+            };
+
+            console.log('=== EMITIENDO BOLETA LOCAL ÚNICAMENTE ===');
+            console.log('Ruta: api/facturacion/emitir');
+            console.log('Payload para FacturacionController::emitirBoleta:', boletaPayload);
+
+            // Llamar ÚNICAMENTE a la ruta local de emitirBoleta
             const token = localStorage.getItem('token');
-            const response = await fetch(`${API_URL}/api/boletas`, {
+            const response = await fetch(`${API_URL}/api/facturacion/emitir`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': token ? `Bearer ${token}` : ''
                 },
-                body: JSON.stringify(boletaData)
+                body: JSON.stringify(boletaPayload)
             });
+
             if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message || 'Error creating boleta');
-            }
-            return response.json();
-        },
-        onSuccess: async (data) => {
-            console.log('=== RESPUESTA DE CREAR BOLETA ===');
-            console.log('Boleta creada exitosamente:', data);
-            console.log('ID Boleta:', data.boleta?.boleta_id || 'No disponible');
-            console.log('Número Boleta:', data.boleta?.boleta_numero || 'No disponible');
-            console.log('=====================================');
-
-            // Actualizar el estado del pedido a "Completado"
-            if (selectedOrder) {
-                try {
-                    await updateStatusMutation.mutateAsync({
-                        pedidoId: selectedOrder.ped_id,
-                        ped_estado: "Completado"
-                    });
-                    setSelectedOrder({
-                        ...selectedOrder,
-                        ped_estado: "Completado"
-                    });
-                } catch (error) {
-                    console.error('Error updating order status:', error);
-                }
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Error al emitir la boleta');
             }
 
-            // Emitir boleta con SUNAT usando el nuevo hook y controlador FacturacionController
-            try {
-                // Preparar payload según el formato que funciona con ApisPeru
-                const facturacionPayload = {
-                    boleta_numero: data.boleta.boleta_numero,
-                    boleta_fecha: data.boleta.boleta_fecha,
-                    boleta_subtotal: parseFloat(data.boleta.boleta_subtotal.toString()),
-                    boleta_impuestos: parseFloat(data.boleta.boleta_impuestos.toString()),
-                    boleta_total: parseFloat(data.boleta.boleta_total.toString()),
-                    metodos_pago: pagosMetodos.map(pago => {
-                        const metodo = metodosPago.find(m => m.met_id === pago.met_id);
-                        return {
-                            met_nombre: metodo?.met_nombre || 'Contado'
-                        };
-                    }),
-                    pedido: {
-                        cliente: {
-                            cli_tipo_doc: '1', // DNI por defecto
-                            cli_numero_doc: '00000000', // Cliente genérico por defecto
-                            cli_nombre: selectedOrder?.cli_nombre.split(' ')[0] || 'Cliente',
-                            cli_apellido: selectedOrder?.cli_nombre.split(' ').slice(1).join(' ') || 'Genérico'
-                        },
-                        detalles: selectedOrder?.detalles?.map(detalle => {
-                            return {
-                                det_cantidad: parseInt(detalle.det_cantidad.toString()),
-                                det_precio_unitario: parseFloat(detalle.det_precio_unitario.toString()),
-                                det_subtotal: parseFloat(detalle.det_subtotal.toString()),
-                                det_impuesto: parseFloat(detalle.det_impuesto.toString()),
-                                producto: {
-                                    pro_id: detalle.prod_id,
-                                    pro_nombre: productos.find(p => p.pro_id === detalle.prod_id)?.pro_nombre || `Producto ${detalle.prod_id}`
-                                }
-                            };
-                        }) || []
-                    }
-                };
+            const data = await response.json();
+            console.log('Boleta emitida exitosamente (solo local):', data);
 
-                console.log('=== EMITIENDO BOLETA CON NUEVO HOOK ===');
-                console.log('Payload:', facturacionPayload);
-
-                // Usar el nuevo hook para emitir la boleta
-                const sunatResponse = await emitirBoleta(facturacionPayload);
-
-                if (sunatResponse?.success) {
-                    console.log('Respuesta SUNAT exitosa:', sunatResponse);
-                    toast({
-                        title: "✅ BOLETA EMITIDA EN SUNAT CORRECTAMENTE",
-                        description: `Boleta ${data.boleta.boleta_numero} validada y registrada exitosamente en SUNAT mediante ApisPeru.`,
-                        duration: 10000,
-                        className: "bg-green-50 border-green-200 text-green-800"
-                    });
-                } else {
-                    throw new Error(emitirBoletaError || 'Error desconocido en la emisión SUNAT');
-                }
-
-            } catch (error) {
-                console.error('Error al emitir boleta con hook:', error);
-                
-                // Si falla el método normal, probar con la réplica de Postman
-                console.log('🔄 Intentando con réplica de Postman como fallback...');
-                
-                try {
-                    // Definir facturacionPayload antes de usarlo
-                    const facturacionPayload = {
-                        boleta_numero: data.boleta.boleta_numero,
-                        boleta_fecha: data.boleta.boleta_fecha,
-                        boleta_subtotal: parseFloat(data.boleta.boleta_subtotal.toString()),
-                        boleta_impuestos: parseFloat(data.boleta.boleta_impuestos.toString()),
-                        boleta_total: parseFloat(data.boleta.boleta_total.toString()),
-                        metodos_pago: pagosMetodos.map(pago => {
-                            const metodo = metodosPago.find(m => m.met_id === pago.met_id);
-                            return {
-                                met_nombre: metodo?.met_nombre || 'Contado'
-                            };
-                        }),
-                        pedido: {
-                            cliente: {
-                                cli_tipo_doc: '1', // DNI por defecto
-                                cli_numero_doc: '00000000', // Cliente genérico por defecto
-                                cli_nombre: selectedOrder?.cli_nombre.split(' ')[0] || 'Cliente',
-                                cli_apellido: selectedOrder?.cli_nombre.split(' ').slice(1).join(' ') || 'Genérico'
-                            },
-                            detalles: selectedOrder?.detalles?.map(detalle => {
-                                return {
-                                    det_cantidad: parseInt(detalle.det_cantidad.toString()),
-                                    det_precio_unitario: parseFloat(detalle.det_precio_unitario.toString()),
-                                    det_subtotal: parseFloat(detalle.det_subtotal.toString()),
-                                    det_impuesto: parseFloat(detalle.det_impuesto.toString()),
-                                    producto: {
-                                        pro_id: detalle.prod_id,
-                                        pro_nombre: productos.find(p => p.pro_id === detalle.prod_id)?.pro_nombre || `Producto ${detalle.prod_id}`
-                                    }
-                                };
-                            }) || []
-                        }
-                    };
-                    const postmanResponse = await testPostmanReplica(facturacionPayload);
-                    
-                    if (postmanResponse?.success) {
-                        console.log('🎉 ¡ÉXITO con réplica de Postman!');
-                        toast({
-                            title: "✅ BOLETA EMITIDA CON RÉPLICA DE POSTMAN",
-                            description: `Boleta ${data.boleta.boleta_numero} emitida exitosamente usando la configuración exacta de Postman.`,
-                            duration: 10000,
-                            className: "bg-blue-50 border-blue-200 text-blue-800"
-                        });
-                    } else {
-                        throw new Error('Error en réplica de Postman');
-                    }
-                } catch (postmanError) {
-                    console.error('Error al emitir boleta con réplica de Postman:', postmanError);
-                    toast({
-                        title: "❌ Error en ambos métodos",
-                        description: "Falló tanto el método normal como la réplica de Postman. ApisPeru puede estar sobrecargado.",
-                        variant: "destructive",
-                        duration: 8000
-                    });
-                }
-            }
-
-            setIsPaymentDialogOpen(false);
-            resetPaymentForm();
-
-            setTimeout(() => {
-                queryClient.invalidateQueries({ queryKey: ['/api/pedidos'] });
-                refetch();
-            }, 1000);
-        },
-        onError: (error: any) => {
             toast({
-                title: "Error al procesar pago",
-                description: error.message || "Error al crear la boleta",
+                title: "✅ Boleta Registrada Localmente",
+                description: `Boleta ${boletaNumero} registrada correctamente en el sistema local. No se envió a SUNAT.`,
+                duration: 5000,
+                className: "bg-blue-50 border-blue-200 text-blue-800"
+            });
+
+            // Actualizar estado del pedido a "Completado"
+            await updateStatusMutation.mutateAsync({
+                pedidoId: selectedOrder.ped_id,
+                ped_estado: "Completado"
+            });
+
+            // Limpiar formulario y cerrar modal
+            resetPaymentForm();
+            setIsPaymentDialogOpen(false);
+
+            // Refrescar datos
+            queryClient.invalidateQueries({ queryKey: ['/api/pedidos'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/boletas'] });
+
+        } catch (error) {
+            console.error('Error al emitir boleta local:', error);
+            toast({
+                title: "Error",
+                description: error instanceof Error ? error.message : "Error al emitir la boleta local",
                 variant: "destructive"
             });
+        } finally {
+            setIsProcessingPayment(false);
         }
-    });
+    };
+
+    // Función para emitir boleta CON SUNAT (proceso completo)
+    const handleEmitirConSunat = async () => {
+        if (!selectedOrder || pagosMetodos.length === 0) return;
+
+        setIsProcessingSunat(true);
+
+        try {
+            console.log('=== INICIANDO PROCESO COMPLETO CON SUNAT ===');
+            console.log('Usando hook useEmitirBoleta para proceso con SUNAT');
+
+            // Preparar payload para el hook de SUNAT (diferente ruta y función)
+            const sunatPayload = {
+                boleta_numero: boletaNumero,
+                boleta_fecha: new Date().toISOString().split('T')[0],
+                boleta_subtotal: parseFloat(selectedOrder.ped_subtotal.toString()),
+                boleta_impuestos: parseFloat(selectedOrder.ped_impuestos.toString()),
+                boleta_total: parseFloat(selectedOrder.ped_total.toString()),
+                metodos_pago: pagosMetodos.map(pago => {
+                    const metodo = metodosPago.find(m => m.met_id === pago.met_id);
+                    return {
+                        met_nombre: metodo?.met_nombre || 'Contado'
+                    };
+                }),
+                pedido: {
+                    cliente: {
+                        cli_tipo_doc: '1', // DNI por defecto
+                        cli_numero_doc: '00000000', // Cliente genérico por defecto
+                        cli_nombre: selectedOrder?.cli_nombre.split(' ')[0] || 'Cliente',
+                        cli_apellido: selectedOrder?.cli_nombre.split(' ').slice(1).join(' ') || 'Genérico'
+                    },
+                    detalles: selectedOrder?.detalles?.map(detalle => {
+                        return {
+                            det_cantidad: detalle.det_cantidad,
+                            det_precio_unitario: parseFloat(detalle.det_precio_unitario.toString()),
+                            det_subtotal: parseFloat(detalle.det_subtotal.toString()),
+                            det_impuesto: parseFloat((detalle.det_subtotal * 0.18).toString()),
+                            producto: {
+                                pro_id: detalle.prod_id,
+                                pro_nombre: detalle.producto?.pro_nombre || `Producto ${detalle.prod_id}`
+                            }
+                        };
+                    }) || []
+                }
+            };
+
+            console.log('Payload para SUNAT:', sunatPayload);
+
+            // Usar el hook para el proceso completo con SUNAT
+            const sunatResponse = await emitirBoleta(sunatPayload);
+
+            if (sunatResponse?.success) {
+                console.log('Respuesta SUNAT exitosa:', sunatResponse);
+                toast({
+                    title: "✅ BOLETA EMITIDA CON SUNAT EXITOSAMENTE",
+                    description: `Boleta ${boletaNumero} validada, registrada y procesada exitosamente en SUNAT mediante ApisPeru.`,
+                    duration: 10000,
+                    className: "bg-green-50 border-green-200 text-green-800"
+                });
+
+                // Actualizar estado del pedido a "Completado"
+                await updateStatusMutation.mutateAsync({
+                    pedidoId: selectedOrder.ped_id,
+                    ped_estado: "Completado"
+                });
+
+                // Limpiar formulario y cerrar modal
+                resetPaymentForm();
+                setIsPaymentDialogOpen(false);
+
+                // Refrescar datos
+                queryClient.invalidateQueries({ queryKey: ['/api/pedidos'] });
+                queryClient.invalidateQueries({ queryKey: ['/api/boletas'] });
+
+            } else {
+                throw new Error(emitirBoletaError || 'Error desconocido en la emisión SUNAT');
+            }
+
+        } catch (error) {
+            console.error('Error en el proceso completo con SUNAT:', error);
+            toast({
+                title: "Error al emitir con SUNAT",
+                description: error instanceof Error ? error.message : "Error al procesar con SUNAT",
+                variant: "destructive"
+            });
+        } finally {
+            setIsProcessingSunat(false);
+        }
+    };
 
     const resetPaymentForm = () => {
         setSelectedPaymentMethod("");
@@ -817,7 +816,8 @@ const OrdersPage: React.FC = () => {
             met_id: selectedPaymentMethod,
             monto: montoActual,
             fecha_pago: new Date().toISOString().split('T')[0],
-            nota_pago: notaActual || `Pago con ${metodoSeleccionado.met_nombre}`
+            nota_pago: notaActual || `Pago con ${metodoSeleccionado.met_nombre}`,
+            referencia: ""
         };
 
         setPagosMetodos([...pagosMetodos, nuevoPago]);
@@ -828,51 +828,6 @@ const OrdersPage: React.FC = () => {
 
     const eliminarMetodoPago = (index: number) => {
         setPagosMetodos(pagosMetodos.filter((_, i) => i !== index));
-    };
-
-    const handlePayment = () => {
-        if (!selectedOrder) return;
-
-        if (!boletaNumero.trim()) {
-            toast({
-                title: "Error",
-                description: "El número de boleta es requerido",
-                variant: "destructive",
-            });
-            return;
-        }
-
-        if (pagosMetodos.length === 0) {
-            toast({
-                title: "Error",
-                description: "Debe agregar al menos un método de pago",
-                variant: "destructive",
-            });
-            return;
-        }
-
-        const totalPagos = pagosMetodos.reduce((sum, pago) => sum + pago.monto, 0);
-        const totalPedido = Number(selectedOrder.ped_total);
-
-        if (Math.abs(totalPagos - totalPedido) > 0.01) {
-            toast({
-                title: "Error",
-                description: "El total de pagos debe ser igual al total del pedido",
-                variant: "destructive",
-            });
-            return;
-        }
-
-        setIsProcessingPayment(true);
-
-        const boletaData = {
-            ped_id: selectedOrder.ped_id,
-            boleta_numero: boletaNumero,
-            boleta_notas: boletaNotas || null,
-            pagos: pagosMetodos
-        };
-
-        createBoletaSunatMutation.mutate(boletaData);
     };
 
     const getStatusBadge = (status: string) => {
@@ -932,7 +887,7 @@ const OrdersPage: React.FC = () => {
     if (isLoading) {
         return (
             <MainLayout>
-                <div className="container mx-autopx-4 py-6">
+                <div className="container mx-auto px-4 py-6">
                     <div className="flex items-center justify-center h-64">
                         <div className="text-center">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
@@ -1425,7 +1380,7 @@ const OrdersPage: React.FC = () => {
                                                 <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                                                 <Input
                                                     id="cliente"
-                                                    placeholder="Buscar cliente..."
+                                                    placeholder="Escribe al menos 2 letras para buscar..."
                                                     value={selectedCliente ? selectedCliente.cli_nombre : clienteSearch}
                                                     onChange={(e) => {
                                                         setClienteSearch(e.target.value);
@@ -1435,40 +1390,54 @@ const OrdersPage: React.FC = () => {
                                                 />
                                             </div>
 
-                                            {/* Dropdown de clientes */}
-                                            {clientes.length > 0 && !selectedCliente && clienteSearch.trim() && (
-                                                <>
-                                                    <div
-                                                        className="fixed inset-0 z-40"
-                                                        onClick={() => setClienteSearch("")}
-                                                    />
-                                                    <div className="absolute z-50 mt-1 bg-white border rounded-md shadow-lg max-h-40 overflow-y-auto w-full">
-                                                        <div className="p-2 bg-gray-50 border-b">
-                                                            <div className="text-sm text-gray-600 font-medium">Clientes encontrados:</div>
-                                                        </div>
-                                                        {clientes.map((cliente) => (
-                                                            <button
-                                                                key={cliente.cli_id}
-                                                                className="w-full text-left px-3 py-2 hover:bg-gray-100 border-b last:border-b-0 flex items-center gap-3"
-                                                                onClick={() => {
-                                                                    setSelectedCliente(cliente);
-                                                                    setClienteSearch(cliente.cli_nombre);
-                                                                }}
-                                                            >
-                                                                <div className="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center text-sm font-medium">
-                                                                    {cliente.cli_nombre.charAt(0).toUpperCase()}
-                                                                </div>
-                                                                <div className="flex-1">
-                                                                    <div className="font-medium text-sm">{cliente.cli_nombre}</div>
-                                                                    {cliente.cli_email && (
-                                                                        <div className="text-sm text-gray-500">{cliente.cli_email}</div>
-                                                                    )}
-                                                                </div>
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                </>
-                                            )}
+                            {/* Dropdown de clientes - solo mostrar cuando hay búsqueda activa y resultados */}
+                            {clientes.length > 0 && !selectedCliente && clienteSearch.trim().length >= 2 && (
+                                <>
+                                    <div
+                                        className="fixed inset-0 z-40"
+                                        onClick={() => setClienteSearch("")}
+                                    />
+                                    <div className="absolute z-50 mt-1 bg-white border rounded-md shadow-lg max-h-40 overflow-y-auto w-full">
+                                        <div className="p-2 bg-gray-50 border-b">
+                                            <div className="text-sm text-gray-600 font-medium">
+                                                {clientes.length} cliente{clientes.length !== 1 ? 's' : ''} encontrado{clientes.length !== 1 ? 's' : ''}:
+                                            </div>
+                                        </div>
+                                        {clientes.map((cliente) => (
+                                            <button
+                                                key={cliente.cli_id}
+                                                className="w-full text-left px-3 py-2 hover:bg-gray-100 border-b last:border-b-0 flex items-center gap-3"
+                                                onClick={() => {
+                                                    setSelectedCliente(cliente);
+                                                    setClienteSearch(cliente.cli_nombre);
+                                                }}
+                                            >
+                                                <div className="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center text-sm font-medium">
+                                                    {cliente.cli_nombre.charAt(0).toUpperCase()}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <div className="font-medium text-sm">{cliente.cli_nombre}</div>
+                                                    {cliente.cli_email && (
+                                                        <div className="text-sm text-gray-500">{cliente.cli_email}</div>
+                                                    )}
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+
+                            {/* Mensaje cuando no hay resultados pero sí hay búsqueda */}
+                            {clientes.length === 0 && !selectedCliente && clienteSearch.trim().length >= 2 && (
+                                <div className="absolute z-50 mt-1 bg-white border rounded-md shadow-lg w-full">
+                                    <div className="p-3 text-center text-gray-500">
+                                        <div className="text-sm">No se encontraron clientes</div>
+                                        <div className="text-xs text-gray-400 mt-1">
+                                            Intenta con otro término de búsqueda
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                                         </div>
 
                                         <div>
@@ -1634,7 +1603,7 @@ const OrdersPage: React.FC = () => {
                                                                         </div>
                                                                     </div>
                                                                     <div className="text-right mt-1">
-                                <span className="font-semibold text-sm text-green-600">
+                                                               <span className="font-semibold text-sm text-green-600">
                                   {formatCurrency(item.precio_unitario * item.cantidad)}
                                 </span>
                                                                     </div>
@@ -1745,7 +1714,7 @@ const OrdersPage: React.FC = () => {
             {selectedOrder && (
                 <Dialog open={isStatusUpdateOpen} onOpenChange={setIsStatusUpdateOpen}>
                     <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
+                        <DialogHeader>
                             <DialogTitle>Actualizar Estado del Pedido</DialogTitle>
                             <DialogDescription>
                                 Cambia el estado del pedido {selectedOrder.ped_id}
@@ -1811,9 +1780,9 @@ const OrdersPage: React.FC = () => {
                                     <Receipt className="h-5 w-5 text-blue-600" />
                                     Proceso de Emisión Electrónica SUNAT
                                 </h3>
-                                
+
                                 {/* Mostrar progreso si está procesando */}
-                                {(isProcessingPayment || createBoletaSunatMutation.isPending || emitirBoletaLoading || emitiendo) && (
+                                {(isProcessingSunat || emitirBoletaLoading || emitiendo) && (
                                     <div className="bg-yellow-50 border border-yellow-200 p-3 rounded mb-3">
                                         <div className="flex items-center gap-3 mb-2">
                                             <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-yellow-600"></div>
@@ -1860,9 +1829,9 @@ const OrdersPage: React.FC = () => {
                                         <div className="text-sm text-red-700">
                                             {emitirBoletaError}
                                         </div>
-                                        <Button 
-                                            variant="outline" 
-                                            size="sm" 
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
                                             onClick={clearError}
                                             className="mt-2 text-red-600 hover:text-red-700 border-red-300"
                                         >
@@ -1870,86 +1839,46 @@ const OrdersPage: React.FC = () => {
                                         </Button>
                                     </div>
                                 )}
-                                
+
                                 <div className="bg-white p-3 rounded border">
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <CreditCard className="h-5 w-5 text-blue-600" />
-                                        <span className="font-medium">Proceso Automático con ApisPeru</span>
-                                    </div>
-                                    <ol className="text-sm text-gray-600 space-y-1 ml-8">
-                                        <li>1. Registrar los métodos de pago utilizados</li>
-                                        <li>2. Crear la boleta en el sistema local</li>
-                                        <li>3. Emitir y validar automáticamente con SUNAT vía ApisPeru</li>
-                                        <li>4. Recibir XML firmado y CDR de aceptación</li>
-                                        <li>5. Generar PDF oficial disponible en Boletas</li>
-                                        <li>6. Actualizar el estado del pedido a "Completado"</li>
-                                    </ol>
-                                    <div className="mt-2 text-xs text-blue-600 bg-blue-100 p-2 rounded">
-                                        <strong>✅ Cumple normativa SUNAT:</strong> Emisión electrónica válida con firma digital y validación en tiempo real.
-                                    </div>
-                                    
-                                    {/* Botón de prueba para réplica de Postman */}
-                                    <div className="mt-3 p-2 bg-orange-50 border border-orange-200 rounded">
-                                        <div className="text-xs text-orange-800 mb-2">
-                                            <strong>🔧 Modo de Prueba:</strong> Probar con headers exactos de Postman
-                                        </div>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={async () => {
-                                                if (!selectedOrder) return;
-                                                
-                                                const facturacionPayload = {
-                                                    boleta_numero: boletaNumero,
-                                                    boleta_fecha: new Date().toISOString().split('T')[0],
-                                                    boleta_subtotal: parseFloat(selectedOrder.ped_subtotal.toString()),
-                                                    boleta_impuestos: parseFloat(selectedOrder.ped_impuestos.toString()),
-                                                    boleta_total: parseFloat(selectedOrder.ped_total.toString()),
-                                                    metodos_pago: pagosMetodos.map(pago => {
-                                                        const metodo = metodosPago.find(m => m.met_id === pago.met_id);
-                                                        return {
-                                                            met_nombre: metodo?.met_nombre || 'Contado'
-                                                        };
-                                                    }),
-                                                    pedido: {
-                                                        cliente: {
-                                                            cli_tipo_doc: '1',
-                                                            cli_numero_doc: '00000000',
-                                                            cli_nombre: selectedOrder.cli_nombre.split(' ')[0] || 'Cliente',
-                                                            cli_apellido: selectedOrder.cli_nombre.split(' ').slice(1).join(' ') || 'Genérico'
-                                                        },
-                                                        detalles: selectedOrder.detalles?.map(detalle => {
-                                                            return {
-                                                                det_cantidad: parseInt(detalle.det_cantidad.toString()),
-                                                                det_precio_unitario: parseFloat(detalle.det_precio_unitario.toString()),
-                                                                det_subtotal: parseFloat(detalle.det_subtotal.toString()),
-                                                                det_impuesto: parseFloat(detalle.det_impuesto.toString()),
-                                                                producto: {
-                                                                    pro_id: detalle.prod_id,
-                                                                    pro_nombre: productos.find(p => p.pro_id === detalle.prod_id)?.pro_nombre || `Producto ${detalle.prod_id}`
-                                                                }
-                                                            };
-                                                        }) || []
-                                                    }
-                                                };
-                                                await testPostmanReplica(facturacionPayload);
-                                            }}
-                                            disabled={emitiendo || emitirBoletaLoading || !selectedOrder || pagosMetodos.length === 0}
-                                            className="w-full text-xs border-orange-300 text-orange-700 hover:bg-orange-100"
-                                        >
-                                            {emitiendo ? (
-                                                <>
-                                                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-orange-600 mr-2"></div>
-                                                    Probando Postman...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    🔧 Probar Réplica de Postman
-                                                </>
-                                            )}
-                                        </Button>
-                                    </div>
+                                <div className="flex items-center gap-3 mb-2">
+                                    <CreditCard className="h-5 w-5 text-blue-600" />
+                                    <span className="font-medium">Dos Opciones de Proceso</span>
                                 </div>
+
+                                {/* Opción 1: Solo emitir boleta */}
+                                <div className="mb-3 p-2 bg-green-50 border border-green-200 rounded">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <CheckCircle className="h-4 w-4 text-green-600" />
+                                        <span className="font-medium text-green-800">Opción 1: Emitir Boleta</span>
+                                    </div>
+                                    <ul className="text-xs text-green-700 space-y-1 ml-6">
+                                        <li>• Genera boleta localmente en el sistema</li>
+                                        <li>• Cambia estado del pedido a "Completado"</li>
+                                        <li>• No envía a SUNAT (proceso manual posterior)</li>
+                                        <li>• Proceso rápido e inmediato</li>
+                                    </ul>
+                                </div>
+
+                                {/* Opción 2: Emitir con SUNAT */}
+                                <div className="p-2 bg-blue-50 border border-blue-200 rounded">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <Receipt className="h-4 w-4 text-blue-600" />
+                                        <span className="font-medium text-blue-800">Opción 2: Emitir con SUNAT</span>
+                                    </div>
+                                    <ul className="text-xs text-blue-700 space-y-1 ml-6">
+                                        <li>• Crea la boleta en el sistema local</li>
+                                        <li>• Emite automáticamente con SUNAT vía ApisPeru</li>
+                                        <li>• Recibe XML firmado y CDR de aceptación</li>
+                                        <li>• Genera PDF oficial disponible en Boletas</li>
+                                        <li>• Cumple normativa SUNAT con validación en tiempo real</li>
+                                    </ul>
+                                </div>
+
+                                <div className="mt-2 text-xs text-blue-600 bg-blue-100 p-2 rounded">
+                                    <strong>💡 Recomendación:</strong> Usa "Emitir con SUNAT" para cumplimiento tributario completo.
+                                </div>
+                            </div>
                             </div>
 
                             {/* Información de la boleta */}
@@ -2014,61 +1943,59 @@ const OrdersPage: React.FC = () => {
                             </div>
 
                             {/* Agregar método de pago */}
-                            {(
-                                <div className="border p-4 rounded-lg">
-                                    <h3 className="font-semibold mb-3">Agregar Método de Pago</h3>
-                                    <div className="grid grid-cols-2 gap-3 mb-3">
-                                        <div>
-                                            <Label className="text-sm font-medium">Método de Pago</Label>
-                                            <Select value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
-                                                <SelectTrigger className="mt-1">
-                                                    <SelectValue placeholder="Seleccionar método" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {metodosPago.map((metodo) => (
-                                                        <SelectItem key={metodo.met_id} value={metodo.met_id}>
-                                                            <div className="flex items-center gap-2">
-                                                                <CreditCard className="h-4 w-4" />
-                                                                <div>
-                                                                    <span className="font-medium">{metodo.met_nombre}</span>
-                                                                    {metodo.met_banco && (
-                                                                        <span className="text-xs text-gray-500 ml-1">({metodo.met_banco})</span>
-                                                                    )}
-                                                                </div>
+                            <div className="border p-4 rounded-lg">
+                                <h3 className="font-semibold mb-3">Agregar Método de Pago</h3>
+                                <div className="grid grid-cols-2 gap-3 mb-3">
+                                    <div>
+                                        <Label className="text-sm font-medium">Método de Pago</Label>
+                                        <Select value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
+                                            <SelectTrigger className="mt-1">
+                                                <SelectValue placeholder="Seleccionar método" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {metodosPago.map((metodo) => (
+                                                    <SelectItem key={metodo.met_id} value={metodo.met_id}>
+                                                        <div className="flex items-center gap-2">
+                                                            <CreditCard className="h-4 w-4" />
+                                                            <div>
+                                                                <span className="font-medium">{metodo.met_nombre}</span>
+                                                                {metodo.met_banco && (
+                                                                    <span className="text-xs text-gray-500 ml-1">({metodo.met_banco})</span>
+                                                                )}
                                                             </div>
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                        <div>
-                                            <Label className="text-sm font-medium">Monto</Label>
-                                            <Input
-                                                type="number"
-                                                step="0.01"
-                                                min="0"
-                                                value={montoActual || ""}
-                                                onChange={(e) => setMontoActual(Number(e.target.value))}
-                                                placeholder="0.00"
-                                                className="mt-1"
-                                            />
-                                        </div>
+                                                        </div>
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                     </div>
-                                    <div className="mb-3">
-                                        <Label className="text-sm font-medium">Nota del Pago (opcional)</Label>
+                                    <div>
+                                        <Label className="text-sm font-medium">Monto</Label>
                                         <Input
-                                            value={notaActual}
-                                            onChange={(e) => setNotaActual(e.target.value)}
-                                            placeholder="Detalles del pago..."
+                                            type="number"
+                                            step="0.01"
+                                            min="0"
+                                            value={montoActual || ""}
+                                            onChange={(e) => setMontoActual(Number(e.target.value))}
+                                            placeholder="0.00"
                                             className="mt-1"
                                         />
                                     </div>
-                                    <Button onClick={agregarMetodoPago} className="w-full" size="sm">
-                                        <Plus className="h-4 w-4 mr-2" />
-                                        Agregar Método de Pago
-                                    </Button>
                                 </div>
-                            )}
+                                <div className="mb-3">
+                                    <Label className="text-sm font-medium">Nota del Pago (opcional)</Label>
+                                    <Input
+                                        value={notaActual}
+                                        onChange={(e) => setNotaActual(e.target.value)}
+                                        placeholder="Detalles del pago..."
+                                        className="mt-1"
+                                    />
+                                </div>
+                                <Button onClick={agregarMetodoPago} className="w-full" size="sm">
+                                    <Plus className="h-4 w-4 mr-2" />
+                                    Agregar Método de Pago
+                                </Button>
+                            </div>
 
                             {/* Lista de métodos de pago agregados */}
                             {pagosMetodos.length > 0 && (
@@ -2124,8 +2051,6 @@ const OrdersPage: React.FC = () => {
                                     <p className="text-sm">Configúrelos en la página de métodos de pago</p>
                                 </div>
                             )}
-
-
                         </div>
 
                         <DialogFooter>
@@ -2136,11 +2061,30 @@ const OrdersPage: React.FC = () => {
                                 Cancelar
                             </Button>
                             <Button
-                                onClick={handlePayment}
-                                disabled={isProcessingPayment || createBoletaSunatMutation.isPending || emitirBoletaLoading || pagosMetodos.length === 0 || !boletaNumero.trim()}
+                                onClick={handleEmitirBoleta}
+                                disabled={isProcessingPayment || emitirBoletaLoading || pagosMetodos.length === 0 || !boletaNumero.trim()}
                                 className="bg-blue-600 hover:bg-blue-700"
+                                title="Crea la boleta solo en el sistema local usando FacturacionController::emitirBoleta (api/facturacion/emitir)"
                             >
-                                {(isProcessingPayment || createBoletaSunatMutation.isPending || emitirBoletaLoading) ? (
+                                {isProcessingPayment ? (
+                                    <>
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                        Emitiendo Local...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Receipt className="h-4 w-4 mr-2" />
+                                        Emitir Boleta
+                                    </>
+                                )}
+                            </Button>
+                            <Button
+                                onClick={handleEmitirConSunat}
+                                disabled={isProcessingSunat || emitirBoletaLoading || pagosMetodos.length === 0 || !boletaNumero.trim()}
+                                className="bg-green-600 hover:bg-green-700"
+                                title="Proceso completo: crea boleta + envía a SUNAT usando la otra ruta y función"
+                            >
+                                {(isProcessingSunat || emitirBoletaLoading) ? (
                                     <>
                                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                                         Emitiendo con SUNAT ({processingTime}s)...
@@ -2148,7 +2092,7 @@ const OrdersPage: React.FC = () => {
                                 ) : (
                                     <>
                                         <Receipt className="h-4 w-4 mr-2" />
-                                        Emitir Boleta Electrónica SUNAT
+                                        Emitir con SUNAT
                                     </>
                                 )}
                             </Button>
