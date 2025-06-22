@@ -1,17 +1,13 @@
 // src/pages/auth/google/callback.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/context/AuthContext";
 import { API_URL } from "@/config";
-import { useNotifications } from '@/hooks/useNotifications';
 
 const GoogleCallback: React.FC = () => {
-  const { login } = useAuth();
-  const { showSuccess, showError } = useNotifications();
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState<string | null>(null);
   const [, setLocation] = useLocation();
-
+  const { login } = useAuth();
 
   useEffect(() => {
     console.log("GoogleCallback: Iniciando procesamiento");
@@ -24,6 +20,12 @@ const GoogleCallback: React.FC = () => {
 
     if (error) {
       console.error("Error de autenticación:", error);
+      // Verificar si es error de aprobación pendiente
+      if (error.includes('pendiente') || error.includes('approval')) {
+        sessionStorage.setItem('pending_approval_google', 'true');
+        setLocation('/pending-approval');
+        return;
+      }
       setError(`Error de Google: ${error}`);
       return;
     }
@@ -93,7 +95,7 @@ const GoogleCallback: React.FC = () => {
       console.error("No se recibió token ni código");
       setError("No se recibió token ni código de autorización válido.");
     }
-  }, [login, setLocation, showSuccess, showError]);
+  }, [login, setLocation]);
 
   useEffect(() => {
     if (error) {

@@ -14,6 +14,8 @@ import SalesPage from "./pages/SalesPage";
 import InvoicesPage from "./pages/InvoicesPage";
 import CategoriesPage from "./pages/Categorias/CategoriesPage";
 import RegisterPage from "./pages/RegisterPage";
+import PendingApprovalPage from "./pages/PendingApprovalPage";
+import ApprovalSuccessPage from "./pages/ApprovalSuccessPage";
 import HomePage from "./pages/HomePage";
 import NotFoundPage from "./pages/not-found";
 import { AuthProvider } from "./context/AuthContext";
@@ -22,7 +24,7 @@ import { Toaster } from "./components/ui/toaster";
 import { queryClient } from "./lib/queryClient";
 import PaymentMethodsPage from "./pages/PaymentMethodsPage";
 import BoletasPage from "./pages/BoletasPage";
-import SettingsPage from "./pages/SettingsPage";
+import SettingsPage from "./pages/SettingsPage"; 
 
 const App: React.FC = () => {
     return (
@@ -33,6 +35,8 @@ const App: React.FC = () => {
                         <Route path="/" component={HomePage} />
                         <Route path="/login" component={LoginPage} />
                         <Route path="/register" component={RegisterPage} />
+                        <Route path="/pending-approval" component={PendingApprovalPage} />
+                        <Route path="/approval-success" component={ApprovalSuccessPage} />
                         <Route path="/auth/google/callback" component={GoogleCallback} />
 
                         <Route path="/dashboard" component={DashboardPage} />
