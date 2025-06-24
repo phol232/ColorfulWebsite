@@ -323,32 +323,45 @@ const BoletasPage: React.FC = () => {
         try {
             const token = localStorage.getItem('token');
 
-            // Extraer serie y correlativo del número de boleta
-            const [serie, correlativo] = boleta.boleta_numero.split('-');
-
-            if (!serie || !correlativo) {
-                throw new Error('Formato de número de boleta inválido');
-            }
-
-            // Usar la nueva ruta de facturación para generar PDF
-            // Preparar payload para generar PDF de impresión
+            // Preparar payload exactamente como lo espera el microservicio
             const facturacionPayload = {
                 boleta_numero: boleta.boleta_numero,
                 boleta_fecha: boleta.boleta_fecha,
                 boleta_subtotal: boleta.boleta_subtotal,
                 boleta_impuestos: boleta.boleta_impuestos,
                 boleta_total: boleta.boleta_total,
+                boleta_descuento: boleta.boleta_descuento || 0,
+                boleta_estado: boleta.boleta_estado,
+                boleta_notas: boleta.boleta_notas || "",
+                ped_id: boleta.ped_id,
                 metodos_pago: boleta.metodos_pago?.map((metodo: any) => ({
-                    met_nombre: metodo.met_nombre || 'Efectivo'
-                })) || [],
+                    met_nombre: metodo.met_nombre || 'Contado',
+                    monto: metodo.pivot?.monto || boleta.boleta_total,
+                    fecha_pago: metodo.fecha_pago || new Date().toISOString(),
+                    nota_pago: metodo.nota_pago || null
+                })) || [{ 
+                    met_nombre: "Contado", 
+                    monto: boleta.boleta_total,
+                    fecha_pago: new Date().toISOString(),
+                    nota_pago: null
+                }],
                 pedido: {
                     cliente: {
-                        cli_tipo_doc: '1',
-                        cli_numero_doc: '00000000',
+                        cli_tipo_doc: "1",
+                        cli_numero_doc: "00000000",
                         cli_nombre: getClienteName(boleta.pedido?.cli_id)?.split(' ')[0] || 'Cliente',
                         cli_apellido: getClienteName(boleta.pedido?.cli_id)?.split(' ').slice(1).join(' ') || 'Genérico'
                     },
-                    detalles: [] // Para impresión simple
+                    detalles: boleta.pedido?.detalles?.map((detalle: any) => ({
+                        det_cantidad: detalle.det_cantidad,
+                        det_precio_unitario: detalle.det_precio_unitario || detalle.det_precio,
+                        det_subtotal: detalle.det_subtotal || (detalle.det_cantidad * (detalle.det_precio_unitario || detalle.det_precio)),
+                        det_impuesto: detalle.det_impuestos || detalle.det_impuesto || 0,
+                        producto: {
+                            pro_id: detalle.producto?.pro_id || `PROD-${Math.random().toString(36).substr(2, 6)}`,
+                            pro_nombre: detalle.producto?.pro_nombre || 'Producto'
+                        }
+                    })) || []
                 }
             };
 
@@ -407,31 +420,43 @@ const BoletasPage: React.FC = () => {
 
             const token = localStorage.getItem('token');
 
-            // Preparar payload para generar PDF
+            // Preparar payload exactamente como lo espera el microservicio
             const facturacionPayload = {
                 boleta_numero: boleta.boleta_numero,
                 boleta_fecha: boleta.boleta_fecha,
                 boleta_subtotal: boleta.boleta_subtotal,
                 boleta_impuestos: boleta.boleta_impuestos,
                 boleta_total: boleta.boleta_total,
+                boleta_descuento: boleta.boleta_descuento || 0,
+                boleta_estado: boleta.boleta_estado,
+                boleta_notas: boleta.boleta_notas || "",
+                ped_id: boleta.ped_id,
                 metodos_pago: boleta.metodos_pago?.map((metodo: any) => ({
-                    met_nombre: metodo.met_nombre || 'Efectivo'
-                })) || [],
+                    met_nombre: metodo.met_nombre || 'Contado',
+                    monto: metodo.pivot?.monto || boleta.boleta_total,
+                    fecha_pago: metodo.fecha_pago || new Date().toISOString(),
+                    nota_pago: metodo.nota_pago || null
+                })) || [{ 
+                    met_nombre: "Contado", 
+                    monto: boleta.boleta_total,
+                    fecha_pago: new Date().toISOString(),
+                    nota_pago: null
+                }],
                 pedido: {
                     cliente: {
-                        cli_tipo_doc: '1',
-                        cli_numero_doc: '00000000',
-                        cli_nombre: boleta.pedido?.cli_nombre?.split(' ')[0] || 'Cliente',
-                        cli_apellido: boleta.pedido?.cli_nombre?.split(' ').slice(1).join(' ') || 'Genérico'
+                        cli_tipo_doc: "1",
+                        cli_numero_doc: "00000000",
+                        cli_nombre: getClienteName(boleta.pedido?.cli_id)?.split(' ')[0] || 'Cliente',
+                        cli_apellido: getClienteName(boleta.pedido?.cli_id)?.split(' ').slice(1).join(' ') || 'Genérico'
                     },
                     detalles: boleta.pedido?.detalles?.map((detalle: any) => ({
                         det_cantidad: detalle.det_cantidad,
-                        det_precio_unitario: detalle.det_precio_unitario,
-                        det_subtotal: detalle.det_subtotal,
-                        det_impuesto: detalle.det_impuesto || (detalle.det_subtotal * 0.18),
+                        det_precio_unitario: detalle.det_precio_unitario || detalle.det_precio,
+                        det_subtotal: detalle.det_subtotal || (detalle.det_cantidad * (detalle.det_precio_unitario || detalle.det_precio)),
+                        det_impuesto: detalle.det_impuestos || detalle.det_impuesto || 0,
                         producto: {
-                            pro_id: detalle.prod_id,
-                            pro_nombre: detalle.producto?.pro_nombre || `Producto ${detalle.prod_id}`
+                            pro_id: detalle.producto?.pro_id || `PROD-${Math.random().toString(36).substr(2, 6)}`,
+                            pro_nombre: detalle.producto?.pro_nombre || 'Producto'
                         }
                     })) || []
                 }
@@ -486,7 +511,7 @@ const BoletasPage: React.FC = () => {
         }
     };
 
-    const [deleteOpen, setDeleteOpen] = React.useState(false)
+    const [deleteOpen, setDeleteOpen] = React.useState<string | null>(null)
 
 
     if (isLoading) {
@@ -704,10 +729,10 @@ const BoletasPage: React.FC = () => {
                                         >
                                             <Download className="h-4 w-4" />
                                         </Button>
-                                        <Button
+                                                                       <Button
                                             variant="outline"
                                             size="sm"
-                                            onClick={() => setAnularBoletaId(boleta.boleta_id)}
+                                            onClick={() => setDeleteOpen(boleta.boleta_id)}
                                             className="text-red-600 hover:text-red-700 border-red-300 hover:bg-red-50"
                                             disabled={boleta.boleta_estado.toLowerCase() === 'anulado' || boleta.boleta_estado.toLowerCase() === 'cancelado'}
                                             title={boleta.boleta_estado.toLowerCase() === 'anulado' || boleta.boleta_estado.toLowerCase() === 'cancelado' ? "La boleta ya está anulada" : "Anular boleta"}
