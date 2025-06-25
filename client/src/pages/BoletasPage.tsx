@@ -283,14 +283,15 @@ const BoletasPage: React.FC = () => {
     const estadisticas = {
         total: boletas.length,
         totalMonto: boletas.reduce((sum, boleta) => sum + Number(boleta.boleta_total), 0),
-        emitidas: boletas.filter(b => b.boleta_estado === 'Emitido').length,
+        emitidas: boletas.filter(b => b.boleta_estado === 'EMITIDA').length,
         promedio: boletas.length > 0 ? boletas.reduce((sum, boleta) => sum + Number(boleta.boleta_total), 0) / boletas.length : 0
     };
 
     const getStatusBadge = (estado: string) => {
         switch(estado.toLowerCase()) {
             case "emitido":
-                return <Badge className="bg-green-100 text-green-800 border-green-300">Emitido</Badge>;
+            case "emitida":
+                return <Badge className="bg-green-100 text-green-800 border-green-300">Emitida</Badge>;
             case "anulado":
             case "cancelado":
                 return <Badge className="bg-red-100 text-red-800 border-red-300">Anulado</Badge>;
@@ -304,6 +305,7 @@ const BoletasPage: React.FC = () => {
     const getStatusIcon = (estado: string) => {
         switch(estado.toLowerCase()) {
             case "emitido":
+            case "emitida":
                 return <CheckCircle className="h-5 w-5 text-green-500" />;
             case "anulado":
             case "cancelado":
@@ -366,6 +368,7 @@ const BoletasPage: React.FC = () => {
                 }
             };
 
+            // Hacer petición a Laravel backend que redirige al microservicio
             const response = await fetch(`${API_URL}/api/facturacion/pdf`, {
                 method: 'POST',
                 headers: {
@@ -463,6 +466,7 @@ const BoletasPage: React.FC = () => {
                 }
             };
 
+            // Hacer petición a Laravel backend que redirige al microservicio
             const pdfResponse = await fetch(`${API_URL}/api/facturacion/pdf`, {
                 method: 'POST',
                 headers: {
@@ -512,7 +516,7 @@ const BoletasPage: React.FC = () => {
         }
     };
 
-    
+
 
 
     if (isLoading) {
@@ -605,7 +609,15 @@ const BoletasPage: React.FC = () => {
                 {/* Lista de Boletas */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {filteredBoletas.map((boleta) => (
-                        <Card key={boleta.boleta_id} className="hover:shadow-md transition-shadow">
+                        <Card
+    key={boleta.boleta_id}
+    className={`hover:shadow-md transition-shadow ${
+        boleta.boleta_estado.toLowerCase() === "emitida" ? "bg-green-50 relative" : ""
+    }`}
+>
+    {boleta.boleta_estado.toLowerCase() === "emitida" && (
+        <CheckCircle className="absolute top-0 right-0 m-2 text-green-500 h-5 w-5" />
+    )}
                             <CardHeader className="pb-2">
                             <div className="flex items-center justify-between mb-2">
                                 <div className="flex items-center gap-2">
