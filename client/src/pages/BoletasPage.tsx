@@ -94,6 +94,7 @@ const BoletasPage: React.FC = () => {
     const [selectedBoleta, setSelectedBoleta] = useState<Boleta | null>(null);
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
     const [anularBoletaId, setAnularBoletaId] = useState<string | null>(null);
+    const [deleteOpen, setDeleteOpen] = useState<string | null>(null);
 
     const { toast } = useToast();
     const queryClient = useQueryClient();
@@ -281,9 +282,9 @@ const BoletasPage: React.FC = () => {
     // Calcular estadísticas
     const estadisticas = {
         total: boletas.length,
-        totalMonto: boletas.reduce((sum, boleta) => sum + boleta.boleta_total, 0),
+        totalMonto: boletas.reduce((sum, boleta) => sum + Number(boleta.boleta_total), 0),
         emitidas: boletas.filter(b => b.boleta_estado === 'Emitido').length,
-        promedio: boletas.length > 0 ? boletas.reduce((sum, boleta) => sum + boleta.boleta_total, 0) / boletas.length : 0
+        promedio: boletas.length > 0 ? boletas.reduce((sum, boleta) => sum + Number(boleta.boleta_total), 0) / boletas.length : 0
     };
 
     const getStatusBadge = (estado: string) => {
@@ -511,7 +512,7 @@ const BoletasPage: React.FC = () => {
         }
     };
 
-    const [deleteOpen, setDeleteOpen] = React.useState<string | null>(null)
+    
 
 
     if (isLoading) {
@@ -651,7 +652,7 @@ const BoletasPage: React.FC = () => {
                                 <div className="flex justify-between items-center">
                                     <div>
                                         <p className="text-sm text-muted-foreground">Total</p>
-                                        <p className="font-bold text-lg">{formatCurrency(boleta.boleta_total)}</p>
+                                        <p className="font-bold text-lg">{formatCurrency(Number(boleta.boleta_total))}</p>
                                     </div>
                                     <div className="text-right">
                                         <p className="text-sm text-muted-foreground">Estado</p>
@@ -662,16 +663,16 @@ const BoletasPage: React.FC = () => {
                                 <div className="space-y-2">
                                     <div className="flex justify-between text-sm">
                                         <span>Subtotal:</span>
-                                        <span>{formatCurrency(boleta.boleta_subtotal)}</span>
+                                        <span>{formatCurrency(Number(boleta.boleta_subtotal))}</span>
                                     </div>
                                     <div className="flex justify-between text-sm">
                                         <span>Impuestos:</span>
-                                        <span>{formatCurrency(boleta.boleta_impuestos)}</span>
+                                        <span>{formatCurrency(Number(boleta.boleta_impuestos))}</span>
                                     </div>
-                                    {boleta.boleta_descuento > 0 && (
+                                    {Number(boleta.boleta_descuento) > 0 && (
                                         <div className="flex justify-between text-sm text-red-600">
                                             <span>Descuento:</span>
-                                            <span>-{formatCurrency(boleta.boleta_descuento)}</span>
+                                            <span>-{formatCurrency(Number(boleta.boleta_descuento))}</span>
                                         </div>
                                     )}
                                 </div>
@@ -689,7 +690,7 @@ const BoletasPage: React.FC = () => {
                                         <div className="flex flex-wrap gap-1 mt-1">
                                             {boleta.metodos_pago.map((metodo, index) => (
                                                 <Badge key={index} variant="outline" className="text-xs">
-                                                    {metodo.met_nombre}: {formatCurrency(metodo.pivot.monto)}
+                                                    {metodo.met_nombre}: {formatCurrency(Number(metodo.pivot.monto))}
                                                 </Badge>
                                             ))}
                                         </div>
@@ -732,7 +733,7 @@ const BoletasPage: React.FC = () => {
                                                                        <Button
                                             variant="outline"
                                             size="sm"
-                                            onClick={() => setDeleteOpen(boleta.boleta_id)}
+                                            onClick={() => handleAnular(boleta.boleta_id)}
                                             className="text-red-600 hover:text-red-700 border-red-300 hover:bg-red-50"
                                             disabled={boleta.boleta_estado.toLowerCase() === 'anulado' || boleta.boleta_estado.toLowerCase() === 'cancelado'}
                                             title={boleta.boleta_estado.toLowerCase() === 'anulado' || boleta.boleta_estado.toLowerCase() === 'cancelado' ? "La boleta ya está anulada" : "Anular boleta"}
@@ -783,7 +784,7 @@ const BoletasPage: React.FC = () => {
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <p className="text-lg font-bold text-gray-800">{formatCurrency(selectedBoleta.boleta_total)}</p>
+                                        <p className="text-lg font-bold text-gray-800">{formatCurrency(Number(selectedBoleta.boleta_total))}</p>
                                     </div>
                                 </div>
 
@@ -817,16 +818,16 @@ const BoletasPage: React.FC = () => {
                                         <div className="space-y-0.5 text-xs">
                                             <div className="flex justify-between">
                                                 <span>Subtotal:</span>
-                                                <span>{formatCurrency(selectedBoleta.boleta_subtotal)}</span>
+                                                <span>{formatCurrency(Number(selectedBoleta.boleta_subtotal))}</span>
                                             </div>
                                             <div className="flex justify-between">
                                                 <span>IGV:</span>
-                                                <span>{formatCurrency(selectedBoleta.boleta_impuestos)}</span>
+                                                <span>{formatCurrency(Number(selectedBoleta.boleta_impuestos))}</span>
                                             </div>
-                                            {selectedBoleta.boleta_descuento > 0 && (
+                                            {Number(selectedBoleta.boleta_descuento) > 0 && (
                                                 <div className="flex justify-between text-red-600">
                                                     <span>Descuento:</span>
-                                                    <span>-{formatCurrency(selectedBoleta.boleta_descuento)}</span>
+                                                    <span>-{formatCurrency(Number(selectedBoleta.boleta_descuento))}</span>
                                                 </div>
                                             )}
                                         </div>
@@ -855,11 +856,11 @@ const BoletasPage: React.FC = () => {
                                                             {getProductoName(detalle.prod_id)}
                                                         </p>
                                                         <p className="text-xs text-gray-500">
-                                                            {formatCurrency(detalle.det_precio_unitario)} × {detalle.det_cantidad}
+                                                            {formatCurrency(Number(detalle.det_precio_unitario))} × {detalle.det_cantidad}
                                                         </p>
                                                     </div>
                                                     <div className="text-right">
-                                                        <p className="font-medium text-xs">{formatCurrency(detalle.det_subtotal)}</p>
+                                                        <p className="font-medium text-xs">{formatCurrency(Number(detalle.det_subtotal))}</p>
                                                     </div>
                                                 </div>
                                             ))}
@@ -892,7 +893,7 @@ const BoletasPage: React.FC = () => {
                                                             )}
                                                         </div>
                                                         <p className="font-bold text-green-600 text-sm">
-                                                            {formatCurrency(metodo.pivot.monto)}
+                                                            {formatCurrency(Number(metodo.pivot.monto))}
                                                         </p>
                                                     </div>
 
