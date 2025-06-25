@@ -191,7 +191,10 @@ const OrdersPage: React.FC = () => {
 
             console.log('Pedidos obtenidos:', data?.length || 0, 'registros');
 
-            return data;
+            // Ordenar pedidos del más reciente al más antiguo
+            return data.sort((a: Pedido, b: Pedido) => {
+                return new Date(b.ped_fecha).getTime() - new Date(a.ped_fecha).getTime();
+            });
         }
     });
 

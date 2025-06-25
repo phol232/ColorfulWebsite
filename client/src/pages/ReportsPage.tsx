@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import MainLayout from "@/components/layouts/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -117,6 +116,54 @@ const ReportsPage: React.FC = () => {
     }
   });
 
+  // Fetch métodos de pago
+  const { data: metodosPago = [] } = useQuery<any[]>({
+    queryKey: ['/api/metodos-pago'],
+    queryFn: async () => {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/metodos-pago`, {
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+          'Content-Type': 'application/json',
+        }
+      });
+      if (!response.ok) throw new Error('Error fetching payment methods');
+      return await response.json();
+    }
+  });
+
+  // Fetch top productos más vendidos
+  const { data: topProductos = [] } = useQuery<any[]>({
+    queryKey: ['/api/reportes/top-productos'],
+    queryFn: async () => {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/reportes/top-productos`, {
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+          'Content-Type': 'application/json',
+        }
+      });
+      if (!response.ok) throw new Error('Error fetching top products');
+      return await response.json();
+    }
+  });
+
+  // Fetch ventas por categoría
+  const { data: ventasPorCategoriaData = [] } = useQuery<any[]>({
+    queryKey: ['/api/reportes/ventas-por-categoria'],
+    queryFn: async () => {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/reportes/ventas-por-categoria`, {
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+          'Content-Type': 'application/json',
+        }
+      });
+      if (!response.ok) throw new Error('Error fetching sales by category');
+      return await response.json();
+    }
+  });
+
   // Calcular KPIs de ventas
   const calculateKPIs = () => {
     const boletasActivas = boletas.filter(b => b.boleta_estado === 'Emitido');
@@ -141,11 +188,11 @@ const ReportsPage: React.FC = () => {
   const getVentasPorPeriodo = () => {
     const periodos = [];
     const ahora = new Date();
-    
+
     for (let i = 6; i >= 0; i--) {
       const fecha = new Date(ahora);
       fecha.setDate(ahora.getDate() - (i * 7)); // Por semanas
-      
+
       const ventasPeriodo = boletas
         .filter(b => {
           if (b.boleta_estado !== 'Emitido') return false;
@@ -162,7 +209,7 @@ const ReportsPage: React.FC = () => {
         ventas: Math.round(ventasPeriodo)
       });
     }
-    
+
     return periodos;
   };
 
@@ -218,14 +265,14 @@ const ReportsPage: React.FC = () => {
   // Calcular clientes más valiosos
   const getClientesValiosos = () => {
     const clientesMap = new Map();
-    
+
     boletas
       .filter(b => b.boleta_estado === 'Emitido' && b.pedido)
       .forEach(boleta => {
         const clienteId = boleta.pedido.cli_id;
         const clienteNombre = boleta.pedido.cli_nombre || `Cliente ${clienteId}`;
         const total = parseFloat(boleta.boleta_total || 0);
-        
+
         if (clientesMap.has(clienteId)) {
           const cliente = clientesMap.get(clienteId);
           cliente.compras += 1;
@@ -260,7 +307,7 @@ const ReportsPage: React.FC = () => {
           if (producto && producto.categoria) {
             const catNombre = producto.categoria.cat_nombre || 'Sin categoría';
             const ventaTotal = detalle.det_cantidad * detalle.det_precio;
-            
+
             if (categorias.has(catNombre)) {
               categorias.set(catNombre, categorias.get(catNombre) + ventaTotal);
             } else {
@@ -281,12 +328,28 @@ const ReportsPage: React.FC = () => {
       .slice(0, 6);
   };
 
+    // Transformar la data de ventas por categoría para el PieChart
+  const transformVentasPorCategoria = () => {
+    if (ventasPorCategoriaData && ventasPorCategoriaData.length > 0) {
+      return ventasPorCategoriaData.map(item => ({
+        name: item.cat_nombre,
+        value: parseFloat(item.total_vendido) || 0
+      }));
+    }
+    return [];
+  };
+
   const kpis = calculateKPIs();
   const ventasPorPeriodo = getVentasPorPeriodo();
   const productosMasVendidos = getProductosMasVendidos();
   const inventarioBajaRotacion = getInventarioBajaRotacion();
   const clientesValiosos = getClientesValiosos();
   const ventasPorCategoria = getVentasPorCategoria();
+  const ventasPorCategoriaChartData = transformVentasPorCategoria();
+
+  // Debug: verificar datos del gráfico
+  console.log('ventasPorCategoriaData:', ventasPorCategoriaData);
+  console.log('ventasPorCategoriaChartData:', ventasPorCategoriaChartData);
 
   if (boletasLoading || productosLoading || pedidosLoading) {
     return (
@@ -302,7 +365,7 @@ const ReportsPage: React.FC = () => {
       </MainLayout>
     );
   }
-  
+
   return (
     <MainLayout>
       <div className="container mx-auto px-4 py-6">
@@ -310,7 +373,7 @@ const ReportsPage: React.FC = () => {
           <h1 className="text-3xl font-bold mb-2">Reportes y Analíticas</h1>
           <p className="text-gray-500">Visualiza el rendimiento de tu negocio con informes detallados</p>
         </div>
-        
+
         {/* Filtros de tiempo y exportación */}
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
           <div className="flex flex-wrap gap-2">
@@ -354,7 +417,7 @@ const ReportsPage: React.FC = () => {
               <span>Personalizado</span>
             </Button>
           </div>
-          
+
           <div className="flex gap-2">
             <Button variant="outline" size="sm" className="flex items-center gap-1">
               <Download className="h-4 w-4" />
@@ -366,7 +429,7 @@ const ReportsPage: React.FC = () => {
             </Button>
           </div>
         </div>
-        
+
         {/* Pestañas de categorías de reportes */}
         <Tabs value={currentTab} onValueChange={setCurrentTab} className="mb-6">
           <TabsList className="mb-4">
@@ -387,7 +450,7 @@ const ReportsPage: React.FC = () => {
               <span>Clientes</span>
             </TabsTrigger>
           </TabsList>
-          
+
           {/* Contenido de pestaña Ventas */}
           <TabsContent value="ventas">
             {/* KPIs de Ventas */}
@@ -426,7 +489,7 @@ const ReportsPage: React.FC = () => {
                 </Card>
               ))}
             </div>
-            
+
             {/* Gráficos de Ventas */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
               <Card>
@@ -448,7 +511,7 @@ const ReportsPage: React.FC = () => {
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base font-medium">Distribución de Ventas por Categoría</CardTitle>
@@ -458,17 +521,17 @@ const ReportsPage: React.FC = () => {
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
-                          data={ventasPorCategoria}
+                          data={ventasPorCategoriaChartData}
                           cx="50%"
                           cy="50%"
                           labelLine={false}
-                          label={({ name, porcentaje }) => `${name}: ${porcentaje}%`}
+                          label={({ name, value }) => `${name}: ${value}`}
                           outerRadius={100}
                           fill="#8884d8"
                           dataKey="value"
                         >
-                          {ventasPorCategoria.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          {ventasPorCategoriaChartData.map((entry, index) => (
+                            <Cell key={`pie-cell-${entry.name}-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
                         </Pie>
                         <Tooltip formatter={(value) => [`$${value}`, 'Ventas']} />
@@ -479,7 +542,7 @@ const ReportsPage: React.FC = () => {
               </Card>
             </div>
           </TabsContent>
-          
+
           {/* Contenido de pestaña Productos */}
           <TabsContent value="productos">
             {/* Resumen de productos */}
@@ -498,7 +561,7 @@ const ReportsPage: React.FC = () => {
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardContent className="pt-6">
                   <div className="flex justify-between items-start">
@@ -517,7 +580,7 @@ const ReportsPage: React.FC = () => {
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardContent className="pt-6">
                   <div className="flex justify-between items-start">
@@ -535,14 +598,14 @@ const ReportsPage: React.FC = () => {
                 </CardContent>
               </Card>
             </div>
-            
+
             {/* Productos más vendidos */}
             <Card className="mb-8">
               <CardHeader>
                 <CardTitle className="text-base font-medium">Productos Más Vendidos</CardTitle>
               </CardHeader>
               <CardContent>
-                {productosMasVendidos.length > 0 ? (
+                {topProductos.length > 0 ? (
                   <div className="overflow-x-auto">
                     <table className="w-full border-collapse">
                       <thead>
@@ -550,25 +613,14 @@ const ReportsPage: React.FC = () => {
                           <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Producto</th>
                           <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Unidades</th>
                           <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ingresos</th>
-                          <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Crecimiento</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {productosMasVendidos.map((producto, index) => (
-                          <tr key={producto.id} className="border-b border-gray-100 hover:bg-gray-50">
-                            <td className="px-4 py-3 text-sm font-medium">{producto.nombre}</td>
-                            <td className="px-4 py-3 text-right text-sm">{producto.ventas}</td>
-                            <td className="px-4 py-3 text-right text-sm font-medium">{formatCurrency(producto.ingresos)}</td>
-                            <td className="px-4 py-3 text-right text-sm">
-                              <div className={`inline-flex items-center gap-1 ${producto.crecimiento > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                {producto.crecimiento > 0 ? (
-                                  <ArrowUp className="h-3 w-3" />
-                                ) : (
-                                  <ArrowDown className="h-3 w-3" />
-                                )}
-                                <span>{Math.abs(producto.crecimiento).toFixed(1)}%</span>
-                              </div>
-                            </td>
+                        {topProductos.map((producto, index) => (
+                          <tr key={`top-producto-${producto.pro_id}-${index}`} className="border-b border-gray-100 hover:bg-gray-50">
+                            <td className="px-4 py-3 text-sm font-medium">{producto.pro_nombre}</td>
+                            <td className="px-4 py-3 text-right text-sm">{producto.cantidad_vendida}</td>
+                            <td className="px-4 py-3 text-right text-sm font-medium">{formatCurrency(producto.total_vendido)}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -582,7 +634,7 @@ const ReportsPage: React.FC = () => {
                 )}
               </CardContent>
             </Card>
-            
+
             {/* Distribución de ventas por categoría */}
             <Card className="mb-8">
               <CardHeader>
@@ -591,46 +643,63 @@ const ReportsPage: React.FC = () => {
               <CardContent>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <div className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={ventasPorCategoria}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={({ name, porcentaje }) => `${name}: ${porcentaje}%`}
-                          outerRadius={100}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          {ventasPorCategoria.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip formatter={(value) => [`$${value}`, 'Ventas']} />
-                      </PieChart>
-                    </ResponsiveContainer>
+                    {ventasPorCategoriaChartData.length > 0 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={ventasPorCategoriaChartData}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                            outerRadius={100}
+                            fill="#8884d8"
+                            dataKey="value"
+                          >
+                            {ventasPorCategoriaChartData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip formatter={(value) => [`$${value.toLocaleString()}`, 'Ventas']} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">
+                        <PieChartIcon className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                        <p>No hay datos de categorías</p>
+                      </div>
+                    )}
                   </div>
-                  
+
                   <div>
-                    {ventasPorCategoria.length > 0 ? (
-                      ventasPorCategoria.map((categoria, index) => (
-                        <div key={`ventas-cat-${categoria.name}`} className="mb-3">
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="text-sm font-medium">{categoria.name}</span>
-                            <span className="text-sm text-gray-500">{formatCurrency(categoria.value)}</span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div 
-                              className={`h-2 rounded-full`}
-                              style={{ 
-                                width: `${categoria.porcentaje}%`,
-                                backgroundColor: COLORS[index % COLORS.length]
-                              }}
-                            ></div>
-                          </div>
-                        </div>
-                      ))
+                    {ventasPorCategoriaChartData.length > 0 ? (
+                      <div className="space-y-3">
+                        {ventasPorCategoriaChartData.map((categoria, index) => {
+                          const totalVentas = ventasPorCategoriaChartData.reduce((sum, cat) => sum + cat.value, 0);
+                          const porcentaje = totalVentas > 0 ? (categoria.value / totalVentas) * 100 : 0;
+                          
+                          return (
+                            <div key={`ventas-cat-${categoria.name}-${index}`} className="mb-3">
+                              <div className="flex justify-between items-center mb-1">
+                                <span className="text-sm font-medium">{categoria.name}</span>
+                                <div className="text-right">
+                                  <span className="text-sm text-gray-900 font-medium">{formatCurrency(categoria.value)}</span>
+                                  <span className="text-xs text-gray-500 block">{porcentaje.toFixed(1)}%</span>
+                                </div>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div 
+                                  className="h-2 rounded-full transition-all duration-300"
+                                  style={{ 
+                                    width: `${porcentaje}%`,
+                                    backgroundColor: COLORS[index % COLORS.length]
+                                  }}
+                                ></div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     ) : (
                       <div className="text-center py-8 text-gray-500">
                         <PieChartIcon className="h-8 w-8 mx-auto mb-2 text-gray-300" />
@@ -642,7 +711,7 @@ const ReportsPage: React.FC = () => {
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           {/* Contenido de pestaña Inventario */}
           <TabsContent value="inventario">
             {/* Resumen de inventario */}
@@ -663,7 +732,7 @@ const ReportsPage: React.FC = () => {
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardContent className="pt-6">
                   <div className="flex justify-between items-start">
@@ -680,7 +749,7 @@ const ReportsPage: React.FC = () => {
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardContent className="pt-6">
                   <div className="flex justify-between items-start">
@@ -698,7 +767,7 @@ const ReportsPage: React.FC = () => {
                 </CardContent>
               </Card>
             </div>
-            
+
             {/* Productos con baja rotación */}
             <Card className="mb-8">
               <CardHeader>
@@ -717,8 +786,8 @@ const ReportsPage: React.FC = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {inventarioBajaRotacion.map((producto) => (
-                          <tr key={producto.id} className="border-b border-gray-100 hover:bg-gray-50">
+                        {inventarioBajaRotacion.map((producto, index) => (
+                          <tr key={`inventario-baja-${producto.id}-${index}`} className="border-b border-gray-100 hover:bg-gray-50">
                             <td className="px-4 py-3 text-sm font-medium">{producto.nombre}</td>
                             <td className="px-4 py-3 text-center text-sm">{producto.stock}</td>
                             <td className="px-4 py-3 text-center text-sm">
@@ -754,7 +823,7 @@ const ReportsPage: React.FC = () => {
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           {/* Contenido de pestaña Clientes */}
           <TabsContent value="clientes">
             {/* Resumen de clientes */}
@@ -773,7 +842,7 @@ const ReportsPage: React.FC = () => {
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardContent className="pt-6">
                   <div className="flex justify-between items-start">
@@ -792,7 +861,7 @@ const ReportsPage: React.FC = () => {
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardContent className="pt-6">
                   <div className="flex justify-between items-start">
@@ -813,7 +882,7 @@ const ReportsPage: React.FC = () => {
                 </CardContent>
               </Card>
             </div>
-            
+
             {/* Clientes más valiosos */}
             <Card className="mb-8">
               <CardHeader>
@@ -833,8 +902,8 @@ const ReportsPage: React.FC = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {clientesValiosos.map((cliente) => (
-                          <tr key={cliente.id} className="border-b border-gray-100 hover:bg-gray-50">
+                        {clientesValiosos.map((cliente, index) => (
+                          <tr key={`cliente-valioso-${cliente.id}-${index}`} className="border-b border-gray-100 hover:bg-gray-50">
                             <td className="px-4 py-3 text-sm font-medium">{cliente.nombre}</td>
                             <td className="px-4 py-3 text-center text-sm">{cliente.compras}</td>
                             <td className="px-4 py-3 text-right text-sm font-medium">{formatCurrency(cliente.totalGastado)}</td>

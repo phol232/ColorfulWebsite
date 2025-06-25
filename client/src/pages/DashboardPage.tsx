@@ -88,6 +88,38 @@ const DashboardPage: React.FC = () => {
     }
   });
 
+  // Fetch top productos más vendidos desde el endpoint de reportes
+  const { data: topProductosReporte = [] } = useQuery<any[]>({
+    queryKey: ['/api/reportes/top-productos'],
+    queryFn: async () => {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/reportes/top-productos`, {
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+          'Content-Type': 'application/json',
+        }
+      });
+      if (!response.ok) throw new Error('Error fetching top products');
+      return await response.json();
+    }
+  });
+
+  // Fetch ventas por categoría desde el endpoint de reportes
+  const { data: ventasPorCategoriaReporte = [] } = useQuery<any[]>({
+    queryKey: ['/api/reportes/ventas-por-categoria'],
+    queryFn: async () => {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/reportes/ventas-por-categoria`, {
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+          'Content-Type': 'application/json',
+        }
+      });
+      if (!response.ok) throw new Error('Error fetching sales by category');
+      return await response.json();
+    }
+  });
+
   // Calcular métricas principales
   const calculateMetrics = () => {
     const boletasEmitidas = boletas.filter(b => b.boleta_estado === 'Emitido');
@@ -180,6 +212,17 @@ const DashboardPage: React.FC = () => {
 
   // Calcular ventas por categoría
   const getVentasPorCategoria = () => {
+    // Si tenemos datos del reporte, usamos esos, sino calculamos manualmente
+    if (ventasPorCategoriaReporte.length > 0) {
+      const totalVentas = ventasPorCategoriaReporte.reduce((sum, cat) => sum + parseFloat(cat.total_vendido), 0);
+      
+      return ventasPorCategoriaReporte.slice(0, 5).map(categoria => ({
+        name: categoria.cat_nombre,
+        value: totalVentas > 0 ? Math.round((parseFloat(categoria.total_vendido) / totalVentas) * 100) : 0
+      }));
+    }
+
+    // Fallback al cálculo manual si no hay datos del reporte
     const categorias = new Map();
     let totalVentas = 0;
 
@@ -213,6 +256,19 @@ const DashboardPage: React.FC = () => {
 
   // Calcular productos más vendidos
   const getProductosMasVendidos = () => {
+    // Si tenemos datos del reporte, usamos esos, sino calculamos manualmente
+    if (topProductosReporte.length > 0) {
+      return topProductosReporte.slice(0, 5).map(producto => ({
+        id: producto.pro_id,
+        nombre: producto.pro_nombre,
+        ventas: producto.cantidad_vendida,
+        ingreso: producto.total_vendido,
+        stock: producto.pro_stock || 0, // Usar el stock del procedimiento almacenado
+        sku: producto.pro_id
+      }));
+    }
+
+    // Fallback al cálculo manual si no hay datos del reporte
     const productosConVentas = productos.map(producto => {
       const ventasCount = boletas
         .filter(b => b.boleta_estado === 'Emitido' && b.pedido?.detalles)
@@ -460,12 +516,37 @@ const DashboardPage: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {productosMasVendidos.map((producto) => (
-                        <tr key={producto.id} className="border-b hover:bg-muted/50">
+                      {productosMasVendidos.map((producto, index) => (
+                        <tr key={`producto-vendido-${producto.id}-${index}`} className="border-b hover:bg-muted/50">
                           <td className="py-3">
                             <div className="flex items-center">
-                              <div className="w-10 h-10 rounded-md bg-gray-200 mr-3 flex items-center justify-center">
-                                <Package className="h-5 w-5 text-gray-400" />
+                              <div className="w-12 h-12 rounded-lg bg-gray-200 mr-3 flex items-center justify-center overflow-hidden border">
+                                {(() => {
+                                  // Si tenemos imagen del reporte, la usamos directamente
+                                  const imagenDelReporte = topProductosReporte.find(p => p.pro_id === producto.id)?.prod_imagen;
+                                  
+                                  if (imagenDelReporte) {
+                                    return (
+                                      <img
+                                        src={imagenDelReporte}
+                                        alt={producto.nombre}
+                                        className="w-full h-full object-cover"
+                                      />
+                                    );
+                                  }
+                                  
+                                  // Fallback: buscar en productos locales
+                                  const productoCompleto = productos.find(p => p.prod_id === producto.id);
+                                  return productoCompleto?.detalles?.prod_imagen ? (
+                                    <img
+                                      src={productoCompleto.detalles.prod_imagen}
+                                      alt={producto.nombre}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <Package className="h-6 w-6 text-gray-400" />
+                                  );
+                                })()}
                               </div>
                               <div>
                                 <div className="font-medium">{producto.nombre}</div>
@@ -521,7 +602,7 @@ const DashboardPage: React.FC = () => {
                       dataKey="value"
                     >
                       {ventasPorCategoria.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        <Cell key={`cell-categoria-${index}-${entry.name}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
                     <Tooltip formatter={(value) => [`${value}%`, 'Porcentaje']} />
@@ -532,7 +613,7 @@ const DashboardPage: React.FC = () => {
                 {ventasPorCategoria.length > 0 ? (
                   <ul className="space-y-1">
                     {ventasPorCategoria.map((item, index) => (
-                      <li key={index} className="flex items-center text-sm">
+                      <li key={`categoria-legend-${index}-${item.name}`} className="flex items-center text-sm">
                         <span className="h-3 w-3 rounded-full mr-2" style={{ backgroundColor: COLORS[index % COLORS.length] }}></span>
                         {item.name}: {item.value}%
                       </li>
@@ -572,8 +653,8 @@ const DashboardPage: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {inventarioBajo.map((item) => (
-                        <tr key={item.id} className="border-b hover:bg-muted/50">
+                      {inventarioBajo.map((item, index) => (
+                        <tr key={`inventario-bajo-${item.id}-${index}`} className="border-b hover:bg-muted/50">
                           <td className="py-3">
                             <div>
                               <div className="font-medium">{item.nombre}</div>
@@ -629,8 +710,8 @@ const DashboardPage: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {ultimosPedidos.map((pedido) => (
-                        <tr key={pedido.id} className="border-b hover:bg-muted/50">
+                      {ultimosPedidos.map((pedido, index) => (
+                        <tr key={`pedido-reciente-${pedido.id}-${index}`} className="border-b hover:bg-muted/50">
                           <td className="py-3">
                             <div className="font-medium">{pedido.id}</div>
                             <div className="text-xs text-muted-foreground">{pedido.items} items</div>
