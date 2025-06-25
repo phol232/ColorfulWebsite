@@ -56,6 +56,7 @@ interface Cliente {
   cli_estado?: string;
   cli_rfc?: string;
   cli_notas?: string;
+  cli_fecha_registro?: string;
   created_at: string;
   updated_at: string;
   categorias: CategoriaCliente[];
@@ -91,12 +92,14 @@ const defaultForm: FormData = {
   cli_cat_id: ""
 };
 
-// Función para formatear fechas
+// Función para formatear fechas (solo fecha, sin hora)
 const formatDate = (dateString: string) => {
   if (!dateString) return 'No disponible';
   
   try {
-    const date = new Date(dateString);
+    // Si viene con formato de datetime del backend, tomar solo la parte de fecha
+    const datePart = dateString.includes(' ') ? dateString.split(' ')[0] : dateString;
+    const date = new Date(datePart);
     
     // Verificar si la fecha es válida
     if (isNaN(date.getTime())) {
@@ -578,7 +581,7 @@ const CustomersPage: React.FC = () => {
                           <div>
                             <div className="text-sm text-gray-500">Registrado</div>
                             <div className="font-semibold text-sm">
-                              {formatDate(cliente.created_at)}
+                              {formatDate(cliente.cli_fecha_registro || "")}
                             </div>
                           </div>
                           
