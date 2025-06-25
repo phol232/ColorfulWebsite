@@ -122,10 +122,14 @@ const DashboardPage: React.FC = () => {
 
   // Calcular métricas principales
   const calculateMetrics = () => {
-    const boletasEmitidas = boletas.filter(b => b.boleta_estado === 'Emitido');
+    // Usar comparación case-insensitive para boletas emitidas
+    const boletasEmitidas = boletas.filter(b => b.boleta_estado?.toLowerCase() === 'emitido');
     const totalVentas = boletasEmitidas.reduce((sum, b) => sum + parseFloat(b.boleta_total || 0), 0);
-    const ordenesCompletadas = boletasEmitidas.length;
-    const ticketPromedio = ordenesCompletadas > 0 ? totalVentas / ordenesCompletadas : 0;
+    
+    // Para órdenes completadas, usar pedidos con estado "completado"
+    const ordenesCompletadas = pedidos.filter(p => p.ped_estado?.toLowerCase() === 'completado').length;
+    
+    const ticketPromedio = boletasEmitidas.length > 0 ? totalVentas / boletasEmitidas.length : 0;
 
     // Calcular clientes únicos
     const clientesUnicos = new Set(
@@ -150,7 +154,8 @@ const DashboardPage: React.FC = () => {
       ventasTotales: totalVentas,
       ordenesCompletadas,
       ticketPromedio,
-      clientesRecurrentes: porcentajeRecurrentes
+      clientesRecurrentes: porcentajeRecurrentes,
+      boletasEmitidas: boletasEmitidas.length
     };
   };
 
@@ -167,7 +172,7 @@ const DashboardPage: React.FC = () => {
 
       const ventasSemana = boletas
         .filter(b => {
-          if (b.boleta_estado !== 'Emitido') return false;
+          if (b.boleta_estado?.toLowerCase() !== 'emitido') return false;
           const fechaBoleta = new Date(b.boleta_fecha);
           return fechaBoleta >= inicioSemana && fechaBoleta <= finSemana;
         })
@@ -195,7 +200,7 @@ const DashboardPage: React.FC = () => {
 
       const gananciasMes = boletas
         .filter(b => {
-          if (b.boleta_estado !== 'Emitido') return false;
+          if (b.boleta_estado?.toLowerCase() !== 'emitido') return false;
           const fechaBoleta = new Date(b.boleta_fecha);
           return fechaBoleta.getMonth() === mes && fechaBoleta.getFullYear() === año;
         })
@@ -227,7 +232,7 @@ const DashboardPage: React.FC = () => {
     let totalVentas = 0;
 
     boletas
-      .filter(b => b.boleta_estado === 'Emitido' && b.pedido?.detalles)
+      .filter(b => b.boleta_estado?.toLowerCase() === 'emitido' && b.pedido?.detalles)
       .forEach(boleta => {
         boleta.pedido.detalles.forEach((detalle: any) => {
           const producto = productos.find(p => p.prod_id === detalle.prod_id);
@@ -271,14 +276,14 @@ const DashboardPage: React.FC = () => {
     // Fallback al cálculo manual si no hay datos del reporte
     const productosConVentas = productos.map(producto => {
       const ventasCount = boletas
-        .filter(b => b.boleta_estado === 'Emitido' && b.pedido?.detalles)
+        .filter(b => b.boleta_estado?.toLowerCase() === 'emitido' && b.pedido?.detalles)
         .reduce((count, boleta) => {
           const detalle = boleta.pedido.detalles.find((d: any) => d.prod_id === producto.prod_id);
           return count + (detalle ? detalle.det_cantidad : 0);
         }, 0);
 
       const ingresos = boletas
-        .filter(b => b.boleta_estado === 'Emitido' && b.pedido?.detalles)
+        .filter(b => b.boleta_estado?.toLowerCase() === 'emitido' && b.pedido?.detalles)
         .reduce((total, boleta) => {
           const detalle = boleta.pedido.detalles.find((d: any) => d.prod_id === producto.prod_id);
           return total + (detalle ? detalle.det_cantidad * detalle.det_precio : 0);
@@ -382,7 +387,7 @@ const DashboardPage: React.FC = () => {
         </div>
 
         {/* Resumen de Métricas */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Ventas Totales</CardTitle>
@@ -408,7 +413,7 @@ const DashboardPage: React.FC = () => {
                 <div className="text-2xl font-bold">{metrics.ordenesCompletadas}</div>
               </div>
               <p className="text-xs text-muted-foreground mt-2">
-                <span className="text-green-500">↑ Total</span> de boletas emitidas
+                <span className="text-green-500">↑ Total</span> de pedidos completados
               </p>
             </CardContent>
           </Card>
@@ -439,6 +444,21 @@ const DashboardPage: React.FC = () => {
               </div>
               <p className="text-xs text-muted-foreground mt-2">
                 <span className="text-purple-500">→ Porcentaje</span> de clientes que repiten
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Boletas Emitidas</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center">
+                <DollarSign className="mr-2 h-4 w-4 text-primary" />
+                <div className="text-2xl font-bold">{metrics.boletasEmitidas}</div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                <span className="text-blue-500">→ Total</span> de boletas emitidas
               </p>
             </CardContent>
           </Card>

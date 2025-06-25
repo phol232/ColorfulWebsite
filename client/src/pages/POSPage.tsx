@@ -300,6 +300,42 @@ const POSPage: React.FC = () => {
     }
   };
 
+  const addToCartPOS = (producto: Producto) => {
+    const existingItem = cart.find(item => item.prod_id === producto.pro_id);
+    const stockActual = producto.pro_stock || 0;
+
+    if (stockActual <= 0) {
+      toast({
+        title: "Sin stock",
+        description: "Este producto no tiene stock disponible",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (existingItem) {
+      if (existingItem.cantidad >= stockActual) {
+        toast({
+          title: "Stock insuficiente",
+          description: `Solo hay ${stockActual} unidades disponibles`,
+          variant: "destructive",
+        });
+        return;
+      }
+      setCart(cart.map(item =>
+          item.prod_id === producto.pro_id
+              ? { ...item, cantidad: item.cantidad + 1 }
+              : item
+      ));
+    } else {
+      setCart([...cart, {
+        prod_id: producto.pro_id,
+        cantidad: 1,
+        precio_unitario: producto.pro_precio_venta
+      }]);
+    }
+  };
+
   return (
       <MainLayout>
         <div className="flex h-[calc(100vh-64px)]">
@@ -488,7 +524,7 @@ const POSPage: React.FC = () => {
           </div>
 
           {/* Columna derecha - Carrito */}
-          <div className="w-[360px] border-l border-gray-200 bg-white flex flex-col h-full">
+          <div className="w-[480px] border-l border-gray-200 bg-white flex flex-col h-full">
             {/* Encabezado del ticket */}
             <div className="border-b border-gray-200 p-4">
               <div className="flex justify-between items-center mb-4">
@@ -765,7 +801,7 @@ const POSPage: React.FC = () => {
                                   key={producto.pro_id}
                                   className="p-2 hover:bg-gray-50 cursor-pointer border-b last:border-b-0 flex items-center gap-2"
                                   onClick={() => {
-                                    addToCart(producto);
+                                    addToCartPOS(producto);
                                     setSearchTerm("");
                                   }}
                               >
