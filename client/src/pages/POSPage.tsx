@@ -38,6 +38,7 @@ import { useUserId } from "@/hooks/useUserId";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useCart } from "@/context/CartContext";
 
 // Interface para productos
 interface Producto {
@@ -65,7 +66,7 @@ interface Category {
   cat_descripcion?: string;
 }
 
-interface CartItem {
+interface POSCartItem {
   prod_id: string;
   cantidad: number;
   precio_unitario: number;
@@ -81,7 +82,7 @@ interface Cliente {
 const POSPage: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<string>("");
   const [activeOrderTab, setActiveOrderTab] = useState<string>("dineIn");
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [posCart, setPosCart] = useState<POSCartItem[]>([]);
   const [isOrderDialogOpen, setIsOrderDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [clienteSearch, setClienteSearch] = useState("");
@@ -91,6 +92,7 @@ const POSPage: React.FC = () => {
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
 
   const { toast } = useToast();
+  const { cartItems, addToCart: addToGlobalCart, removeFromCart, updateQuantity: updateGlobalQuantity, clearCart } = useCart();
 
   // Obtener ID del usuario logueado usando el hook
   const userId = useUserId();
@@ -154,8 +156,7 @@ const POSPage: React.FC = () => {
     return matchesSearch && matchesCategory;
   });
 
-  const addToCart = (producto: Producto) => {
-    const existingItem = cart.find(item => item.prod_id === producto.pro_id);
+  const addToPOSCart = (producto: Producto) => {
     const stockActual = producto.pro_stock || 0;
 
     if (stockActual <= 0) {
@@ -167,36 +168,23 @@ const POSPage: React.FC = () => {
       return;
     }
 
-    if (existingItem) {
-      if (existingItem.cantidad >= stockActual) {
-        toast({
-          title: "Stock insuficiente",
-          description: `Solo hay ${stockActual} unidades disponibles`,
-          variant: "destructive",
-        });
-        return;
-      }
-      setCart(cart.map(item =>
-          item.prod_id === producto.pro_id
-              ? { ...item, cantidad: item.cantidad + 1 }
-              : item
-      ));
-    } else {
-      setCart([...cart, {
-        prod_id: producto.pro_id,
-        cantidad: 1,
-        precio_unitario: producto.pro_precio_venta
-      }]);
-    }
+    // Usar el contexto global del carrito
+    addToGlobalCart({
+      id: parseInt(producto.pro_id),
+      name: producto.pro_nombre,
+      price: producto.pro_precio_venta,
+      image: producto.detalles?.prod_imagen || '',
+      quantity: 1
+    });
   };
 
-  const removeFromCart = (prod_id: string) => {
-    setCart(cart.filter(item => item.prod_id !== prod_id));
+  const removeFromPOSCart = (prod_id: string) => {
+    removeFromCart(parseInt(prod_id));
   };
 
-  const updateQuantity = (prod_id: string, newQuantity: number) => {
+  const updatePOSQuantity = (prod_id: string, newQuantity: number) => {
     if (newQuantity <= 0) {
-      removeFromCart(prod_id);
+      removeFromPOSCart(prod_id);
       return;
     }
 
@@ -212,19 +200,16 @@ const POSPage: React.FC = () => {
       return;
     }
 
-    setCart(cart.map(item =>
-        item.prod_id === prod_id
-            ? { ...item, cantidad: newQuantity }
-            : item
-    ));
+    updateGlobalQuantity(parseInt(prod_id), newQuantity);
   };
 
-  const subtotal = cart.reduce((sum, item) => sum + (item.precio_unitario * item.cantidad), 0);
+  // Calcular totales desde el contexto global
+  const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const tax = subtotal * 0.18;
   const total = subtotal + tax;
 
   const handleCreateOrder = async () => {
-    if (cart.length === 0) {
+    if (cartItems.length === 0) {
       toast({
         title: "Carrito vacío",
         description: "Agrega productos al carrito antes de crear el pedido",
@@ -251,10 +236,10 @@ const POSPage: React.FC = () => {
         usr_id: userId,
         forma_entrega: formaEntrega,
         notas: notas.trim() || null,
-        items: cart.map(item => ({
-          prod_id: item.prod_id,
-          cantidad: item.cantidad,
-          precio_unitario: item.precio_unitario
+        items: cartItems.map(item => ({
+          prod_id: item.id.toString(),
+          cantidad: item.quantity,
+          precio_unitario: item.price
         }))
       };
 
@@ -281,7 +266,7 @@ const POSPage: React.FC = () => {
 
       refetchProducts();
 
-      setCart([]);
+      clearCart();
       setIsOrderDialogOpen(false);
       setSelectedCliente(null);
       setClienteSearch("");
@@ -300,41 +285,7 @@ const POSPage: React.FC = () => {
     }
   };
 
-  const addToCartPOS = (producto: Producto) => {
-    const existingItem = cart.find(item => item.prod_id === producto.pro_id);
-    const stockActual = producto.pro_stock || 0;
-
-    if (stockActual <= 0) {
-      toast({
-        title: "Sin stock",
-        description: "Este producto no tiene stock disponible",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (existingItem) {
-      if (existingItem.cantidad >= stockActual) {
-        toast({
-          title: "Stock insuficiente",
-          description: `Solo hay ${stockActual} unidades disponibles`,
-          variant: "destructive",
-        });
-        return;
-      }
-      setCart(cart.map(item =>
-          item.prod_id === producto.pro_id
-              ? { ...item, cantidad: item.cantidad + 1 }
-              : item
-      ));
-    } else {
-      setCart([...cart, {
-        prod_id: producto.pro_id,
-        cantidad: 1,
-        precio_unitario: producto.pro_precio_venta
-      }]);
-    }
-  };
+  
 
   return (
       <MainLayout>
@@ -423,7 +374,7 @@ const POSPage: React.FC = () => {
             <div className="grid grid-cols-5 gap-3 max-h-[calc(100vh-300px)] overflow-y-auto"
                  style={{ gridTemplateRows: 'repeat(2, 1fr)' }}>
               {!loadingProducts && filteredProducts.slice(0, 10).map((producto) => {
-                const cartItem = cart.find(item => item.prod_id === producto.pro_id);
+                const cartItem = cartItems.find(item => item.id === parseInt(producto.pro_id));
                 return (
                     <Card
                         key={producto.pro_id}
@@ -471,17 +422,17 @@ const POSPage: React.FC = () => {
                               <div className="flex items-center justify-center border rounded bg-primary bg-opacity-10 border-primary p-0.5">
                                 <button
                                     className="p-1 text-primary hover:bg-primary hover:bg-opacity-20 rounded transition-colors"
-                                    onClick={() => updateQuantity(producto.pro_id, cartItem.cantidad - 1)}
+                                    onClick={() => updatePOSQuantity(producto.pro_id, cartItem.quantity - 1)}
                                 >
                                   <Minus className="h-3 w-3" />
                                 </button>
                                 <span className="px-2 py-1 text-xs font-bold min-w-[2rem] text-center">
-                                  {cartItem.cantidad}
+                                  {cartItem.quantity}
                                 </span>
                                 <button
                                     className="p-1 text-primary hover:bg-primary hover:bg-opacity-20 rounded transition-colors"
-                                    disabled={(producto.pro_stock || 0) <= cartItem.cantidad}
-                                    onClick={() => updateQuantity(producto.pro_id, cartItem.cantidad + 1)}
+                                    disabled={(producto.pro_stock || 0) <= cartItem.quantity}
+                                    onClick={() => updatePOSQuantity(producto.pro_id, cartItem.quantity + 1)}
                                 >
                                   <Plus className="h-3 w-3" />
                                 </button>
@@ -492,7 +443,7 @@ const POSPage: React.FC = () => {
                                   variant="outline"
                                   className="w-full h-7 text-xs font-medium bg-green-100 hover:bg-green-200 text-green-700 hover:text-green-800 border-green-300 transition-all"
                                   disabled={(producto.pro_stock || 0) <= 0}
-                                  onClick={() => addToCart(producto)}
+                                  onClick={() => addToPOSCart(producto)}
                               >
                                 {(producto.pro_stock || 0) <= 0 ? (
                                     <span className="flex items-center gap-1">
@@ -571,7 +522,7 @@ const POSPage: React.FC = () => {
 
             {/* Lista de productos en el carrito */}
             <div className="flex-1 overflow-auto p-4">
-              {cart.length === 0 ? (
+              {cartItems.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full py-6 text-center">
                     <ShoppingBag className="h-12 w-12 text-gray-300 mb-3" />
                     <p className="text-gray-500">El carrito está vacío</p>
@@ -579,10 +530,10 @@ const POSPage: React.FC = () => {
                   </div>
               ) : (
                   <div className="space-y-3">
-                    {cart.map((item) => {
-                      const producto = productos.find(p => p.pro_id === item.prod_id);
+                    {cartItems.map((item) => {
+                      const producto = productos.find(p => p.pro_id === item.id.toString());
                       return (
-                          <div key={item.prod_id} className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg">
+                          <div key={item.id} className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg">
                             <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
                               {producto?.detalles?.prod_imagen ? (
                                   <img
@@ -597,25 +548,25 @@ const POSPage: React.FC = () => {
                             <div className="flex-1">
                               <div className="flex justify-between">
                                 <h3 className="font-medium text-sm line-clamp-1">{producto?.pro_nombre}</h3>
-                                <button onClick={() => removeFromCart(item.prod_id)}>
+                                <button onClick={() => removeFromPOSCart(item.id.toString())}>
                                   <Trash2 className="h-4 w-4 text-gray-400 hover:text-red-500" />
                                 </button>
                               </div>
                               <div className="flex justify-between items-center mt-2">
                                 <div className="text-primary font-bold text-sm">
-                                  {formatCurrency(item.precio_unitario)}
+                                  {formatCurrency(item.price)}
                                 </div>
                                 <div className="flex items-center border rounded-md">
                                   <button
                                       className="px-2 py-1 text-gray-500"
-                                      onClick={() => updateQuantity(item.prod_id, item.cantidad - 1)}
+                                      onClick={() => updatePOSQuantity(item.id.toString(), item.quantity - 1)}
                                   >
                                     <Minus className="h-3 w-3" />
                                   </button>
-                                  <span className="px-2 py-1 text-sm font-medium">{item.cantidad}</span>
+                                  <span className="px-2 py-1 text-sm font-medium">{item.quantity}</span>
                                   <button
                                       className="px-2 py-1 text-gray-500"
-                                      onClick={() => updateQuantity(item.prod_id, item.cantidad + 1)}
+                                      onClick={() => updatePOSQuantity(item.id.toString(), item.quantity + 1)}
                                   >
                                     <Plus className="h-3 w-3" />
                                   </button>
@@ -623,7 +574,7 @@ const POSPage: React.FC = () => {
                               </div>
                               <div className="text-right mt-1">
                           <span className="font-semibold text-sm">
-                            {formatCurrency(item.precio_unitario * item.cantidad)}
+                            {formatCurrency(item.price * item.quantity)}
                           </span>
                               </div>
                             </div>
@@ -656,7 +607,7 @@ const POSPage: React.FC = () => {
               <Button
                   className="w-full h-12 mt-4 bg-green-600 hover:bg-green-700 text-white font-bold"
                   onClick={() => setIsOrderDialogOpen(true)}
-                  disabled={cart.length === 0}
+                  disabled={cartItems.length === 0}
               >
                 <Receipt className="h-4 w-4 mr-2" />
                 Crear Pedido
@@ -801,7 +752,7 @@ const POSPage: React.FC = () => {
                                   key={producto.pro_id}
                                   className="p-2 hover:bg-gray-50 cursor-pointer border-b last:border-b-0 flex items-center gap-2"
                                   onClick={() => {
-                                    addToCartPOS(producto);
+                                    addToPOSCart(producto);
                                     setSearchTerm("");
                                   }}
                               >
@@ -841,23 +792,23 @@ const POSPage: React.FC = () => {
                     <div className="flex justify-between items-center mb-3">
                       <h5 className="font-medium text-sm text-gray-700">Productos en el Carrito</h5>
                       <Badge variant="outline" className="bg-primary text-white px-2 py-1 text-xs">
-                        {cart.length} {cart.length === 1 ? 'producto' : 'productos'}
+                        {cartItems.length} {cartItems.length === 1 ? 'producto' : 'productos'}
                       </Badge>
                     </div>
 
                     <div className="flex-1 overflow-hidden">
                       <div className="max-h-[360px] overflow-y-auto space-y-2 pr-1">
-                        {cart.length === 0 ? (
+                        {cartItems.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-32 py-6 text-center">
                               <ShoppingBag className="h-8 w-8 text-gray-300 mb-2" />
                               <p className="text-gray-500 font-medium text-sm">El carrito está vacío</p>
                               <p className="text-xs text-gray-400 mt-1">Busca productos arriba para agregarlos</p>
                             </div>
                         ) : (
-                            cart.map((item) => {
-                              const producto = productos.find(p => p.pro_id === item.prod_id);
+                            cartItems.map((item) => {
+                              const producto = productos.find(p => p.pro_id === item.id.toString());
                               return (
-                                  <div key={item.prod_id} className="flex items-center gap-3 bg-gray-50 border rounded-lg p-3 hover:shadow-sm transition-shadow">
+                                  <div key={item.id} className="flex items-center gap-3 bg-gray-50 border rounded-lg p-3 hover:shadow-sm transition-shadow">
                                     <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center flex-shrink-0">
                                       {producto?.detalles?.prod_imagen ? (
                                           <img
@@ -873,7 +824,7 @@ const POSPage: React.FC = () => {
                                       <div className="flex justify-between items-start">
                                         <h3 className="font-medium text-sm line-clamp-1 flex-1">{producto?.pro_nombre}</h3>
                                         <button
-                                            onClick={() => removeFromCart(item.prod_id)}
+                                            onClick={() => removeFromPOSCart(item.id.toString())}
                                             className="text-red-500 hover:text-red-700 ml-2 p-1 flex-shrink-0"
                                         >
                                           <X className="h-4 w-4" />
@@ -881,19 +832,19 @@ const POSPage: React.FC = () => {
                                       </div>
                                       <div className="flex justify-between items-center mt-2">
                                         <div className="text-primary font-bold text-sm">
-                                          {formatCurrency(item.precio_unitario)}
+                                          {formatCurrency(item.price)}
                                         </div>
                                         <div className="flex items-center border rounded">
                                           <button
                                               className="px-2 py-1 text-gray-500 hover:bg-gray-100 transition-colors"
-                                              onClick={() => updateQuantity(item.prod_id, item.cantidad - 1)}
+                                              onClick={() => updatePOSQuantity(item.id.toString(), item.quantity - 1)}
                                           >
                                             <Minus className="h-3 w-3" />
                                           </button>
-                                          <span className="px-3 py-1 font-medium text-sm min-w-[40px] text-center">{item.cantidad}</span>
+                                          <span className="px-3 py-1 font-medium text-sm min-w-[40px] text-center">{item.quantity}</span>
                                           <button
                                               className="px-2 py-1 text-gray-500 hover:bg-gray-100 transition-colors"
-                                              onClick={() => updateQuantity(item.prod_id, item.cantidad + 1)}
+                                              onClick={() => updatePOSQuantity(item.id.toString(), item.quantity + 1)}
                                           >
                                             <Plus className="h-3 w-3" />
                                           </button>
@@ -901,7 +852,7 @@ const POSPage: React.FC = () => {
                                       </div>
                                       <div className="text-right mt-1">
                                 <span className="font-semibold text-sm text-green-600">
-                                  {formatCurrency(item.precio_unitario * item.cantidad)}
+                                  {formatCurrency(item.price * item.quantity)}
                                 </span>
                                       </div>
                                     </div>
@@ -929,11 +880,11 @@ const POSPage: React.FC = () => {
                     {/* Estadísticas rápidas */}
                     <div className="grid grid-cols-3 gap-2">
                       <div className="text-center p-2 bg-white rounded border shadow-sm">
-                        <div className="text-xl font-bold text-primary">{cart.length}</div>
+                        <div className="text-xl font-bold text-primary">{cartItems.length}</div>
                         <div className="text-xs text-gray-600">Items</div>
                       </div>
                       <div className="text-center p-2 bg-white rounded border shadow-sm">
-                        <div className="text-xl font-bold text-blue-600">{cart.reduce((sum, item) => sum + item.cantidad, 0)}</div>
+                        <div className="text-xl font-bold text-blue-600">{cartItems.reduce((sum, item) => sum + item.quantity, 0)}</div>
                         <div className="text-xs text-gray-600">Unidades</div>
                       </div>
                       <div className="text-center p-2 bg-white rounded border shadow-sm">
@@ -991,7 +942,7 @@ const POSPage: React.FC = () => {
                     </Button>
                     <Button
                         onClick={handleCreateOrder}
-                        disabled={isCreatingOrder || cart.length === 0}
+                        disabled={isCreatingOrder || cartItems.length === 0}
                         className="h-11 text-sm bg-green-600 hover:bg-green-700 font-bold flex-1"
                     >
                       {isCreatingOrder ? "Procesando..." : "Confirmar Pedido"}
