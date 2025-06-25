@@ -1,4 +1,3 @@
-
 import React from "react";
 import MainLayout from "@/components/layouts/MainLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -95,7 +94,7 @@ const DashboardPage: React.FC = () => {
     const totalVentas = boletasEmitidas.reduce((sum, b) => sum + parseFloat(b.boleta_total || 0), 0);
     const ordenesCompletadas = boletasEmitidas.length;
     const ticketPromedio = ordenesCompletadas > 0 ? totalVentas / ordenesCompletadas : 0;
-    
+
     // Calcular clientes únicos
     const clientesUnicos = new Set(
       boletasEmitidas
@@ -111,7 +110,7 @@ const DashboardPage: React.FC = () => {
         clientesContador.set(b.pedido.cli_id, count + 1);
       }
     });
-    
+
     const clientesRecurrentes = Array.from(clientesContador.values()).filter(count => count > 1).length;
     const porcentajeRecurrentes = clientesUnicos > 0 ? (clientesRecurrentes / clientesUnicos) * 100 : 0;
 
@@ -127,13 +126,13 @@ const DashboardPage: React.FC = () => {
   const getVentasPorSemana = () => {
     const semanas = [];
     const ahora = new Date();
-    
+
     for (let i = 4; i >= 0; i--) {
       const inicioSemana = new Date(ahora);
       inicioSemana.setDate(ahora.getDate() - (i * 7));
       const finSemana = new Date(inicioSemana);
       finSemana.setDate(inicioSemana.getDate() + 6);
-      
+
       const ventasSemana = boletas
         .filter(b => {
           if (b.boleta_estado !== 'Emitido') return false;
@@ -147,7 +146,7 @@ const DashboardPage: React.FC = () => {
         ventas: Math.round(ventasSemana)
       });
     }
-    
+
     return semanas;
   };
 
@@ -156,12 +155,12 @@ const DashboardPage: React.FC = () => {
     const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
     const ganancias = [];
     const ahora = new Date();
-    
+
     for (let i = 6; i >= 0; i--) {
       const fecha = new Date(ahora.getFullYear(), ahora.getMonth() - i, 1);
       const mes = fecha.getMonth();
       const año = fecha.getFullYear();
-      
+
       const gananciasMes = boletas
         .filter(b => {
           if (b.boleta_estado !== 'Emitido') return false;
@@ -175,7 +174,7 @@ const DashboardPage: React.FC = () => {
         ganancias: Math.round(gananciasMes)
       });
     }
-    
+
     return ganancias;
   };
 
@@ -192,7 +191,7 @@ const DashboardPage: React.FC = () => {
           if (producto && producto.categoria) {
             const catNombre = producto.categoria.cat_nombre || 'Sin categoría';
             const ventaTotal = detalle.det_cantidad * detalle.det_precio;
-            
+
             if (categorias.has(catNombre)) {
               categorias.set(catNombre, categorias.get(catNombre) + ventaTotal);
             } else {
@@ -281,6 +280,15 @@ const DashboardPage: React.FC = () => {
       }));
   };
 
+  // Función para formatear moneda
+  const formatCurrency = (amount: number) => {
+    return amount.toLocaleString('es-PE', {
+      style: 'currency',
+      currency: 'PEN',
+      minimumFractionDigits: 2
+    });
+  };
+
   const metrics = calculateMetrics();
   const ventasPorSemana = getVentasPorSemana();
   const gananciasPorMes = getGananciasPorMes();
@@ -333,7 +341,7 @@ const DashboardPage: React.FC = () => {
               </p>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Órdenes Completadas</CardTitle>
@@ -348,7 +356,7 @@ const DashboardPage: React.FC = () => {
               </p>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Ticket Promedio</CardTitle>
@@ -363,7 +371,7 @@ const DashboardPage: React.FC = () => {
               </p>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Clientes Recurrentes</CardTitle>
@@ -379,7 +387,7 @@ const DashboardPage: React.FC = () => {
             </CardContent>
           </Card>
         </div>
-        
+
         {/* Gráficos y Análisis */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <Card>
@@ -402,7 +410,7 @@ const DashboardPage: React.FC = () => {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader>
               <CardTitle>Tendencia de Ganancias</CardTitle>

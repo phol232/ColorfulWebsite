@@ -48,9 +48,9 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'
 
 // Función para formatear moneda
 const formatCurrency = (amount: number) => {
-  return amount.toLocaleString('es-ES', {
+  return amount.toLocaleString('es-PE', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'PEN',
     minimumFractionDigits: 2
   });
 };

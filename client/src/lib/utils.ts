@@ -17,9 +17,10 @@ export const categoryIcons = {
   chicken: "🍗",
 }
 
-export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
+export const formatCurrency = (amount: number) => {
+  return amount.toLocaleString('es-PE', {
     style: 'currency',
-    currency: 'USD',
-  }).format(amount);
-}
+    currency: 'PEN',
+    minimumFractionDigits: 2
+  });
+};
