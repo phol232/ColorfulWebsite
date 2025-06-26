@@ -2095,7 +2095,7 @@ const OrdersPage: React.FC = () => {
                                 ) : (
                                     <>
                                         <Receipt className="h-4 w-4 mr-2" />
-                                        Emitir Boleta (Local)
+                                        Emitir Boleta 
                                     </>
                                 )}
                             </Button>
