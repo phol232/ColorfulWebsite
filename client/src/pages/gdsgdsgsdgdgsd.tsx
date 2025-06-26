@@ -657,12 +657,11 @@ const OrdersPage: React.FC = () => {
             const data = await response.json();
             console.log('Boleta emitida exitosamente (solo local):', data);
 
-            // Mensaje de éxito siempre visible
             toast({
-                title: "✅ Boleta Emitida con Éxito",
-                description: `Boleta ${boletaNumero} emitida correctamente. Stock descontado y pedido completado.`,
-                duration: 8000,
-                className: "bg-green-50 border-green-200 text-green-800"
+                title: "✅ Boleta Registrada Localmente",
+                description: `Boleta ${boletaNumero} registrada correctamente en el sistema local. No se envió a SUNAT.`,
+                duration: 5000,
+                className: "bg-blue-50 border-blue-200 text-blue-800"
             });
 
             // Actualizar estado del pedido a "Completado"
@@ -682,10 +681,9 @@ const OrdersPage: React.FC = () => {
         } catch (error) {
             console.error('Error al emitir boleta local:', error);
             toast({
-                title: "Error al emitir boleta",
+                title: "Error",
                 description: error instanceof Error ? error.message : "Error al emitir la boleta local",
-                variant: "destructive",
-                duration: 6000
+                variant: "destructive"
             });
         } finally {
             setIsProcessingPayment(false);
@@ -745,8 +743,8 @@ const OrdersPage: React.FC = () => {
             if (sunatResponse?.success) {
                 console.log('Respuesta SUNAT exitosa:', sunatResponse);
                 toast({
-                    title: "✅ Boleta Emitida con SUNAT Exitosamente",
-                    description: `Boleta ${boletaNumero} emitida, validada y procesada correctamente en SUNAT. Stock descontado.`,
+                    title: "✅ BOLETA EMITIDA CON SUNAT EXITOSAMENTE",
+                    description: `Boleta ${boletaNumero} validada, registrada y procesada exitosamente en SUNAT mediante ApisPeru.`,
                     duration: 10000,
                     className: "bg-green-50 border-green-200 text-green-800"
                 });
@@ -2074,12 +2072,12 @@ const OrdersPage: React.FC = () => {
                                 {isProcessingPayment ? (
                                     <>
                                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                        Emitiendo Boleta...
+                                        Emitiendo Local...
                                     </>
                                 ) : (
                                     <>
                                         <Receipt className="h-4 w-4 mr-2" />
-                                        Emitir Boleta (Local)
+                                        Emitir Boleta
                                     </>
                                 )}
                             </Button>
