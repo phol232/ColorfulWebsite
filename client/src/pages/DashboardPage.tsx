@@ -52,7 +52,8 @@ const DashboardPage: React.FC = () => {
         }
       });
       if (!response.ok) throw new Error('Error fetching boletas');
-      return await response.json();
+      const data = await response.json();
+      return data.data || data;
     }
   });
 
@@ -68,7 +69,8 @@ const DashboardPage: React.FC = () => {
         }
       });
       if (!response.ok) throw new Error('Error fetching productos');
-      return await response.json();
+      const data = await response.json();
+      return data.data || data;
     }
   });
 
@@ -84,7 +86,8 @@ const DashboardPage: React.FC = () => {
         }
       });
       if (!response.ok) throw new Error('Error fetching pedidos');
-      return await response.json();
+      const data = await response.json();
+      return data.data || data;
     }
   });
 
@@ -123,12 +126,18 @@ const DashboardPage: React.FC = () => {
   // Calcular métricas principales
   const calculateMetrics = () => {
     // Usar comparación case-insensitive para boletas emitidas
-    const boletasEmitidas = boletas.filter(b => b.boleta_estado?.toLowerCase() === 'emitido');
+    const boletasEmitidas = boletas.filter(b => 
+      b.boleta_estado?.toLowerCase() === 'emitido' || 
+      b.boleta_estado?.toLowerCase() === 'emitida'
+    );
     const totalVentas = boletasEmitidas.reduce((sum, b) => sum + parseFloat(b.boleta_total || 0), 0);
-    
+
     // Para órdenes completadas, usar pedidos con estado "completado"
-    const ordenesCompletadas = pedidos.filter(p => p.ped_estado?.toLowerCase() === 'completado').length;
-    
+    const ordenesCompletadas = pedidos.filter(p => 
+      p.ped_estado?.toLowerCase() === 'completado' ||
+      p.ped_estado?.toLowerCase() === 'entregado'
+    ).length;
+
     const ticketPromedio = boletasEmitidas.length > 0 ? totalVentas / boletasEmitidas.length : 0;
 
     // Calcular clientes únicos
@@ -172,7 +181,7 @@ const DashboardPage: React.FC = () => {
 
       const ventasSemana = boletas
         .filter(b => {
-          if (b.boleta_estado?.toLowerCase() !== 'emitido') return false;
+          if (b.boleta_estado?.toLowerCase() !== 'emitido' && b.boleta_estado?.toLowerCase() !== 'emitida') return false;
           const fechaBoleta = new Date(b.boleta_fecha);
           return fechaBoleta >= inicioSemana && fechaBoleta <= finSemana;
         })
@@ -200,7 +209,7 @@ const DashboardPage: React.FC = () => {
 
       const gananciasMes = boletas
         .filter(b => {
-          if (b.boleta_estado?.toLowerCase() !== 'emitido') return false;
+          if (b.boleta_estado?.toLowerCase() !== 'emitido' && b.boleta_estado?.toLowerCase() !== 'emitida') return false;
           const fechaBoleta = new Date(b.boleta_fecha);
           return fechaBoleta.getMonth() === mes && fechaBoleta.getFullYear() === año;
         })
@@ -220,7 +229,7 @@ const DashboardPage: React.FC = () => {
     // Si tenemos datos del reporte, usamos esos, sino calculamos manualmente
     if (ventasPorCategoriaReporte.length > 0) {
       const totalVentas = ventasPorCategoriaReporte.reduce((sum, cat) => sum + parseFloat(cat.total_vendido), 0);
-      
+
       return ventasPorCategoriaReporte.slice(0, 5).map(categoria => ({
         name: categoria.cat_nombre,
         value: totalVentas > 0 ? Math.round((parseFloat(categoria.total_vendido) / totalVentas) * 100) : 0
@@ -232,7 +241,7 @@ const DashboardPage: React.FC = () => {
     let totalVentas = 0;
 
     boletas
-      .filter(b => b.boleta_estado?.toLowerCase() === 'emitido' && b.pedido?.detalles)
+      .filter(b => (b.boleta_estado?.toLowerCase() === 'emitido' || b.boleta_estado?.toLowerCase() === 'emitida') && b.pedido?.detalles)
       .forEach(boleta => {
         boleta.pedido.detalles.forEach((detalle: any) => {
           const producto = productos.find(p => p.prod_id === detalle.prod_id);
@@ -276,17 +285,17 @@ const DashboardPage: React.FC = () => {
     // Fallback al cálculo manual si no hay datos del reporte
     const productosConVentas = productos.map(producto => {
       const ventasCount = boletas
-        .filter(b => b.boleta_estado?.toLowerCase() === 'emitido' && b.pedido?.detalles)
+        .filter(b => (b.boleta_estado?.toLowerCase() === 'emitido' || b.boleta_estado?.toLowerCase() === 'emitida') && b.pedido?.detalles)
         .reduce((count, boleta) => {
           const detalle = boleta.pedido.detalles.find((d: any) => d.prod_id === producto.prod_id);
           return count + (detalle ? detalle.det_cantidad : 0);
         }, 0);
 
       const ingresos = boletas
-        .filter(b => b.boleta_estado?.toLowerCase() === 'emitido' && b.pedido?.detalles)
+        .filter(b => (b.boleta_estado?.toLowerCase() === 'emitido' || b.boleta_estado?.toLowerCase() === 'emitida') && b.pedido?.detalles)
         .reduce((total, boleta) => {
           const detalle = boleta.pedido.detalles.find((d: any) => d.prod_id === producto.prod_id);
-          return total + (detalle ? detalle.det_cantidad * detalle.det_precio : 0);
+          return total + (detalle ? detalle.det_cantidad * (detalle.det_precio_unitario || detalle.det_precio) : 0);
         }, 0);
 
       return {
@@ -544,7 +553,7 @@ const DashboardPage: React.FC = () => {
                                 {(() => {
                                   // Si tenemos imagen del reporte, la usamos directamente
                                   const imagenDelReporte = topProductosReporte.find(p => p.pro_id === producto.id)?.prod_imagen;
-                                  
+
                                   if (imagenDelReporte) {
                                     return (
                                       <img
@@ -554,7 +563,7 @@ const DashboardPage: React.FC = () => {
                                       />
                                     );
                                   }
-                                  
+
                                   // Fallback: buscar en productos locales
                                   const productoCompleto = productos.find(p => p.prod_id === producto.id);
                                   return productoCompleto?.detalles?.prod_imagen ? (
