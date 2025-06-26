@@ -607,11 +607,18 @@ const OrdersPage: React.FC = () => {
 
     // Función para emitir boleta LOCAL (solo crear en sistema, sin SUNAT)
     const handleEmitirBoleta = async () => {
-        if (!selectedOrder || pagosMetodos.length === 0) return;
-
         setIsProcessingPayment(true);
 
         try {
+            if (!selectedOrder) {
+                toast({
+                    title: "Error",
+                    description: "No hay pedido seleccionado para emitir boleta.",
+                    variant: "destructive"
+                });
+                setIsProcessingPayment(false);
+                return;
+            }
             // Preparar datos según el formato del controlador emitirBoleta (Route::post('facturacion/emitir'))
             const boletaPayload = {
                 boleta_numero: boletaNumero,
@@ -631,14 +638,23 @@ const OrdersPage: React.FC = () => {
                         fecha_pago: pago.fecha_pago,
                         nota_pago: pago.nota_pago
                     };
-                })
+                }),
+                pedido: {
+                    detalles: selectedOrder.detalles?.map(detalle => ({
+                        det_cantidad: detalle.det_cantidad,
+                        producto: {
+                            pro_id: detalle.prod_id,
+                            pro_nombre: detalle.producto?.pro_nombre || `Producto ${detalle.prod_id}`
+                        }
+                    })) || []
+                }
             };
 
-            console.log('=== EMITIENDO BOLETA LOCAL ÚNICAMENTE ===');
+            console.log('=== EMITIENDO BOLETA CON BACKEND LARAVEL ===');
             console.log('Ruta: api/facturacion/emitir');
             console.log('Payload para FacturacionController::emitirBoleta:', boletaPayload);
 
-            // Llamar ÚNICAMENTE a la ruta local de emitirBoleta
+            // Llamar al endpoint de tu backend Laravel
             const token = localStorage.getItem('token');
             const response = await fetch(`${API_URL}/api/facturacion/emitir`, {
                 method: 'POST',
@@ -655,7 +671,7 @@ const OrdersPage: React.FC = () => {
             }
 
             const data = await response.json();
-            console.log('Boleta emitida exitosamente (solo local):', data);
+            console.log('Boleta emitida exitosamente:', data);
 
             // Mensaje de éxito siempre visible
             toast({
@@ -680,10 +696,10 @@ const OrdersPage: React.FC = () => {
             queryClient.invalidateQueries({ queryKey: ['/api/boletas'] });
 
         } catch (error) {
-            console.error('Error al emitir boleta local:', error);
+            console.error('Error al emitir boleta:', error);
             toast({
                 title: "Error al emitir boleta",
-                description: error instanceof Error ? error.message : "Error al emitir la boleta local",
+                description: error instanceof Error ? error.message : "Error al emitir la boleta",
                 variant: "destructive",
                 duration: 6000
             });
@@ -878,7 +894,7 @@ const OrdersPage: React.FC = () => {
             nuevoEstado: newStatus
         });
 
-        // Usar la nueva ruta específica para actualizar solo el estado
+        
         updateStatusMutation.mutate({
             pedidoId: selectedOrder.ped_id,
             ped_estado: newStatus
@@ -1719,7 +1735,7 @@ const OrdersPage: React.FC = () => {
             {selectedOrder && (
                 <Dialog open={isStatusUpdateOpen} onOpenChange={setIsStatusUpdateOpen}>
                     <DialogContent className="sm:max-w-md">
-                        <DialogHeader>
+                    <DialogHeader>
                             <DialogTitle>Actualizar Estado del Pedido</DialogTitle>
                             <DialogDescription>
                                 Cambia el estado del pedido {selectedOrder.ped_id}
