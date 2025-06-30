@@ -7,6 +7,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { 
   Search,
   User,
@@ -30,7 +39,9 @@ import {
   Tag,
   X,
   Edit,
-  Trash2
+  Trash2,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
@@ -95,17 +106,17 @@ const defaultForm: FormData = {
 // Función para formatear fechas (solo fecha, sin hora)
 const formatDate = (dateString: string) => {
   if (!dateString) return 'No disponible';
-  
+
   try {
     // Si viene con formato de datetime del backend, tomar solo la parte de fecha
     const datePart = dateString.includes(' ') ? dateString.split(' ')[0] : dateString;
     const date = new Date(datePart);
-    
+
     // Verificar si la fecha es válida
     if (isNaN(date.getTime())) {
       return 'Fecha inválida';
     }
-    
+
     const options: Intl.DateTimeFormatOptions = { 
       year: 'numeric', 
       month: 'short', 
@@ -158,6 +169,10 @@ const CustomersPage: React.FC = () => {
   const [editingId, setEditingId] = useState<string>("");
   const [loading, setLoading] = useState(false);
   
+  // Estados de paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
+
   const { toast } = useToast();
 
   // Fetch clientes y categorías
@@ -218,12 +233,12 @@ const CustomersPage: React.FC = () => {
         !(cliente.cli_telefono || "").toLowerCase().includes(searchQuery.toLowerCase())) {
       return false;
     }
-    
+
     // Filtro por categoría
     if (categoryFilter && !cliente.categorias.some(cat => cat.cli_cat_nombre === categoryFilter)) {
       return false;
     }
-    
+
     // Filtro por pestaña
     if (currentTab === "inactivos" && cliente.cli_estado !== "Inactivo") {
       return false;
@@ -232,9 +247,33 @@ const CustomersPage: React.FC = () => {
     } else if (currentTab === "nuevos" && !cliente.categorias.some(cat => cat.cli_cat_nombre.toLowerCase() === "nuevo")) {
       return false;
     }
-    
+
     return true;
   });
+
+  // Lógica de paginación
+  const totalPages = Math.ceil(filteredClientes.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentClientes = filteredClientes.slice(startIndex, endIndex);
+
+  // Resetear página cuando cambien los filtros
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, categoryFilter, currentTab]);
+
+  // Funciones de navegación
+  const goToPage = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const goToPreviousPage = () => {
+    setCurrentPage(prev => Math.max(prev - 1, 1));
+  };
+
+  const goToNextPage = () => {
+    setCurrentPage(prev => Math.min(prev + 1, totalPages));
+  };
 
   // Crear cliente
   const handleCreate = async () => {
@@ -328,7 +367,7 @@ const CustomersPage: React.FC = () => {
   // Eliminar cliente
   const handleDelete = async () => {
     if (!selectedCustomer) return;
-    
+
     setLoading(true);
     try {
       const response = await fetch(`${API_URL}/api/clientes/${selectedCustomer.cli_id}`, {
@@ -404,7 +443,7 @@ const CustomersPage: React.FC = () => {
             <h1 className="text-3xl font-bold">CLIENTES</h1>
             <p className="text-sm text-gray-500">Administra la información de tus clientes</p>
           </div>
-          
+
           {/* Dashboard de métricas horizontal */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4 md:mt-0">
             <div className="bg-background border rounded-md p-2 shadow-sm">
@@ -414,7 +453,7 @@ const CustomersPage: React.FC = () => {
                 <span>+12% este mes</span>
               </div>
             </div>
-            
+
             <div className="bg-background border rounded-md p-2 shadow-sm">
               <div className="text-xs text-muted-foreground mb-1">Clientes Activos</div>
               <div className="text-base font-semibold">{clientesActivos}</div>
@@ -422,7 +461,7 @@ const CustomersPage: React.FC = () => {
                 <span>{retencionRate}% de retención</span>
               </div>
             </div>
-            
+
             <div className="bg-background border rounded-md p-2 shadow-sm">
               <div className="text-xs text-muted-foreground mb-1">Categorías</div>
               <div className="text-base font-semibold">{categorias.length}</div>
@@ -430,7 +469,7 @@ const CustomersPage: React.FC = () => {
                 <span>Disponibles</span>
               </div>
             </div>
-            
+
             <div className="bg-background border rounded-md p-2 shadow-sm">
               <div className="text-xs text-muted-foreground mb-1">Encontrados</div>
               <div className="text-base font-semibold">{filteredClientes.length}</div>
@@ -440,7 +479,7 @@ const CustomersPage: React.FC = () => {
             </div>
           </div>
         </div>
-        
+
         {/* Pestañas y Filtros */}
         <div className="mb-6">
           <Tabs value={currentTab} onValueChange={setCurrentTab}>
@@ -451,7 +490,7 @@ const CustomersPage: React.FC = () => {
               <TabsTrigger value="inactivos">Inactivos</TabsTrigger>
             </TabsList>
           </Tabs>
-          
+
           <div className="flex flex-col md:flex-row gap-4 mb-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -463,7 +502,7 @@ const CustomersPage: React.FC = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            
+
             <div className="flex gap-2">
               <select 
                 className="px-3 py-2 bg-white border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -477,7 +516,7 @@ const CustomersPage: React.FC = () => {
                   </option>
                 ))}
               </select>
-              
+
               <Button variant="outline" className="flex items-center gap-2" onClick={() => {
                 setSearchQuery("");
                 setCategoryFilter("");
@@ -486,7 +525,7 @@ const CustomersPage: React.FC = () => {
                 <RefreshCcw className="h-4 w-4" />
                 <span>Limpiar</span>
               </Button>
-              
+
               <Button 
                 className="flex items-center gap-2"
                 onClick={() => setIsCreateDialogOpen(true)}
@@ -497,11 +536,11 @@ const CustomersPage: React.FC = () => {
             </div>
           </div>
         </div>
-        
+
         {/* Lista de clientes */}
         <div className="mb-8">
           <h2 className="text-lg font-semibold mb-4">Listado de Clientes</h2>
-          
+
           {loading ? (
             <div className="p-8 text-center bg-white rounded-lg border border-gray-200">
               <p className="text-gray-500">Cargando clientes...</p>
@@ -524,10 +563,10 @@ const CustomersPage: React.FC = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredClientes.map(cliente => {
+              {currentClientes.map(cliente => {
                 const categoria = cliente.categorias[0]?.cli_cat_nombre || "Sin categoría";
                 const segmentoColor = getSegmentColor(categoria);
-                
+
                 return (
                   <Card key={cliente.cli_id} className="overflow-hidden hover:shadow-md transition-shadow">
                     <CardContent className="p-0">
@@ -550,12 +589,12 @@ const CustomersPage: React.FC = () => {
                             </div>
                           </div>
                         </div>
-                        
+
                         <Badge variant="outline" className={segmentoColor}>
                           {categoria}
                         </Badge>
                       </div>
-                      
+
                       {/* Información principal */}
                       <div className="p-4">
                         <div className="mb-3">
@@ -576,7 +615,7 @@ const CustomersPage: React.FC = () => {
                             </div>
                           )}
                         </div>
-                        
+
                         <div className="grid grid-cols-2 gap-4 mb-4">
                           <div>
                             <div className="text-sm text-gray-500">Registrado</div>
@@ -584,7 +623,7 @@ const CustomersPage: React.FC = () => {
                               {formatDate(cliente.cli_fecha_registro || "")}
                             </div>
                           </div>
-                          
+
                           <div>
                             <div className="text-sm text-gray-500">Estado</div>
                             <div className="font-semibold text-sm">
@@ -592,7 +631,7 @@ const CustomersPage: React.FC = () => {
                             </div>
                           </div>
                         </div>
-                        
+
                         {cliente.cli_tipo && (
                           <div className="grid grid-cols-1 gap-4 mb-4">
                             <div>
@@ -604,7 +643,7 @@ const CustomersPage: React.FC = () => {
                           </div>
                         )}
                       </div>
-                      
+
                       {/* Acciones */}
                       <div className="p-4 border-t flex justify-between">
                         <Button 
@@ -623,7 +662,7 @@ const CustomersPage: React.FC = () => {
                             </>
                           )}
                         </Button>
-                        
+
                         <div className="flex gap-1">
                           <Button 
                             variant="ghost" 
@@ -633,7 +672,7 @@ const CustomersPage: React.FC = () => {
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
-                          
+
                           <Button 
                             variant="ghost" 
                             size="sm"
@@ -647,12 +686,12 @@ const CustomersPage: React.FC = () => {
                           </Button>
                         </div>
                       </div>
-                      
+
                       {/* Panel expandible con detalles del cliente */}
                       {expandedCustomerId === cliente.cli_id && (
                         <div className="border-t p-4 bg-gray-50">
                           <h4 className="text-sm font-semibold mb-4">Información Adicional</h4>
-                          
+
                           <div className="space-y-2 text-sm">
                             {cliente.cli_genero && (
                               <div className="flex justify-between">
@@ -687,6 +726,59 @@ const CustomersPage: React.FC = () => {
               })}
             </div>
           )}
+
+          {/* Controles de Paginación */}
+          {filteredClientes.length > 0 && (
+            <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="text-sm text-gray-600">
+                Mostrando {startIndex + 1} a {Math.min(endIndex, filteredClientes.length)} de {filteredClientes.length} clientes
+              </div>
+              
+              {totalPages > 1 && (
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={goToPreviousPage}
+                        disabled={currentPage === 1}
+                        className="gap-1 pl-2.5"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                        Anterior
+                      </Button>
+                    </PaginationItem>
+                    
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <PaginationItem key={page}>
+                        <PaginationLink
+                          onClick={() => goToPage(page)}
+                          isActive={currentPage === page}
+                          className="cursor-pointer"
+                        >
+                          {page}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+                    
+                    <PaginationItem>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={goToNextPage}
+                        disabled={currentPage === totalPages}
+                        className="gap-1 pr-2.5"
+                      >
+                        Siguiente
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Modal de crear cliente */}
@@ -698,7 +790,7 @@ const CustomersPage: React.FC = () => {
                 Introduce los datos del nuevo cliente
               </DialogDescription>
             </DialogHeader>
-            
+
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <label htmlFor="nombre" className="text-right text-sm font-medium">
@@ -780,7 +872,7 @@ const CustomersPage: React.FC = () => {
                 </select>
               </div>
             </div>
-            
+
             <DialogFooter>
               <Button variant="outline" onClick={closeCreateDialog}>
                 Cancelar
@@ -801,7 +893,7 @@ const CustomersPage: React.FC = () => {
                 Modifica los datos del cliente
               </DialogDescription>
             </DialogHeader>
-            
+
             <div className="grid gap-6 py-4">
               {/* Primera fila - Información básica */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -976,7 +1068,7 @@ const CustomersPage: React.FC = () => {
                 />
               </div>
             </div>
-            
+
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
                 Cancelar
@@ -997,7 +1089,7 @@ const CustomersPage: React.FC = () => {
                 ¿Estás seguro de que deseas eliminar este cliente? Esta acción no se puede deshacer.
               </DialogDescription>
             </DialogHeader>
-            
+
             {selectedCustomer && (
               <div className="py-4">
                 <p className="text-sm">
@@ -1008,7 +1100,7 @@ const CustomersPage: React.FC = () => {
                 </p>
               </div>
             )}
-            
+
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
                 Cancelar

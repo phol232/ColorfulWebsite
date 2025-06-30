@@ -21,6 +21,15 @@ import {
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
   Search,
   RefreshCcw,
   PlusCircle,
@@ -30,7 +39,8 @@ import {
   Phone,
   Building,
   XCircle,
-  BadgeDollarSign,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { API_URL } from "@/config";
 
@@ -78,6 +88,10 @@ const SuppliersPage: React.FC = () => {
   const [form, setForm] = useState<any>({ ...defaultForm });
   const [editingId, setEditingId] = useState<string>("");
   const [successMessage, setSuccessMessage] = useState<string>("");
+  
+  // Estados de paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
   // Auto-clear success message after 3s
   useEffect(() => {
@@ -126,6 +140,30 @@ const SuppliersPage: React.FC = () => {
     if (currentTab === "inactivos" && p.prov_estado === "Activo") return false;
     return true;
   });
+
+  // Lógica de paginación
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentSuppliers = filtered.slice(startIndex, endIndex);
+
+  // Resetear página cuando cambien los filtros
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, categoryFilter, currentTab]);
+
+  // Funciones de navegación
+  const goToPage = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const goToPreviousPage = () => {
+    setCurrentPage(prev => Math.max(prev - 1, 1));
+  };
+
+  const goToNextPage = () => {
+    setCurrentPage(prev => Math.min(prev + 1, totalPages));
+  };
 
   const handleCreate = async () => {
     // Validar campos obligatorios
@@ -320,23 +358,6 @@ const SuppliersPage: React.FC = () => {
               {/* Left Column */}
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="prov_rfc" className="block text-sm font-medium">
-                    RUC *
-                  </label>
-                  <Input
-                    id="prov_rfc"
-                    value={form.prov_rfc}
-                    onChange={e => setForm({ ...form, prov_rfc: e.target.value })}
-                    pattern="[0-9]{11}"
-                    maxLength={11}
-                    placeholder="11 dígitos"
-                    required
-                  />
-                  {form.prov_rfc && form.prov_rfc.length !== 11 && (
-                    <p className="text-red-500 text-xs mt-1">El RUC debe tener exactamente 11 dígitos</p>
-                  )}
-                </div>
-                <div>
                   <label htmlFor="prov_nombre" className="block text-sm font-medium">
                     Nombre *
                   </label>
@@ -430,7 +451,23 @@ const SuppliersPage: React.FC = () => {
                     <option value="Inactivo">Inactivo</option>
                   </select>
                 </div>
-                
+                <div>
+                  <label htmlFor="prov_rfc" className="block text-sm font-medium">
+                    RUC *
+                  </label>
+                  <Input
+                    id="prov_rfc"
+                    value={form.prov_rfc}
+                    onChange={e => setForm({ ...form, prov_rfc: e.target.value })}
+                    pattern="[0-9]{11}"
+                    maxLength={11}
+                    placeholder="11 dígitos"
+                    required
+                  />
+                  {form.prov_rfc && form.prov_rfc.length !== 11 && (
+                    <p className="text-red-500 text-xs mt-1">El RUC debe tener exactamente 11 dígitos</p>
+                  )}
+                </div>
                 <div>
                   <label htmlFor="prov_sitio_web" className="block text-sm font-medium">
                     Sitio web
@@ -506,16 +543,13 @@ const SuppliersPage: React.FC = () => {
 
         {/* Supplier Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map(p => (
+          {currentSuppliers.map(p => (
             <Card key={p.prov_id} className="hover:shadow-lg transition">
               <CardHeader className="flex justify-between items-center">
                 <CardTitle>{p.prov_nombre}</CardTitle>
                 <Badge variant="outline">{p.prov_estado}</Badge>
               </CardHeader>
               <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-2 text-black-600">
-                  <BadgeDollarSign className="h-4 w-4" /> RUC: {p.prov_rfc}
-                </div>
                 <div className="flex items-center gap-2 mb-2 text-blue-600">
                   <Mail className="h-4 w-4" /> {p.prov_email}
                 </div>
@@ -568,6 +602,59 @@ const SuppliersPage: React.FC = () => {
           ))}
         </div>
 
+        {/* Controles de Paginación */}
+        {filtered.length > 0 && (
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-sm text-gray-600">
+              Mostrando {startIndex + 1} a {Math.min(endIndex, filtered.length)} de {filtered.length} proveedores
+            </div>
+            
+            {totalPages > 1 && (
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={goToPreviousPage}
+                      disabled={currentPage === 1}
+                      className="gap-1 pl-2.5"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Anterior
+                    </Button>
+                  </PaginationItem>
+                  
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <PaginationItem key={page}>
+                      <PaginationLink
+                        onClick={() => goToPage(page)}
+                        isActive={currentPage === page}
+                        className="cursor-pointer"
+                      >
+                        {page}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ))}
+                  
+                  <PaginationItem>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={goToNextPage}
+                      disabled={currentPage === totalPages}
+                      className="gap-1 pr-2.5"
+                    >
+                      Siguiente
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            )}
+          </div>
+        )}
+
         {/* Edit Dialog */}
         <Dialog open={editDialog} onOpenChange={setEditDialog}>
           <DialogContent className="max-w-2xl grid grid-cols-2 gap-6">
@@ -580,23 +667,6 @@ const SuppliersPage: React.FC = () => {
 
             {/* Left Column */}
             <div className="space-y-4">
-              <div>
-                  <label htmlFor="prov_rfc" className="block text-sm font-medium">
-                    RUC *
-                  </label>
-                  <Input
-                    id="prov_rfc"
-                    value={form.prov_rfc}
-                    onChange={e => setForm({ ...form, prov_rfc: e.target.value })}
-                    pattern="[0-9]{11}"
-                    maxLength={11}
-                    placeholder="11 dígitos"
-                    required
-                  />
-                  {form.prov_rfc && form.prov_rfc.length !== 11 && (
-                    <p className="text-red-500 text-xs mt-1">El RUC debe tener exactamente 11 dígitos</p>
-                  )}
-                </div>
               <div>
                 <label htmlFor="edit_prov_nombre" className="block text-sm font-medium">
                   Nombre *
@@ -690,6 +760,23 @@ const SuppliersPage: React.FC = () => {
                   <option value="Activo">Activo</option>
                   <option value="Inactivo">Inactivo</option>
                 </select>
+              </div>
+              <div>
+                <label htmlFor="edit_prov_rfc" className="block text-sm font-medium">
+                  RUC *
+                </label>
+                <Input
+                  id="edit_prov_rfc"
+                  value={form.prov_rfc}
+                  onChange={e => setForm({ ...form, prov_rfc: e.target.value })}
+                  pattern="[0-9]{11}"
+                  maxLength={11}
+                  placeholder="11 dígitos"
+                  required
+                />
+                {form.prov_rfc && form.prov_rfc.length !== 11 && (
+                  <p className="text-red-500 text-xs mt-1">El RUC debe tener exactamente 11 dígitos</p>
+                )}
               </div>
               <div>
                 <label htmlFor="edit_prov_sitio_web" className="block text-sm font-medium">

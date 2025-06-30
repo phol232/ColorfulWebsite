@@ -30,11 +30,22 @@ import {
     SelectItem,
 } from "@/components/ui/select";
 import {
+    Pagination,
+    PaginationContent,
+    PaginationEllipsis,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
     Search as SearchIcon,
     PlusCircle,
     Pencil,
     Trash2,
     Download,
+    ChevronLeft,
+    ChevronRight
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { API_URL } from "@/config";
@@ -74,6 +85,10 @@ const ProductosPage: FC<ProductosPageProps> = ({ onChange }) => {
     const [editPreview, setEditPreview] = useState<string | null>(null);
     const [search, setSearch] = useState("");
     const [stockFilter, setStockFilter] = useState<"all"|"low"|"medium"|"high">("all");
+    
+    // Estados de paginación
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 8;
 
     const { data: productos = [], isLoading: loadingProds, isError: prodError } =
         useQuery<Producto[], Error>({
@@ -149,6 +164,30 @@ const ProductosPage: FC<ProductosPageProps> = ({ onChange }) => {
             if (stockFilter === "high") return p.pro_stock >= 9;
             return true;
         });
+
+    // Lógica de paginación
+    const totalPages = Math.ceil(filtered.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const currentProductos = filtered.slice(startIndex, endIndex);
+
+    // Resetear página cuando cambien los filtros
+    React.useEffect(() => {
+        setCurrentPage(1);
+    }, [search, stockFilter]);
+
+    // Funciones de navegación
+    const goToPage = (page: number) => {
+        setCurrentPage(page);
+    };
+
+    const goToPreviousPage = () => {
+        setCurrentPage(prev => Math.max(prev - 1, 1));
+    };
+
+    const goToNextPage = () => {
+        setCurrentPage(prev => Math.min(prev + 1, totalPages));
+    };
 
     const exportCsv = () => {
         const headers = ["ID","Nombre","PrecioVenta","Stock","Categoría","Proveedor"];
@@ -339,7 +378,7 @@ const ProductosPage: FC<ProductosPageProps> = ({ onChange }) => {
                 <p className="text-red-600">Error al cargar productos.</p>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
-                    {filtered.map(prod => (
+                    {currentProductos.map(prod => (
                         <Card key={prod.pro_id}>
                             <CardHeader>
                                 <CardTitle>{prod.pro_nombre}</CardTitle>
@@ -383,6 +422,59 @@ const ProductosPage: FC<ProductosPageProps> = ({ onChange }) => {
                             </CardContent>
                         </Card>
                     ))}
+                </div>
+            )}
+
+            {/* Controles de Paginación */}
+            {filtered.length > 0 && (
+                <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="text-sm text-gray-600">
+                        Mostrando {startIndex + 1} a {Math.min(endIndex, filtered.length)} de {filtered.length} productos
+                    </div>
+                    
+                    {totalPages > 1 && (
+                        <Pagination>
+                            <PaginationContent>
+                                <PaginationItem>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={goToPreviousPage}
+                                        disabled={currentPage === 1}
+                                        className="gap-1 pl-2.5"
+                                    >
+                                        <ChevronLeft className="h-4 w-4" />
+                                        Anterior
+                                    </Button>
+                                </PaginationItem>
+                                
+                                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                    <PaginationItem key={page}>
+                                        <PaginationLink
+                                            onClick={() => goToPage(page)}
+                                            isActive={currentPage === page}
+                                            className="cursor-pointer"
+                                        >
+                                            {page}
+                                        </PaginationLink>
+                                    </PaginationItem>
+                                ))}
+                                
+                                <PaginationItem>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={goToNextPage}
+                                        disabled={currentPage === totalPages}
+                                        className="gap-1 pr-2.5"
+                                    >
+                                        Siguiente
+                                        <ChevronRight className="h-4 w-4" />
+                                    </Button>
+                                </PaginationItem>
+                            </PaginationContent>
+                        </Pagination>
+                    )}
                 </div>
             )}
 

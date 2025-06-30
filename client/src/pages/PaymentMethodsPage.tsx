@@ -5,6 +5,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+    Pagination,
+    PaginationContent,
+    PaginationEllipsis,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
     Search as SearchIcon,
     Calendar,
     CreditCard,
@@ -15,7 +24,9 @@ import {
     Building2,
     FileText,
     CheckCircle,
-    AlertCircle
+    AlertCircle,
+    ChevronLeft,
+    ChevronRight
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
@@ -47,6 +58,10 @@ const PaymentMethodsPage: React.FC = () => {
     const [selectedMetodo, setSelectedMetodo] = useState<MetodoPago | null>(null);
     const [loading, setLoading] = useState(true);
     const { toast } = useToast();
+    
+    // Estados de paginación
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 6;
 
     // Form state
     const [formData, setFormData] = useState({
@@ -113,6 +128,30 @@ const PaymentMethodsPage: React.FC = () => {
 
         setFilteredMetodos(filtered);
     }, [searchQuery, estadoFilter, tipoFilter, metodosData]);
+
+    // Lógica de paginación
+    const totalPages = Math.ceil(filteredMetodos.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const currentMetodos = filteredMetodos.slice(startIndex, endIndex);
+
+    // Resetear página cuando cambien los filtros
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery, estadoFilter, tipoFilter]);
+
+    // Funciones de navegación
+    const goToPage = (page: number) => {
+        setCurrentPage(page);
+    };
+
+    const goToPreviousPage = () => {
+        setCurrentPage(prev => Math.max(prev - 1, 1));
+    };
+
+    const goToNextPage = () => {
+        setCurrentPage(prev => Math.min(prev + 1, totalPages));
+    };
 
     // Create método de pago
     const handleCreate = async () => {
@@ -374,7 +413,7 @@ const PaymentMethodsPage: React.FC = () => {
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {filteredMetodos.map((metodo) => (
+                        {currentMetodos.map((metodo) => (
                             <Card key={metodo.met_id} className="overflow-hidden">
                                 <CardHeader className="pb-2">
                                     <div className="flex justify-between items-start">
@@ -444,6 +483,59 @@ const PaymentMethodsPage: React.FC = () => {
                                 </CardFooter>
                             </Card>
                         ))}
+                    </div>
+                )}
+
+                {/* Controles de Paginación */}
+                {filteredMetodos.length > 0 && (
+                    <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="text-sm text-gray-600">
+                            Mostrando {startIndex + 1} a {Math.min(endIndex, filteredMetodos.length)} de {filteredMetodos.length} métodos de pago
+                        </div>
+                        
+                        {totalPages > 1 && (
+                            <Pagination>
+                                <PaginationContent>
+                                    <PaginationItem>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={goToPreviousPage}
+                                            disabled={currentPage === 1}
+                                            className="gap-1 pl-2.5"
+                                        >
+                                            <ChevronLeft className="h-4 w-4" />
+                                            Anterior
+                                        </Button>
+                                    </PaginationItem>
+                                    
+                                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                        <PaginationItem key={page}>
+                                            <PaginationLink
+                                                onClick={() => goToPage(page)}
+                                                isActive={currentPage === page}
+                                                className="cursor-pointer"
+                                            >
+                                                {page}
+                                            </PaginationLink>
+                                        </PaginationItem>
+                                    ))}
+                                    
+                                    <PaginationItem>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={goToNextPage}
+                                            disabled={currentPage === totalPages}
+                                            className="gap-1 pr-2.5"
+                                        >
+                                            Siguiente
+                                            <ChevronRight className="h-4 w-4" />
+                                        </Button>
+                                    </PaginationItem>
+                                </PaginationContent>
+                            </Pagination>
+                        )}
                     </div>
                 )}
 

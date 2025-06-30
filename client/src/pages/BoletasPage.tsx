@@ -1,10 +1,19 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import MainLayout from "@/components/layouts/MainLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import {
+    Pagination,
+    PaginationContent,
+    PaginationEllipsis,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
+} from "@/components/ui/pagination";
 import {
     Search as SearchIcon,
     Filter as FilterIcon,
@@ -24,7 +33,9 @@ import {
     AlertCircle,
     Package,
     X,
-    Info
+    Info,
+    ChevronLeft,
+    ChevronRight
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -112,6 +123,10 @@ const BoletasPage: React.FC = () => {
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
     const [anularBoletaId, setAnularBoletaId] = useState<string | null>(null);
     const [deleteOpen, setDeleteOpen] = useState<string | null>(null);
+    
+    // Estados de paginación
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 6;
 
     const { toast } = useToast();
     const queryClient = useQueryClient();
@@ -220,7 +235,7 @@ const BoletasPage: React.FC = () => {
         },
         onSuccess: async (response, boletaId) => {
             console.log('Respuesta completa del backend:', response);
-            
+
             try {
                 // La respuesta viene directamente del controlador
                 const { 
@@ -244,7 +259,7 @@ const BoletasPage: React.FC = () => {
                     duration: 8000,
                     className: "bg-green-50 border-green-200 text-green-800"
                 });
-                
+
                 setAnularBoletaId(null);
                 setIsDetailsOpen(false);
             } catch (error) {
@@ -305,6 +320,30 @@ const BoletasPage: React.FC = () => {
             clientName.toLowerCase().includes(searchLower)
         );
     });
+
+    // Lógica de paginación
+    const totalPages = Math.ceil(filteredBoletas.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const currentBoletas = filteredBoletas.slice(startIndex, endIndex);
+
+    // Resetear página cuando cambien los filtros
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery]);
+
+    // Funciones de navegación
+    const goToPage = (page: number) => {
+        setCurrentPage(page);
+    };
+
+    const goToPreviousPage = () => {
+        setCurrentPage(prev => Math.max(prev - 1, 1));
+    };
+
+    const goToNextPage = () => {
+        setCurrentPage(prev => Math.min(prev + 1, totalPages));
+    };
 
     // Calcular estadísticas
     const estadisticas = {
@@ -685,7 +724,7 @@ const BoletasPage: React.FC = () => {
 
                 {/* Lista de Boletas */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-{filteredBoletas.map((boleta) => (
+{currentBoletas.map((boleta) => (
     <Card
         key={boleta.boleta_id}
         className={`hover:shadow-md transition-shadow ${
@@ -834,6 +873,59 @@ const BoletasPage: React.FC = () => {
     </Card>
 ))}
                 </div>
+
+                {/* Controles de Paginación */}
+                {filteredBoletas.length > 0 && (
+                    <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="text-sm text-gray-600">
+                            Mostrando {startIndex + 1} a {Math.min(endIndex, filteredBoletas.length)} de {filteredBoletas.length} boletas
+                        </div>
+                        
+                        {totalPages > 1 && (
+                            <Pagination>
+                                <PaginationContent>
+                                    <PaginationItem>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={goToPreviousPage}
+                                            disabled={currentPage === 1}
+                                            className="gap-1 pl-2.5"
+                                        >
+                                            <ChevronLeft className="h-4 w-4" />
+                                            Anterior
+                                        </Button>
+                                    </PaginationItem>
+                                    
+                                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                        <PaginationItem key={page}>
+                                            <PaginationLink
+                                                onClick={() => goToPage(page)}
+                                                isActive={currentPage === page}
+                                                className="cursor-pointer"
+                                            >
+                                                {page}
+                                            </PaginationLink>
+                                        </PaginationItem>
+                                    ))}
+                                    
+                                    <PaginationItem>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={goToNextPage}
+                                            disabled={currentPage === totalPages}
+                                            className="gap-1 pr-2.5"
+                                        >
+                                            Siguiente
+                                            <ChevronRight className="h-4 w-4" />
+                                        </Button>
+                                    </PaginationItem>
+                                </PaginationContent>
+                            </Pagination>
+                        )}
+                    </div>
+                )}
 
                 {filteredBoletas.length === 0 && (
                     <div className="flex flex-col items-center justify-center py-12 text-center">

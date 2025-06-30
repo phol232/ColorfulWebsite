@@ -32,7 +32,9 @@ import {
     CreditCard,
     Plus,
     Minus,
-    X
+    X,
+    ChevronLeft,
+    ChevronRight
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -43,6 +45,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { API_URL } from "@/config";
 import { useToast } from "@/hooks/use-toast";
 import { useEmitirBoleta } from "@/hooks/useEmitirBoleta";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink } from "@/components/ui/pagination";
 
 // Interface basada en el controlador de pedidos
 interface Pedido {
@@ -175,6 +178,10 @@ const OrdersPage: React.FC = () => {
 
     const [isProcessingPayment, setIsProcessingPayment] = useState(false);
     const [isProcessingSunat, setIsProcessingSunat] = useState(false);
+
+    // Paginación
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 6;
 
     const { toast } = useToast();
     const queryClient = useQueryClient();
@@ -885,7 +892,7 @@ const OrdersPage: React.FC = () => {
         setPagosMetodos([]);
         setMontoActual(0);
         setNotaActual("");
-        setIsProcessingPayment(false);
+                setIsProcessingPayment(false);
     };
 
     const agregarMetodoPago = () => {
@@ -997,6 +1004,24 @@ const OrdersPage: React.FC = () => {
 
     const handleDeletePedido = (pedidoId: string) => {
         deletePedidoMutation.mutate(pedidoId);
+    };
+
+     // Lógica de paginación
+    const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, filteredOrders.length);
+    const currentOrders = filteredOrders.slice(startIndex, endIndex);
+
+    const goToNextPage = () => {
+        setCurrentPage(currentPage + 1);
+    };
+
+    const goToPreviousPage = () => {
+        setCurrentPage(currentPage - 1);
+    };
+
+    const goToPage = (pageNumber: number) => {
+        setCurrentPage(pageNumber);
     };
 
     if (isLoading) {
@@ -1143,7 +1168,7 @@ const OrdersPage: React.FC = () => {
 
                         <TabsContent value={activeTab} className="p-0 space-y-0">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
-                                {filteredOrders.map((pedido) => (
+                                {currentOrders.map((pedido) => (
                                     <Card 
                                         key={pedido.ped_id} 
                                         className={`hover:shadow-md transition-shadow ${
@@ -1306,6 +1331,58 @@ const OrdersPage: React.FC = () => {
                             </div>
                         </TabsContent>
                     </Tabs>
+
+                    {filteredOrders.length > 0 && (
+                    <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div className="text-sm text-gray-600">
+                            Mostrando {startIndex + 1} a {Math.min(endIndex, filteredOrders.length)} de {filteredOrders.length} pedidos
+                        </div>
+
+                        {totalPages > 1 && (
+                            <Pagination>
+                                <PaginationContent>
+                                    <PaginationItem>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={goToPreviousPage}
+                                            disabled={currentPage === 1}
+                                            className="gap-1 pl-2.5"
+                                        >
+                                            <ChevronLeft className="h-4 w-4" />
+                                            Anterior
+                                        </Button>
+                                    </PaginationItem>
+
+                                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                        <PaginationItem key={page}>
+                                            <PaginationLink
+                                                onClick={() => goToPage(page)}
+                                                isActive={currentPage === page}
+                                                className="cursor-pointer"
+                                            >
+                                                {page}
+                                            </PaginationLink>
+                                        </PaginationItem>
+                                    ))}
+
+                                    <PaginationItem>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={goToNextPage}
+                                            disabled={currentPage === totalPages}
+                                            className="gap-1 pr-2.5"
+                                        >
+                                            Siguiente
+                                            <ChevronRight className="h-4 w-4" />
+                                        </Button>
+                                    </PaginationItem>
+                                </PaginationContent>
+                            </Pagination>
+                        )}
+                    </div>
+                )}
 
                     {filteredOrders.length === 0 && (
                         <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -1901,7 +1978,7 @@ const OrdersPage: React.FC = () => {
                                         >
                                             {updatePedidoMutation.isPending ? "Guardando..." : "Guardar Cambios"}
                                         </Button>
-                                        
+
                                     </div>
                                 </div>
                             </div>

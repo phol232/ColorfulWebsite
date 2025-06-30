@@ -15,10 +15,20 @@ import {
     Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import {
+    Pagination,
+    PaginationContent,
+    PaginationEllipsis,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
+} from '@/components/ui/pagination';
 import { useNotifications } from '@/hooks/useNotifications';
 import {
     Search as SearchIcon, AlertTriangle, Bell, Edit, Trash2, PlusCircle, Settings,
     RefreshCcw, Loader2, MessageSquareWarning, Info, CheckCircle2, XCircle, ShieldAlert, Skull,
+    ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { API_URL } from '@/config';
 import {
@@ -46,6 +56,10 @@ const AlertasPage: React.FC = () => {
     const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
     const [isManualAlertaModalOpen, setIsManualAlertaModalOpen] = useState(false);
     const [selectedAlerta, setSelectedAlerta] = useState<AlertaStock | null>(null);
+    
+    // Estados de paginación
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 6;
 
     const initialManualAlertaForm: CrearAlertaManualPayload = {
         prod_id: '', stock_capturado: '', umbral_evaluado: '', alerta_tipo_generada: '',
@@ -226,6 +240,30 @@ const AlertasPage: React.FC = () => {
         });
     }, [alertas, searchTerm, estadoFiltro, productoFiltro]);
 
+    // Lógica de paginación
+    const totalPages = Math.ceil(filteredAlertas.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const currentAlertas = filteredAlertas.slice(startIndex, endIndex);
+
+    // Resetear página cuando cambien los filtros
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, estadoFiltro, productoFiltro]);
+
+    // Funciones de navegación
+    const goToPage = (page: number) => {
+        setCurrentPage(page);
+    };
+
+    const goToPreviousPage = () => {
+        setCurrentPage(prev => Math.max(prev - 1, 1));
+    };
+
+    const goToNextPage = () => {
+        setCurrentPage(prev => Math.min(prev + 1, totalPages));
+    };
+
     // --- UTILS PARA BADGES ---
     const getEstadoBadgeColor = (estado: string): string => {
         switch (estado) {
@@ -310,7 +348,7 @@ const AlertasPage: React.FC = () => {
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredAlertas.map((alerta) => (
+                {currentAlertas.map((alerta) => (
                     <Card key={alerta.alerta_stock_id} className="flex flex-col" style={{ backgroundColor: '#f0fdfa', borderColor: '#ccfbf1' }}>
                         <CardHeader>
                             <div className="flex justify-between items-start">
@@ -344,6 +382,59 @@ const AlertasPage: React.FC = () => {
                     </Card>
                 ))}
             </div>
+
+            {/* Controles de Paginación */}
+            {filteredAlertas.length > 0 && (
+                <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="text-sm text-gray-600">
+                        Mostrando {startIndex + 1} a {Math.min(endIndex, filteredAlertas.length)} de {filteredAlertas.length} alertas
+                    </div>
+                    
+                    {totalPages > 1 && (
+                        <Pagination>
+                            <PaginationContent>
+                                <PaginationItem>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={goToPreviousPage}
+                                        disabled={currentPage === 1}
+                                        className="gap-1 pl-2.5"
+                                    >
+                                        <ChevronLeft className="h-4 w-4" />
+                                        Anterior
+                                    </Button>
+                                </PaginationItem>
+                                
+                                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                    <PaginationItem key={page}>
+                                        <PaginationLink
+                                            onClick={() => goToPage(page)}
+                                            isActive={currentPage === page}
+                                            className="cursor-pointer"
+                                        >
+                                            {page}
+                                        </PaginationLink>
+                                    </PaginationItem>
+                                ))}
+                                
+                                <PaginationItem>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={goToNextPage}
+                                        disabled={currentPage === totalPages}
+                                        className="gap-1 pr-2.5"
+                                    >
+                                        Siguiente
+                                        <ChevronRight className="h-4 w-4" />
+                                    </Button>
+                                </PaginationItem>
+                            </PaginationContent>
+                        </Pagination>
+                    )}
+                </div>
+            )}
 
             {/* --- MODAL EDITAR ALERTA --- */}
             <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>

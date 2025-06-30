@@ -1,5 +1,5 @@
 // client/src/pages/CategoriasProductosPage.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import MainLayout from "@/components/layouts/MainLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,15 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
   Search,
   Package,
   Pencil,
@@ -21,6 +30,8 @@ import {
   PlusCircle,
   RefreshCcw,
   ShoppingBag,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { API_URL } from "@/config";
 
@@ -43,6 +54,10 @@ const CategoriasProductosPage: React.FC<Props> = ({ onChange }) => {
   const [isAddCategoryDialogOpen, setIsAddCategoryDialogOpen] = useState(false);
   const [isEditCategoryDialogOpen, setIsEditCategoryDialogOpen] = useState(false);
   const [categoriasProductos, setCategoriasProductos] = useState<CategoriaProducto[]>([]);
+  
+  // Estados de paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
   const [form, setForm] = useState({
     cat_nombre: "",
     cat_descripcion: "",
@@ -101,6 +116,30 @@ const CategoriasProductosPage: React.FC<Props> = ({ onChange }) => {
           (cat.cat_descripcion &&
               cat.cat_descripcion.toLowerCase().includes(searchQuery.toLowerCase()))
   );
+
+  // Lógica de paginación
+  const totalPages = Math.ceil(filteredCategories.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentCategories = filteredCategories.slice(startIndex, endIndex);
+
+  // Resetear página cuando cambien los filtros
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
+  // Funciones de navegación
+  const goToPage = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const goToPreviousPage = () => {
+    setCurrentPage(prev => Math.max(prev - 1, 1));
+  };
+
+  const goToNextPage = () => {
+    setCurrentPage(prev => Math.min(prev + 1, totalPages));
+  };
 
   // Formatear fecha
   const formatDate = (dateString?: string) => {
@@ -286,7 +325,7 @@ const CategoriasProductosPage: React.FC<Props> = ({ onChange }) => {
 
         {/* Lista de categorías */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {filteredCategories.map((categoria) => (
+          {currentCategories.map((categoria) => (
               <Card key={categoria.cat_id} className="overflow-hidden hover:shadow-md transition-shadow">
                 <CardContent className="p-0">
                   {categoria.cat_imagen && (
@@ -352,6 +391,59 @@ const CategoriasProductosPage: React.FC<Props> = ({ onChange }) => {
               </Card>
           ))}
         </div>
+
+        {/* Controles de Paginación */}
+        {filteredCategories.length > 0 && (
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="text-sm text-gray-600">
+              Mostrando {startIndex + 1} a {Math.min(endIndex, filteredCategories.length)} de {filteredCategories.length} categorías
+            </div>
+            
+            {totalPages > 1 && (
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={goToPreviousPage}
+                      disabled={currentPage === 1}
+                      className="gap-1 pl-2.5"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Anterior
+                    </Button>
+                  </PaginationItem>
+                  
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <PaginationItem key={page}>
+                      <PaginationLink
+                        onClick={() => goToPage(page)}
+                        isActive={currentPage === page}
+                        className="cursor-pointer"
+                      >
+                        {page}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ))}
+                  
+                  <PaginationItem>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={goToNextPage}
+                      disabled={currentPage === totalPages}
+                      className="gap-1 pr-2.5"
+                    >
+                      Siguiente
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            )}
+          </div>
+        )}
 
         {/* Dialog para crear nueva categoría */}
         <Dialog open={isAddCategoryDialogOpen} onOpenChange={setIsAddCategoryDialogOpen}>

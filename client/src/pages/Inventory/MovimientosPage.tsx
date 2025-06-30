@@ -30,6 +30,15 @@ import {
     SelectItem,
 } from "@/components/ui/select";
 import {
+    Pagination,
+    PaginationContent,
+    PaginationEllipsis,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
     Search as SearchIcon,
     PlusCircle,
     ArrowUpRight,
@@ -38,6 +47,8 @@ import {
     Edit,
     X,
     Plus,
+    ChevronLeft,
+    ChevronRight
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/utils";
@@ -111,6 +122,10 @@ const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [movimientoAEliminar, setMovimientoAEliminar] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null); // <-- Agregado para manejar errores
+    
+    // Estados de paginación
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 6;
     // Importar el hook useUserId directamente para evitar problemas de disponibilidad
     const { userProfile } = useAuth();
     const userId = useUserId() || "DEV-USR-001"; // Asegurarse de que siempre haya un ID disponible
@@ -490,6 +505,30 @@ const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
         return matchesSearch && matchesTipo && matchesFechaDesde && matchesFechaHasta;
     });
 
+    // Lógica de paginación
+    const totalPages = Math.ceil(movimientosFiltrados.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const currentMovimientos = movimientosFiltrados.slice(startIndex, endIndex);
+
+    // Resetear página cuando cambien los filtros
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [search, tipoFiltro, fechaDesde, fechaHasta]);
+
+    // Funciones de navegación
+    const goToPage = (page: number) => {
+        setCurrentPage(page);
+    };
+
+    const goToPreviousPage = () => {
+        setCurrentPage(prev => Math.max(prev - 1, 1));
+    };
+
+    const goToNextPage = () => {
+        setCurrentPage(prev => Math.min(prev + 1, totalPages));
+    };
+
     return (
         <>
             {/* Búsqueda y Filtros */}
@@ -552,8 +591,8 @@ const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {movimientosFiltrados.length > 0 ? (
-                        movimientosFiltrados.map(movimiento => (
+                    {currentMovimientos.length > 0 ? (
+                        currentMovimientos.map(movimiento => (
                             <Card key={movimiento.mov_id} className="overflow-hidden">
                                 <CardHeader className={`pb-2 ${
                                     movimiento.tipoMovimiento?.tipmov_nombre === 'Entrada'
@@ -690,6 +729,59 @@ const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
                         <div className="col-span-full text-center py-8 text-gray-500">
                             No se encontraron movimientos que coincidan con los criterios de búsqueda.
                         </div>
+                    )}
+                </div>
+            )}
+
+            {/* Controles de Paginación */}
+            {movimientosFiltrados.length > 0 && (
+                <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="text-sm text-gray-600">
+                        Mostrando {startIndex + 1} a {Math.min(endIndex, movimientosFiltrados.length)} de {movimientosFiltrados.length} movimientos
+                    </div>
+                    
+                    {totalPages > 1 && (
+                        <Pagination>
+                            <PaginationContent>
+                                <PaginationItem>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={goToPreviousPage}
+                                        disabled={currentPage === 1}
+                                        className="gap-1 pl-2.5"
+                                    >
+                                        <ChevronLeft className="h-4 w-4" />
+                                        Anterior
+                                    </Button>
+                                </PaginationItem>
+                                
+                                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                                    <PaginationItem key={page}>
+                                        <PaginationLink
+                                            onClick={() => goToPage(page)}
+                                            isActive={currentPage === page}
+                                            className="cursor-pointer"
+                                        >
+                                            {page}
+                                        </PaginationLink>
+                                    </PaginationItem>
+                                ))}
+                                
+                                <PaginationItem>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={goToNextPage}
+                                        disabled={currentPage === totalPages}
+                                        className="gap-1 pr-2.5"
+                                    >
+                                        Siguiente
+                                        <ChevronRight className="h-4 w-4" />
+                                    </Button>
+                                </PaginationItem>
+                            </PaginationContent>
+                        </Pagination>
                     )}
                 </div>
             )}
