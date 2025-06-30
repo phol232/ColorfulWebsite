@@ -546,7 +546,7 @@ const POSPage: React.FC = () => {
           </div>
 
           {/* Columna derecha - Carrito */}
-          <div className="w-[480px] border-l border-gray-200 bg-white flex flex-col h-full">
+          <div className="w-[360px] border-l border-gray-200 bg-white flex flex-col h-full">
             {/* Encabezado del ticket */}
             <div className="border-b border-gray-200 p-4">
               <div className="flex justify-between items-center mb-4">
