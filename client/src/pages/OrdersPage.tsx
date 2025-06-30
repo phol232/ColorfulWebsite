@@ -77,6 +77,11 @@ interface Pedido {
             };
         };
     }>;
+    boleta?: {
+        boleta_numero: string;
+        boleta_id: string;
+        boleta_estado: string;
+    };
 }
 
 interface Producto {
@@ -101,6 +106,7 @@ interface Producto {
 interface Cliente {
     cli_id: string;
     cli_nombre: string;
+    cli_apellido?: string;
     cli_email?: string;
     cli_telefono?: string;
 }
@@ -146,6 +152,7 @@ const OrdersPage: React.FC = () => {
     // Estados para edición
     const [clienteSearch, setClienteSearch] = useState("");
     const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
+    const [debouncedClienteSearch, setDebouncedClienteSearch] = useState("");
     const [productSearch, setProductSearch] = useState("");
     const [cartItems, setCartItems] = useState<CartItem[]>([]);
     const [formaEntrega, setFormaEntrega] = useState("");
@@ -173,6 +180,15 @@ const OrdersPage: React.FC = () => {
     const queryClient = useQueryClient();
     const { emitirBoleta, testPostmanReplica, loading: emitirBoletaLoading, error: emitirBoletaError, progress, processingTime, successMessage, emitiendo, clearError } = useEmitirBoleta();
 
+    // Debounce effect for client search
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedClienteSearch(clienteSearch);
+        }, 300);
+
+        return () => clearTimeout(timer);
+    }, [clienteSearch]);
+
     // Fetch pedidos desde el backend
     const { data: pedidos = [], isLoading, refetch } = useQuery<Pedido[]>({
         queryKey: ['/api/pedidos'],
@@ -190,12 +206,18 @@ const OrdersPage: React.FC = () => {
             const data = await response.json();
 
             console.log('Pedidos obtenidos:', data?.length || 0, 'registros');
+            console.log('Estructura de pedidos:', data.slice(0, 1)); // Log primer pedido para debug
+
+            // Verificar si data es un array o un objeto con data
+            const pedidosArray = Array.isArray(data) ? data : (data.data || []);
 
             // Ordenar pedidos del más reciente al más antiguo
-            return data.sort((a: Pedido, b: Pedido) => {
+            return pedidosArray.sort((a: Pedido, b: Pedido) => {
                 return new Date(b.ped_fecha).getTime() - new Date(a.ped_fecha).getTime();
             });
-        }
+        },
+        retry: 3,
+        retryDelay: 1000
     });
 
     // Fetch productos para búsqueda
@@ -215,17 +237,28 @@ const OrdersPage: React.FC = () => {
         },
     });
 
-    // Search clients
+    // Search clients using new search route
     const { data: clientes = [] } = useQuery<Cliente[]>({
-        queryKey: ['/api/clientes', clienteSearch],
+        queryKey: ['/api/clientes/search', debouncedClienteSearch],
         queryFn: async () => {
-            if (!clienteSearch.trim()) return [];
-            const response = await fetch(`${API_URL}/api/clientes?search=${encodeURIComponent(clienteSearch)}`);
+            if (!debouncedClienteSearch.trim() || debouncedClienteSearch.trim().length < 2) {
+                return [];
+            }
+            const token = localStorage.getItem("token");
+            const response = await fetch(
+                `${API_URL}/api/clientes/search?q=${encodeURIComponent(debouncedClienteSearch.trim())}&limit=10`,
+                {
+                    headers: {
+                        'Authorization': token ? `Bearer ${token}` : '',
+                        'Content-Type': 'application/json',
+                    }
+                }
+            );
             if (!response.ok) return [];
             const data = await response.json();
-            return data.data || data;
+            return data || [];
         },
-        enabled: clienteSearch.trim().length > 0
+        enabled: debouncedClienteSearch.trim().length >= 2
     });
 
     // Fetch métodos de pago
@@ -236,6 +269,23 @@ const OrdersPage: React.FC = () => {
             if (!response.ok) throw new Error('Error fetching payment methods');
             const data = await response.json();
             return data.filter((m: MetodoPago) => m.met_estado === 'Activo');
+        }
+    });
+
+    // Fetch boletas para obtener números de boleta
+    const { data: boletas = [] } = useQuery<any[]>({
+        queryKey: ['/api/boletas'],
+        queryFn: async () => {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_URL}/api/boletas`, {
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : '',
+                    'Content-Type': 'application/json',
+                }
+            });
+            if (!response.ok) throw new Error('Error fetching boletas');
+            const data = await response.json();
+            return data.data || data;
         }
     });
 
@@ -438,6 +488,7 @@ const OrdersPage: React.FC = () => {
         procesando: pedidos.filter(p => p.ped_estado.toLowerCase() === "procesando").length,
         enviados: pedidos.filter(p => p.ped_estado.toLowerCase() === "enviado").length,
         completados: pedidos.filter(p => p.ped_estado.toLowerCase() === "completado").length,
+        anulados: pedidos.filter(p => p.ped_estado.toLowerCase() === "anulado").length,
     };
 
     const resetEditForm = () => {
@@ -454,7 +505,8 @@ const OrdersPage: React.FC = () => {
         setClienteSearch(pedido.cli_nombre);
         setSelectedCliente({
             cli_id: pedido.cli_id,
-            cli_nombre: pedido.cli_nombre
+            cli_nombre: pedido.cli_nombre,
+            cli_apellido: ""
         });
         setFormaEntrega(pedido.ped_forma_entrega);
         setNotas(pedido.ped_notas || "");
@@ -619,6 +671,21 @@ const OrdersPage: React.FC = () => {
                 setIsProcessingPayment(false);
                 return;
             }
+
+            // VALIDACIÓN: El total de pagos debe ser igual al total del pedido
+            const totalPagos = pagosMetodos.reduce((sum, pago) => sum + pago.monto, 0);
+            const totalPedido = Number(selectedOrder.ped_total);
+            if (Math.abs(totalPagos - totalPedido) > 0.009) { // margen para decimales
+                toast({
+                    title: "Falta completar el pago",
+                    description: `El total a pagar es ${formatCurrency(totalPedido)}, pero los métodos de pago suman ${formatCurrency(totalPagos)}. Debe coincidir exactamente.`,
+                    variant: "destructive",
+                    duration: 6000
+                });
+                setIsProcessingPayment(false);
+                return;
+            }
+
             // Preparar datos según el formato del controlador emitirBoleta (Route::post('facturacion/emitir'))
             const boletaPayload = {
                 boleta_numero: boletaNumero,
@@ -711,6 +778,19 @@ const OrdersPage: React.FC = () => {
     // Función para emitir boleta CON SUNAT (proceso completo)
     const handleEmitirConSunat = async () => {
         if (!selectedOrder || pagosMetodos.length === 0) return;
+
+        // VALIDACIÓN: El total de pagos debe ser igual al total del pedido
+        const totalPagos = pagosMetodos.reduce((sum, pago) => sum + pago.monto, 0);
+        const totalPedido = Number(selectedOrder.ped_total);
+        if (Math.abs(totalPagos - totalPedido) > 0.009) {
+            toast({
+                title: "Falta completar el pago",
+                description: `El total a pagar es ${formatCurrency(totalPedido)}, pero los métodos de pago suman ${formatCurrency(totalPagos)}. Debe coincidir exactamente.`,
+                variant: "destructive",
+                duration: 6000
+            });
+            return;
+        }
 
         setIsProcessingSunat(true);
 
@@ -824,7 +904,8 @@ const OrdersPage: React.FC = () => {
         const totalPagos = pagosMetodos.reduce((sum, pago) => sum + pago.monto, 0);
         const totalPedido = selectedOrder ? Number(selectedOrder.ped_total) : 0;
 
-        if (totalPagos + montoActual > totalPedido) {
+        // Permitir margen de error de decimales (0.009)
+        if ((totalPagos + montoActual) - totalPedido > 0.009) {
             toast({
                 title: "Error",
                 description: "El monto total de pagos no puede exceder el total del pedido",
@@ -851,7 +932,7 @@ const OrdersPage: React.FC = () => {
         setPagosMetodos(pagosMetodos.filter((_, i) => i !== index));
     };
 
-    const getStatusBadge = (status: string) => {
+    const getStatusBadge = (status: string, pedido?: Pedido) => {
         switch(status.toLowerCase()) {
             case "pendiente":
                 return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-400">Pendiente</Badge>;
@@ -862,7 +943,18 @@ const OrdersPage: React.FC = () => {
             case "completado":
                 return <Badge variant="outline" className="bg-green-100 text-green-800 border-green-400">Completado</Badge>;
             case "cancelado":
-                return <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-400">Cancelado (Editable)</Badge>;
+                return <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-400">Cancelado</Badge>;
+            case "anulado":
+                // Buscar la boleta asociada a este pedido
+                const boletaAsociada = boletas.find(b => b.ped_id === pedido?.ped_id);
+                return (
+                    <Badge
+                        variant="outline"
+                        className="bg-red-100 text-red-800 border-red-400"
+                    >
+                        {boletaAsociada?.boleta_numero || pedido?.boleta?.boleta_numero || "Anulado"}
+                    </Badge>
+                );
             default:
                 return <Badge variant="outline">{status}</Badge>;
         }
@@ -880,6 +972,8 @@ const OrdersPage: React.FC = () => {
                 return <CheckCircle className="h-5 w-5 text-green-500" />;
             case "cancelado":
                 return <XCircle className="h-5 w-5 text-red-500" />;
+            case "anulado":
+                return <AlertCircle className="h-5 w-5 text-red-600" />;
             default:
                 return <Info className="h-5 w-5" />;
         }
@@ -894,7 +988,7 @@ const OrdersPage: React.FC = () => {
             nuevoEstado: newStatus
         });
 
-        
+
         updateStatusMutation.mutate({
             pedidoId: selectedOrder.ped_id,
             ped_estado: newStatus
@@ -930,7 +1024,7 @@ const OrdersPage: React.FC = () => {
                     </div>
 
                     {/* Dashboard de métricas horizontal */}
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-4 md:mt-0">
+                    <div className="grid grid-cols-2 sm:grid-cols-6 gap-3 mt-4 md:mt-0">
                         <div className="bg-background border rounded-md p-2 shadow-sm">
                             <div className="text-xs text-muted-foreground mb-1">Total</div>
                             <div className="text-base font-semibold">{estadisticas.total}</div>
@@ -968,6 +1062,14 @@ const OrdersPage: React.FC = () => {
                             <div className="text-base font-semibold">{estadisticas.completados}</div>
                             <div className="flex items-center text-xs text-green-600 mt-1">
                                 <span>Finalizados</span>
+                            </div>
+                        </div>
+
+                        <div className="bg-background border rounded-md p-2 shadow-sm">
+                            <div className="text-xs text-muted-foreground mb-1">Anulados</div>
+                            <div className="text-base font-semibold">{estadisticas.anulados}</div>
+                            <div className="flex items-center text-xs text-red-600 mt-1">
+                                <span>Boletas anuladas</span>
                             </div>
                         </div>
                     </div>
@@ -1031,17 +1133,46 @@ const OrdersPage: React.FC = () => {
                             >
                                 Completados ({estadisticas.completados})
                             </TabsTrigger>
+                            <TabsTrigger
+                                value="anulado"
+                                className="flex-1 rounded-none border-b-2 border-transparent px-3 py-2 data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                            >
+                                Anulados ({estadisticas.anulados})
+                            </TabsTrigger>
                         </TabsList>
 
                         <TabsContent value={activeTab} className="p-0 space-y-0">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
                                 {filteredOrders.map((pedido) => (
-                                    <Card key={pedido.ped_id} className="hover:shadow-md transition-shadow">
+                                    <Card 
+                                        key={pedido.ped_id} 
+                                        className={`hover:shadow-md transition-shadow ${
+                                            pedido.ped_estado.toLowerCase() === "anulado" 
+                                                ? "bg-red-50 border-red-200 opacity-80" 
+                                                : ""
+                                        }`}
+                                    >
                                         <CardHeader className="pb-2 flex flex-row items-start justify-between space-y-0">
                                             <div className="space-y-1">
-                                                <CardTitle className="text-base">{pedido.ped_id}</CardTitle>
+                                                <CardTitle className={`text-base ${
+                                                    pedido.ped_estado.toLowerCase() === "anulado" 
+                                                        ? "text-red-700" 
+                                                        : ""
+                                                }`}>
+                                                    {pedido.ped_id}
+                                                    {pedido.ped_estado.toLowerCase() === "anulado" && (
+                                                        <span className="ml-2 text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
+                                                            PEDIDO ANULADO
+                                                        </span>
+                                                    )}
+                                                </CardTitle>
                                                 <CardDescription>
                                                     {formatDate(pedido.ped_fecha)}
+                                                    {pedido.ped_estado.toLowerCase() === "anulado" && (
+                                                        <div className="text-xs text-red-600 mt-1">
+                                                            Stock restaurado 
+                                                        </div>
+                                                    )}
                                                 </CardDescription>
                                             </div>
                                             {getStatusIcon(pedido.ped_estado)}
@@ -1092,7 +1223,7 @@ const OrdersPage: React.FC = () => {
 
                                             <div className="flex justify-between items-center pt-2">
                                                 <div>
-                                                    {getStatusBadge(pedido.ped_estado)}
+                                                    {getStatusBadge(pedido.ped_estado, pedido)}
                                                 </div>
                                             </div>
                                         </CardContent>
@@ -1108,38 +1239,65 @@ const OrdersPage: React.FC = () => {
                                                     <Eye className="h-4 w-4 mr-2" /> Ver detalles
                                                 </Button>
                                                 <div className="flex gap-2">
-                                                    <Button
-                                                        variant="outline"
-                                                        size="icon"
-                                                        onClick={() => openEditDialog(pedido)}
-                                                        className={pedido.ped_estado.toLowerCase() === "completado"
-                                                            ? "text-gray-400 cursor-not-allowed bg-gray-100"
-                                                            : pedido.ped_estado.toLowerCase() === "cancelado"
-                                                                ? "text-orange-600 hover:text-orange-700"
-                                                                : "text-blue-600 hover:text-blue-700"}
-                                                        disabled={pedido.ped_estado.toLowerCase() === "completado"}
-                                                        title={pedido.ped_estado.toLowerCase() === "completado"
-                                                            ? "No se puede editar un pedido completado"
-                                                            : pedido.ped_estado.toLowerCase() === "cancelado"
-                                                                ? "Editar pedido cancelado (permite correcciones)"
-                                                                : "Editar pedido"}
-                                                    >
-                                                        <Edit className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button
-                                                        variant="outline"
-                                                        size="icon"
-                                                        onClick={() => setDeleteOpen(pedido.ped_id)}
-                                                        className={pedido.ped_estado.toLowerCase() === "completado"
-                                                            ? "text-gray-400 cursor-not-allowed bg-gray-100"
-                                                            : "text-red-600 hover:text-red-700"}
-                                                        disabled={pedido.ped_estado.toLowerCase() === "completado"}
-                                                        title={pedido.ped_estado.toLowerCase() === "completado"
-                                                            ? "No se puede eliminar un pedido completado"
-                                                            : "Eliminar pedido"}
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
+                                                    {pedido.ped_estado.toLowerCase() === "anulado" ? (
+                                                        // Para pedidos anulados (por boleta cancelada), mostrar botones deshabilitados
+                                                        <>
+                                                            <Button
+                                                                variant="outline"
+                                                                size="icon"
+                                                                disabled
+                                                                className="text-gray-400 cursor-not-allowed bg-gray-100"
+                                                                title="No se puede editar un pedido anulado (boleta fue cancelada - se creó nuevo pedido)"
+                                                            >
+                                                                <Edit className="h-4 w-4" />
+                                                            </Button>
+                                                            <Button
+                                                                variant="outline"
+                                                                size="icon"
+                                                                disabled
+                                                                className="text-gray-400 cursor-not-allowed bg-gray-100"
+                                                                title="No se puede eliminar un pedido anulado (boleta fue cancelada)"
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        </>
+                                                    ) : (
+                                                        // Para pedidos normales, comportamiento existente
+                                                        <>
+                                                            <Button
+                                                                variant="outline"
+                                                                size="icon"
+                                                                onClick={() => openEditDialog(pedido)}
+                                                                className={pedido.ped_estado.toLowerCase() === "completado"
+                                                                    ? "text-gray-400 cursor-not-allowed bg-gray-100"
+                                                                    : pedido.ped_estado.toLowerCase() === "cancelado"
+                                                                        ? "text-orange-600 hover:text-orange-700"
+                                                                        : "text-blue-600 hover:text-blue-700"}
+                                                                disabled={pedido.ped_estado.toLowerCase() === "completado"}
+                                                                title={pedido.ped_estado.toLowerCase() === "completado"
+                                                                    ? "No se puede editar un pedido completado"
+                                                                    : pedido.ped_estado.toLowerCase() === "cancelado"
+                                                                        ? "Editar pedido cancelado (permite correcciones)"
+                                                                        : "Editar pedido"}
+                                                            >
+                                                                <Edit className="h-4 w-4" />
+                                                            </Button>
+                                                            <Button
+                                                                variant="outline"
+                                                                size="icon"
+                                                                onClick={() => setDeleteOpen(pedido.ped_id)}
+                                                                className={pedido.ped_estado.toLowerCase() === "completado"
+                                                                    ? "text-gray-400 cursor-not-allowed bg-gray-100"
+                                                                    : "text-red-600 hover:text-red-700"}
+                                                                disabled={pedido.ped_estado.toLowerCase() === "completado"}
+                                                                title={pedido.ped_estado.toLowerCase() === "completado"
+                                                                    ? "No se puede eliminar un pedido completado"
+                                                                    : "Eliminar pedido"}
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </div>
                                         </CardFooter>
@@ -1314,6 +1472,16 @@ const OrdersPage: React.FC = () => {
                                     <CheckCircle className="h-4 w-4 mr-2" />
                                     PEDIDO PAGADO
                                 </Button>
+                            ) : selectedOrder.ped_estado.toLowerCase() === "anulado" ? (
+                                <Button
+                                    variant="outline"
+                                    className="bg-red-100 text-red-700 border-red-300 cursor-default"
+                                    disabled
+                                    title="Este pedido fue anulado porque su boleta fue cancelada. Se creó un nuevo pedido pendiente."
+                                >
+                                    <AlertCircle className="h-4 w-4 mr-2" />
+                                    PEDIDO ANULADO
+                                </Button>
                             ) : selectedOrder.ped_estado.toLowerCase() === "cancelado" ? (
                                 <Button
                                     variant="outline"
@@ -1336,25 +1504,32 @@ const OrdersPage: React.FC = () => {
 
                             {/* Botón de Actualizar Estado */}
                             <Button
-                                variant={selectedOrder.ped_estado.toLowerCase() === "completado" ? "outline" : "default"}
+                                variant={selectedOrder.ped_estado.toLowerCase() === "completado" || selectedOrder.ped_estado.toLowerCase() === "anulado" ? "outline" : "default"}
                                 onClick={() => {
                                     setIsOrderDetailsOpen(false);
                                     updateOrderStatus(selectedOrder);
                                 }}
-                                disabled={selectedOrder.ped_estado.toLowerCase() === "completado"}
-                                className={selectedOrder.ped_estado.toLowerCase() === "completado"
+                                disabled={selectedOrder.ped_estado.toLowerCase() === "completado" || selectedOrder.ped_estado.toLowerCase() === "anulado"}
+                                className={selectedOrder.ped_estado.toLowerCase() === "completado" || selectedOrder.ped_estado.toLowerCase() === "anulado"
                                     ? "bg-gray-100 text-gray-500 cursor-not-allowed"
                                     : ""}
                                 title={selectedOrder.ped_estado.toLowerCase() === "completado"
                                     ? "El pedido está completado y no se puede modificar"
-                                    : selectedOrder.ped_estado.toLowerCase() === "cancelado"
-                                        ? "Pedido cancelado por boleta anulada - Puede reactivarlo cambiando el estado"
-                                        : "Actualizar estado del pedido"}
+                                    : selectedOrder.ped_estado.toLowerCase() === "anulado"
+                                        ? "El pedido fue anulado por cancelación de boleta. Se creó un nuevo pedido pendiente."
+                                        : selectedOrder.ped_estado.toLowerCase() === "cancelado"
+                                            ? "Pedido cancelado - Puede reactivarlo cambiando el estado"
+                                            : "Actualizar estado del pedido"}
                             >
                                 {selectedOrder.ped_estado.toLowerCase() === "completado" ? (
                                     <>
                                         <AlertCircle className="h-4 w-4 mr-2" />
                                         Estado Final
+                                    </>
+                                ) : selectedOrder.ped_estado.toLowerCase() === "anulado" ? (
+                                    <>
+                                        <AlertCircle className="h-4 w-4 mr-2" />
+                                        Boleta Cancelada
                                     </>
                                 ) : selectedOrder.ped_estado.toLowerCase() === "cancelado" ? (
                                     <>
@@ -1401,45 +1576,53 @@ const OrdersPage: React.FC = () => {
                                                 <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                                                 <Input
                                                     id="cliente"
-                                                    placeholder="Escribe al menos 2 letras para buscar..."
-                                                    value={selectedCliente ? selectedCliente.cli_nombre : clienteSearch}
+                                                    placeholder="Escriba al menos 2 caracteres para buscar..."
+                                                    value={selectedCliente ? `${selectedCliente.cli_nombre} ${selectedCliente.cli_apellido || ''}`.trim() : clienteSearch}
                                                     onChange={(e) => {
                                                         setClienteSearch(e.target.value);
-                                                        setSelectedCliente(null);
+                                                        if (selectedCliente) {
+                                                            setSelectedCliente(null);
+                                                        }
                                                     }}
                                                     className="pl-10 h-10 text-sm"
                                                 />
                                             </div>
 
-                            {/* Dropdown de clientes - solo mostrar cuando hay búsqueda activa y resultados */}
-                            {clientes.length > 0 && !selectedCliente && clienteSearch.trim().length >= 2 && (
+                            {/* Dropdown de clientes */}
+                            {clientes.length > 0 && !selectedCliente && debouncedClienteSearch.trim().length >= 2 && (
                                 <>
                                     <div
                                         className="fixed inset-0 z-40"
-                                        onClick={() => setClienteSearch("")}
+                                        onClick={() => {
+                                            setClienteSearch("");
+                                            setSelectedCliente(null);
+                                        }}
                                     />
                                     <div className="absolute z-50 mt-1 bg-white border rounded-md shadow-lg max-h-40 overflow-y-auto w-full">
                                         <div className="p-2 bg-gray-50 border-b">
                                             <div className="text-sm text-gray-600 font-medium">
-                                                {clientes.length} cliente{clientes.length !== 1 ? 's' : ''} encontrado{clientes.length !== 1 ? 's' : ''}:
+                                                Clientes encontrados ({clientes.length}):
                                             </div>
                                         </div>
                                         {clientes.map((cliente) => (
                                             <button
                                                 key={cliente.cli_id}
-                                                className="w-full text-left px-3 py-2 hover:bg-gray-100 border-b last:border-b-0 flex items-center gap-3"
+                                                className="w-full text-left px-3 py-2 hover:bg-gray-100 border-b last:border-b-0 flex items-center gap-3 transition-colors"
                                                 onClick={() => {
                                                     setSelectedCliente(cliente);
-                                                    setClienteSearch(cliente.cli_nombre);
+                                                    setClienteSearch(`${cliente.cli_nombre} ${cliente.cli_apellido || ''}`.trim());
                                                 }}
                                             >
                                                 <div className="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center text-sm font-medium">
                                                     {cliente.cli_nombre.charAt(0).toUpperCase()}
                                                 </div>
                                                 <div className="flex-1">
-                                                    <div className="font-medium text-sm">{cliente.cli_nombre}</div>
+                                                    <div className="font-medium text-sm">{cliente.cli_nombre} {cliente.cli_apellido || ''}</div>
                                                     {cliente.cli_email && (
                                                         <div className="text-sm text-gray-500">{cliente.cli_email}</div>
+                                                    )}
+                                                    {cliente.cli_telefono && (
+                                                        <div className="text-xs text-gray-400">{cliente.cli_telefono}</div>
                                                     )}
                                                 </div>
                                             </button>
@@ -1448,15 +1631,10 @@ const OrdersPage: React.FC = () => {
                                 </>
                             )}
 
-                            {/* Mensaje cuando no hay resultados pero sí hay búsqueda */}
-                            {clientes.length === 0 && !selectedCliente && clienteSearch.trim().length >= 2 && (
-                                <div className="absolute z-50 mt-1 bg-white border rounded-md shadow-lg w-full">
-                                    <div className="p-3 text-center text-gray-500">
-                                        <div className="text-sm">No se encontraron clientes</div>
-                                        <div className="text-xs text-gray-400 mt-1">
-                                            Intenta con otro término de búsqueda
-                                        </div>
-                                    </div>
+                            {/* Mensaje cuando no hay resultados */}
+                            {debouncedClienteSearch.trim().length >= 2 && clientes.length === 0 && !selectedCliente && (
+                                <div className="absolute z-50 mt-1 bg-white border rounded-md shadow-lg w-full p-3 text-center text-gray-500 text-sm">
+                                    No se encontraron clientes que coincidan con "{debouncedClienteSearch}"
                                 </div>
                             )}
                                         </div>
@@ -1763,6 +1941,7 @@ const OrdersPage: React.FC = () => {
                                         <SelectItem value="Enviado">Enviado</SelectItem>
                                         <SelectItem value="Completado">Completado</SelectItem>
                                         <SelectItem value="Cancelado">Cancelado</SelectItem>
+                                        <SelectItem value="Anulado">Anulado</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -2085,7 +2264,7 @@ const OrdersPage: React.FC = () => {
                                 onClick={handleEmitirBoleta}
                                 disabled={isProcessingPayment || emitirBoletaLoading || pagosMetodos.length === 0 || !boletaNumero.trim()}
                                 className="bg-blue-600 hover:bg-blue-700"
-                                title="Crea la boleta solo en el sistema local usando FacturacionController::emitirBoleta (api/facturacion/emitir)"
+                                title="Crea la boleta solo en el sistema local usando FacturacionController::emitir (api/facturacion/emitir)"
                             >
                                 {isProcessingPayment ? (
                                     <>

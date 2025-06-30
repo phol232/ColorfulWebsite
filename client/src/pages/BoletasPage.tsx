@@ -23,7 +23,8 @@ import {
     CheckCircle,
     AlertCircle,
     Package,
-    X
+    X,
+    Info
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -77,16 +78,32 @@ interface Boleta {
     }>;
 }
 
-// Función para formatear la fecha
+// Función para formatear la fecha sin conversión de zona horaria
 const formatDate = (dateString: string) => {
-    const options: Intl.DateTimeFormatOptions = {
+    // Crear fecha directamente desde el string para evitar conversión de zona horaria
+    const date = new Date(dateString.replace('Z', ''));
+    return date.toLocaleString('es-PE', {
         year: 'numeric',
         month: 'short',
         day: 'numeric',
         hour: '2-digit',
-        minute: '2-digit'
-    };
-    return new Date(dateString).toLocaleDateString('es-ES', options);
+        minute: '2-digit',
+        hour12: false
+    });
+};
+
+// Función adicional para formato compacto en las tarjetas
+const formatDateCompact = (dateString: string) => {
+    // Crear fecha directamente desde el string para evitar conversión de zona horaria
+    const date = new Date(dateString.replace('Z', ''));
+    return date.toLocaleString('es-PE', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+    });
 };
 
 const BoletasPage: React.FC = () => {
@@ -195,50 +212,60 @@ const BoletasPage: React.FC = () => {
                     'Content-Type': 'application/json',
                 }
             });
-            if (!response.ok) throw new Error('Error al anular boleta');
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ message: 'Error desconocido' }));
+                throw new Error(errorData.message || `Error ${response.status}: No se pudo cancelar la boleta`);
+            }
             return response.json();
         },
-        onSuccess: async (data, boletaId) => {
-            // Buscar la boleta anulada para obtener el pedido asociado
-            const boletaAnulada = boletas.find(b => b.boleta_id === boletaId);
+        onSuccess: async (response, boletaId) => {
+            console.log('Respuesta completa del backend:', response);
+            
+            try {
+                // La respuesta viene directamente del controlador
+                const { 
+                    message,
+                    boleta_id: responseBoletaId,
+                    pedido_anulado_id, 
+                    nuevo_pedido_id, 
+                    cliente_nombre
+                } = response;
 
-            if (boletaAnulada && boletaAnulada.ped_id) {
-                // Actualizar el estado del pedido a "Cancelado"
-                try {
-                    const token = localStorage.getItem('token');
-                    const updateResponse = await fetch(`${API_URL}/api/pedidos/${boletaAnulada.ped_id}/estado`, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': token ? `Bearer ${token}` : ''
-                        },
-                        body: JSON.stringify({ ped_estado: "Cancelado" })
-                    });
+                // Invalidar consultas para refrescar los datos
+                await queryClient.invalidateQueries({ queryKey: ['/api/boletas'] });
+                await queryClient.invalidateQueries({ queryKey: ['/api/pedidos'] });
 
-                    if (!updateResponse.ok) {
-                        console.error('Error al actualizar estado del pedido');
-                    } else {
-                        // Invalidar también la consulta de pedidos para refrescar OrdersPage
-                        queryClient.invalidateQueries({ queryKey: ['/api/pedidos'] });
-                    }
-                } catch (error) {
-                    console.error('Error updating order status:', error);
-                }
+                // Mensaje de éxito detallado
+                const successMessage = `${message}. Stock restaurado${cliente_nombre ? ` para ${cliente_nombre}` : ''}${pedido_anulado_id ? `. Pedido ${pedido_anulado_id} anulado` : ''}${nuevo_pedido_id ? ` y nuevo pedido ${nuevo_pedido_id} creado como pendiente` : ''}.`;
+
+                toast({
+                    title: "✅ Boleta Cancelada Exitosamente",
+                    description: successMessage,
+                    duration: 8000,
+                    className: "bg-green-50 border-green-200 text-green-800"
+                });
+                
+                setAnularBoletaId(null);
+                setIsDetailsOpen(false);
+            } catch (error) {
+                console.error('Error procesando respuesta de éxito:', error);
+                toast({
+                    title: "Boleta cancelada",
+                    description: "La boleta se canceló correctamente, pero hubo un problema al procesar la respuesta.",
+                    duration: 5000
+                });
+                setAnularBoletaId(null);
+                setIsDetailsOpen(false);
             }
-
-            queryClient.invalidateQueries({ queryKey: ['/api/boletas'] });
-            toast({
-                title: "Boleta anulada",
-                description: "La boleta ha sido anulada correctamente y el pedido ha sido marcado como cancelado."
-            });
-            setAnularBoletaId(null);
-            setIsDetailsOpen(false);
         },
         onError: (error: any) => {
+            console.error('Error al anular boleta:', error);
+            const errorMessage = error.message || "No se pudo cancelar la boleta. Verifique que la boleta esté en estado válido.";
             toast({
-                title: "Error",
-                description: error.message || "No se pudo anular la boleta",
-                variant: "destructive"
+                title: "Error al cancelar boleta",
+                description: errorMessage,
+                variant: "destructive",
+                duration: 6000
             });
         }
     });
@@ -287,13 +314,31 @@ const BoletasPage: React.FC = () => {
         promedio: boletas.length > 0 ? boletas.reduce((sum, boleta) => sum + Number(boleta.boleta_total), 0) / boletas.length : 0
     };
 
+    // Función helper para verificar si la boleta está anulada/cancelada
+    const isBoletaCancelada = (estado: string) => {
+        const estadoLower = estado.toLowerCase().trim();
+        return estadoLower === 'anulado' || 
+               estadoLower === 'cancelado' || 
+               estadoLower === 'cancelled' ||
+               estadoLower === 'canceled';
+    };
+
+    // Función helper para verificar si la boleta está emitida
+    const isBoletaEmitida = (estado: string) => {
+        const estadoLower = estado.toLowerCase().trim();
+        return estadoLower === 'emitido' || estadoLower === 'emitida';
+    };
+
     const getStatusBadge = (estado: string) => {
-        switch(estado.toLowerCase()) {
+        const estadoLower = estado.toLowerCase().trim();
+        switch(estadoLower) {
             case "emitido":
             case "emitida":
                 return <Badge className="bg-green-100 text-green-800 border-green-300">Emitida</Badge>;
             case "anulado":
             case "cancelado":
+            case "cancelled":
+            case "canceled":
                 return <Badge className="bg-red-100 text-red-800 border-red-300">Anulado</Badge>;
             case "pendiente":
                 return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300">Pendiente</Badge>;
@@ -303,12 +348,15 @@ const BoletasPage: React.FC = () => {
     };
 
     const getStatusIcon = (estado: string) => {
-        switch(estado.toLowerCase()) {
+        const estadoLower = estado.toLowerCase().trim();
+        switch(estadoLower) {
             case "emitido":
             case "emitida":
                 return <CheckCircle className="h-5 w-5 text-green-500" />;
             case "anulado":
             case "cancelado":
+            case "cancelled":
+            case "canceled":
                 return <AlertCircle className="h-5 w-5 text-red-500" />;
             case "pendiente":
                 return <Clock className="h-5 w-5 text-yellow-500" />;
@@ -507,6 +555,35 @@ const BoletasPage: React.FC = () => {
     };
 
     const handleAnular = (boletaId: string) => {
+        // Verificar el estado actual de la boleta antes de mostrar el modal
+        const boleta = boletas.find(b => b.boleta_id === boletaId);
+        if (!boleta) {
+            toast({
+                title: "Error",
+                description: "No se encontró la boleta seleccionada.",
+                variant: "destructive"
+            });
+            return;
+        }
+
+        if (isBoletaCancelada(boleta.boleta_estado)) {
+            toast({
+                title: "Boleta ya cancelada",
+                description: "Esta boleta ya está anulada y no puede ser cancelada nuevamente.",
+                variant: "destructive"
+            });
+            return;
+        }
+
+        if (!isBoletaEmitida(boleta.boleta_estado)) {
+            toast({
+                title: "Estado inválido",
+                description: "Solo se pueden cancelar boletas en estado 'Emitida'.",
+                variant: "destructive"
+            });
+            return;
+        }
+
         setAnularBoletaId(boletaId);
     };
 
@@ -608,155 +685,154 @@ const BoletasPage: React.FC = () => {
 
                 {/* Lista de Boletas */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredBoletas.map((boleta) => (
-                        <Card
-    key={boleta.boleta_id}
-    className={`hover:shadow-md transition-shadow ${
-        boleta.boleta_estado.toLowerCase() === "emitida" ? "bg-green-50 relative" : ""
-    }`}
->
-    {boleta.boleta_estado.toLowerCase() === "emitida" && (
-        <CheckCircle className="absolute top-0 right-0 m-2 text-green-500 h-5 w-5" />
-    )}
-                            <CardHeader className="pb-2">
-                            <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-2">
-                                    <span className="text-lg font-bold text-gray-800"># {boleta.boleta_numero}</span>
-                                    {boleta.boleta_estado.toLowerCase() === 'emitido' && (
-                                        <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-                                            <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                            </svg>
-                                        </div>
-                                    )}
-                                </div>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-gray-400 hover:text-gray-600 p-1"
-                                    title="Copiar número"
-                                >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                    </svg>
-                                </Button>
-                            </div>
-                            <div className="text-sm text-gray-600 mb-3">
-                                {new Date(boleta.boleta_fecha).toLocaleDateString('es-ES', { 
-                                    day: 'numeric', 
-                                    month: 'short', 
-                                    year: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                })}
-                            </div>
-                        </CardHeader>
+{filteredBoletas.map((boleta) => (
+    <Card
+        key={boleta.boleta_id}
+        className={`hover:shadow-md transition-shadow ${
+            isBoletaEmitida(boleta.boleta_estado) ? "bg-green-50 relative" : ""
+        } ${
+            isBoletaCancelada(boleta.boleta_estado) ? "opacity-75 bg-red-50" : ""
+        }`}
+    >
+        {isBoletaEmitida(boleta.boleta_estado) && (
+            <CheckCircle className="absolute top-0 right-0 m-2 text-green-500 h-5 w-5" />
+        )}
+        {isBoletaCancelada(boleta.boleta_estado) && (
+            <X className="absolute top-0 right-0 m-2 text-red-500 h-5 w-5" />
+        )}
+        <CardHeader className="pb-2">
+            <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                    <span className="text-lg font-bold text-gray-800"># {boleta.boleta_numero}</span>
+                    {isBoletaEmitida(boleta.boleta_estado) && (
+                        <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                            <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                        </div>
+                    )}
+                </div>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-gray-400 hover:text-gray-600 p-1"
+                    title="Copiar número"
+                >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                </Button>
+            </div>
+            <div className="text-sm text-gray-600 mb-3">
+                {formatDateCompact(boleta.boleta_fecha)}
+            </div>
+        </CardHeader>
 
-                            <CardContent className="space-y-3">
-                                <div className="flex items-center gap-2">
-                                    <User className="h-4 w-4 text-gray-400" />
-                                    <div>
-                                        <p className="font-medium">{getClienteName(boleta.pedido?.cli_id)}</p>
-                                        <p className="text-sm text-muted-foreground">Pedido: {boleta.ped_id}</p>
-                                    </div>
-                                </div>
+        <CardContent className="space-y-3">
+            <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-gray-400" />
+                <div>
+                    <p className="font-medium">{getClienteName(boleta.pedido?.cli_id)}</p>
+                    <p className="text-sm text-muted-foreground">Pedido: {boleta.ped_id}</p>
+                </div>
+            </div>
 
-                                <div className="flex justify-between items-center">
-                                    <div>
-                                        <p className="text-sm text-muted-foreground">Total</p>
-                                        <p className="font-bold text-lg">{formatCurrency(Number(boleta.boleta_total))}</p>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-sm text-muted-foreground">Estado</p>
-                                        {getStatusBadge(boleta.boleta_estado)}
-                                    </div>
-                                </div>
+            <div className="flex justify-between items-center">
+                <div>
+                    <p className="text-sm text-muted-foreground">Total</p>
+                    <p className="font-bold text-lg">{formatCurrency(Number(boleta.boleta_total))}</p>
+                </div>
+                <div className="text-right">
+                    <p className="text-sm text-muted-foreground">Estado</p>
+                    {getStatusBadge(boleta.boleta_estado)}
+                </div>
+            </div>
 
-                                <div className="space-y-2">
-                                    <div className="flex justify-between text-sm">
-                                        <span>Subtotal:</span>
-                                        <span>{formatCurrency(Number(boleta.boleta_subtotal))}</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm">
-                                        <span>Impuestos:</span>
-                                        <span>{formatCurrency(Number(boleta.boleta_impuestos))}</span>
-                                    </div>
-                                    {Number(boleta.boleta_descuento) > 0 && (
-                                        <div className="flex justify-between text-sm text-red-600">
-                                            <span>Descuento:</span>
-                                            <span>-{formatCurrency(Number(boleta.boleta_descuento))}</span>
-                                        </div>
-                                    )}
-                                </div>
+            <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                    <span>Subtotal:</span>
+                    <span>{formatCurrency(Number(boleta.boleta_subtotal))}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                    <span>Impuestos:</span>
+                    <span>{formatCurrency(Number(boleta.boleta_impuestos))}</span>
+                </div>
+                {Number(boleta.boleta_descuento) > 0 && (
+                    <div className="flex justify-between text-sm text-red-600">
+                        <span>Descuento:</span>
+                        <span>-{formatCurrency(Number(boleta.boleta_descuento))}</span>
+                    </div>
+                )}
+            </div>
 
-                                {boleta.boleta_notas && (
-                                    <div className="text-sm">
-                                        <span className="text-gray-500">Notas: </span>
-                                        <span>{boleta.boleta_notas}</span>
-                                    </div>
-                                )}
+            {boleta.boleta_notas && (
+                <div className="text-sm">
+                    <span className="text-gray-500">Notas: </span>
+                    <span>{boleta.boleta_notas}</span>
+                </div>
+            )}
 
-                                {boleta.metodos_pago && boleta.metodos_pago.length > 0 && (
-                                    <div className="text-sm">
-                                        <span className="text-gray-500">Métodos de pago: </span>
-                                        <div className="flex flex-wrap gap-1 mt-1">
-                                            {boleta.metodos_pago.map((metodo, index) => (
-                                                <Badge key={index} variant="outline" className="text-xs">
-                                                    {metodo.met_nombre}: {formatCurrency(Number(metodo.pivot.monto))}
-                                                </Badge>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </CardContent>
+            {boleta.metodos_pago && boleta.metodos_pago.length > 0 && (
+                <div className="text-sm">
+                    <span className="text-gray-500">Métodos de pago: </span>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                        {boleta.metodos_pago.map((metodo, index) => (
+                            <Badge key={index} variant="outline" className="text-xs">
+                                {metodo.met_nombre}: {formatCurrency(Number(metodo.pivot.monto))}
+                            </Badge>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </CardContent>
 
-                            <CardFooter className="pt-3 border-t bg-gray-50 rounded-b-lg">
-                                <div className="w-full flex justify-between items-center">
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="text-orange-500 hover:text-orange-600 flex items-center gap-2"
-                                        onClick={() => viewBoletaDetails(boleta)}
-                                    >
-                                        <Eye className="h-4 w-4" />
-                                        Ver detalles
-                                    </Button>
-                                    <div className="flex gap-2">
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => handlePrint(boleta)}
-                                            className="text-blue-600 hover:text-blue-700 border-blue-300 hover:bg-blue-50"
-                                            disabled={boleta.boleta_estado.toLowerCase() === 'anulado' || boleta.boleta_estado.toLowerCase() === 'cancelado'}
-                                            title={boleta.boleta_estado.toLowerCase() === 'anulado' || boleta.boleta_estado.toLowerCase() === 'cancelado' ? "No se puede imprimir una boleta anulada" : "Imprimir"}
-                                        >
-                                            <Printer className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => handleDownload(boleta)}
-                                            className="text-green-600 hover:text-green-700 border-green-300 hover:bg-green-50"
-                                            disabled={boleta.boleta_estado.toLowerCase() === 'anulado' || boleta.boleta_estado.toLowerCase() === 'cancelado'}
-                                            title={boleta.boleta_estado.toLowerCase() === 'anulado' || boleta.boleta_estado.toLowerCase() === 'cancelado' ? "No se puede descargar una boleta anulada" : "Descargar"}
-                                        >
-                                            <Download className="h-4 w-4" />
-                                        </Button>
-                                                                       <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => handleAnular(boleta.boleta_id)}
-                                            className="text-red-600 hover:text-red-700 border-red-300 hover:bg-red-50"
-                                            disabled={boleta.boleta_estado.toLowerCase() === 'anulado' || boleta.boleta_estado.toLowerCase() === 'cancelado'}
-                                            title={boleta.boleta_estado.toLowerCase() === 'anulado' || boleta.boleta_estado.toLowerCase() === 'cancelado' ? "La boleta ya está anulada" : "Anular boleta"}
-                                        >
-                                            <X className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                </div>
-                        </CardFooter>
-                        </Card>
-                    ))}
+        <CardFooter className="pt-3 border-t bg-gray-50 rounded-b-lg">
+            <div className="w-full flex justify-between items-center">
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-orange-500 hover:text-orange-600 flex items-center gap-2"
+                    onClick={() => viewBoletaDetails(boleta)}
+                >
+                    <Eye className="h-4 w-4" />
+                    Ver detalles
+                </Button>
+                <div className="flex gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePrint(boleta)}
+                        className="text-blue-600 hover:text-blue-700 border-blue-300 hover:bg-blue-50"
+                        disabled={isBoletaCancelada(boleta.boleta_estado)}
+                        title={isBoletaCancelada(boleta.boleta_estado) ? "No se puede imprimir una boleta anulada" : "Imprimir"}
+                    >
+                        <Printer className="h-4 w-4" />
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDownload(boleta)}
+                        className="text-green-600 hover:text-green-700 border-green-300 hover:bg-green-50"
+                        disabled={isBoletaCancelada(boleta.boleta_estado)}
+                        title={isBoletaCancelada(boleta.boleta_estado) ? "No se puede descargar una boleta anulada" : "Descargar"}
+                    >
+                        <Download className="h-4 w-4" />
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleAnular(boleta.boleta_id)}
+                        className="text-red-600 hover:text-red-700 border-red-300 hover:bg-red-50"
+                        disabled={isBoletaCancelada(boleta.boleta_estado)}
+                        title={isBoletaCancelada(boleta.boleta_estado) ? "La boleta ya está anulada" : "Anular boleta"}
+                    >
+                        <X className="h-4 w-4" />
+                    </Button>
+                </div>
+            </div>
+        </CardFooter>
+    </Card>
+))}
                 </div>
 
                 {filteredBoletas.length === 0 && (
@@ -949,7 +1025,7 @@ const BoletasPage: React.FC = () => {
                                     size="sm"
                                     onClick={() => handlePrint(selectedBoleta)}
                                     className="flex items-center gap-1"
-                                    disabled={selectedBoleta.boleta_estado.toLowerCase() === 'anulado' || selectedBoleta.boleta_estado.toLowerCase() === 'cancelado'}
+                                    disabled={isBoletaCancelada(selectedBoleta.boleta_estado)}
                                 >
                                     <Printer className="h-3 w-3" />
                                     Imprimir
@@ -959,12 +1035,12 @@ const BoletasPage: React.FC = () => {
                                     size="sm"
                                     onClick={() => handleDownload(selectedBoleta)}
                                     className="flex items-center gap-1"
-                                    disabled={selectedBoleta.boleta_estado.toLowerCase() === 'anulado' || selectedBoleta.boleta_estado.toLowerCase() === 'cancelado'}
+                                    disabled={isBoletaCancelada(selectedBoleta.boleta_estado)}
                                 >
                                     <Download className="h-3 w-3" />
                                     Generar PDF
                                 </Button>
-                                {(selectedBoleta.boleta_estado.toLowerCase() === 'emitido') && (
+                                {isBoletaEmitida(selectedBoleta.boleta_estado) && (
                                     <Button
                                         variant="outline"
                                         size="sm"
@@ -990,28 +1066,37 @@ const BoletasPage: React.FC = () => {
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <AlertCircle className="h-5 w-5 text-red-500" />
-                            Anular Boleta
+                            Cancelar Boleta
                         </DialogTitle>
                         <DialogDescription>
-                            ¿Estás seguro de que deseas anular esta boleta? Esta acción restaurará el stock de los productos y no se puede deshacer.
+                            ¿Estás seguro de que deseas cancelar esta boleta? Se creará automáticamente un nuevo pedido pendiente con los mismos productos.
                         </DialogDescription>
                     </DialogHeader>
 
                     <div className="py-4">
-                        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
                             <div className="flex items-center gap-2 mb-2">
-                                <AlertCircle className="h-4 w-4 text-red-600" />
-                                <span className="font-medium text-red-800">Advertencia</span>
+                                <Info className="h-4 w-4 text-blue-600" />
+                                <span className="font-medium text-blue-800">Proceso Automático Optimizado</span>
                             </div>
-                            <p className="text-sm text-red-700">
-                                Al anular esta boleta:
-                            </p>
-                            <ul className="text-sm text-red-700 mt-1 ml-4 list-disc">
-                                <li>Se restaurará el stock de todos los productos</li>
-                                <li>La boleta cambiará a estado "Anulado"</li>
-                                <li>No se podrá imprimir ni descargar</li>
-                                <li>Esta acción es irreversible</li>
+                            <ul className="text-sm text-blue-700 ml-4 list-disc space-y-1">
+                                <li>✅ Stock restaurado automáticamente</li>
+                                <li>✅ Boleta marcada como "Cancelado"</li>
+                                <li>✅ Pedido original marcado como "Anulado"</li>
+                                <li>✅ Nuevo pedido "Pendiente" creado vía procedimiento almacenado</li>
+                                <li>✅ Conserva todos los datos: cliente, productos, cantidades y precios</li>
+                                <li>✅ Listo para procesar nuevamente el pago</li>
                             </ul>
+                        </div>
+
+                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                            <div className="flex items-center gap-2 mb-2">
+                                <AlertCircle className="h-4 w-4 text-amber-600" />
+                                <span className="font-medium text-amber-800">Nota Importante</span>
+                            </div>
+                            <p className="text-sm text-amber-700">
+                                Esta operación es <strong>irreversible</strong>. La boleta cancelada no podrá ser reactivada, pero el nuevo pedido estará disponible inmediatamente en la página de Pedidos.
+                            </p>
                         </div>
                     </div>
 
@@ -1029,7 +1114,14 @@ const BoletasPage: React.FC = () => {
                             disabled={anularBoletaMutation.isPending}
                             className="bg-red-600 hover:bg-red-700"
                         >
-                            {anularBoletaMutation.isPending ? "Anulando..." : "Sí, Anular Boleta"}
+                            {anularBoletaMutation.isPending ? (
+                                <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                    Cancelando Boleta...
+                                </>
+                            ) : (
+                                "Sí, Cancelar Boleta"
+                            )}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

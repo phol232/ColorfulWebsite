@@ -1,3 +1,4 @@
+
 import React, { useState, FC } from "react";
 import axios from "axios";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -37,7 +38,6 @@ import {
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { API_URL } from "@/config";
-import { useNotifications } from "@/hooks/useNotifications";
 
 interface Categoria { cat_id: string; cat_nombre: string; }
 interface Proveedor { prov_id: string; prov_nombre: string; }
@@ -67,7 +67,6 @@ interface ProductosPageProps {
 
 const ProductosPage: FC<ProductosPageProps> = ({ onChange }) => {
     const queryClient = useQueryClient();
-    const { showSuccess, showError } = useNotifications();
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [selected, setSelected] = useState<Producto | null>(null);
@@ -75,8 +74,6 @@ const ProductosPage: FC<ProductosPageProps> = ({ onChange }) => {
     const [editPreview, setEditPreview] = useState<string | null>(null);
     const [search, setSearch] = useState("");
     const [stockFilter, setStockFilter] = useState<"all"|"low"|"medium"|"high">("all");
-    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-    const [productoAEliminar, setProductoAEliminar] = useState<Producto | null>(null);
 
     const { data: productos = [], isLoading: loadingProds, isError: prodError } =
         useQuery<Producto[], Error>({
@@ -100,10 +97,6 @@ const ProductosPage: FC<ProductosPageProps> = ({ onChange }) => {
             queryClient.invalidateQueries({ queryKey: ["productos"] });
             setPreview(null);
             if (onChange) onChange();
-            showSuccess("Producto creado correctamente");
-        },
-        onError: (error) => {
-            showError(error, "No se pudo crear el producto");
         },
     });
 
@@ -117,10 +110,6 @@ const ProductosPage: FC<ProductosPageProps> = ({ onChange }) => {
                 queryClient.invalidateQueries({ queryKey: ["productos"] });
                 setEditPreview(null);
                 if (onChange) onChange();
-                showSuccess("Producto actualizado correctamente");
-            },
-            onError: (error) => {
-                showError(error, "No se pudo actualizar el producto");
             },
         }
     );
@@ -130,10 +119,6 @@ const ProductosPage: FC<ProductosPageProps> = ({ onChange }) => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["productos"] });
             if (onChange) onChange();
-            showSuccess("Producto eliminado correctamente");
-        },
-        onError: (error) => {
-            showError(error, "No se pudo eliminar el producto");
         },
     });
 
@@ -300,8 +285,8 @@ const ProductosPage: FC<ProductosPageProps> = ({ onChange }) => {
                                         </div>
                                     </div>
                                     <div>
-                                        <Label>Proveedor</Label>
-                                        <Select name="prov_id">
+                                        <Label>Proveedor *</Label>
+                                        <Select name="prov_id" required>
                                             <SelectTrigger><SelectValue placeholder="Seleccionar proveedor"/></SelectTrigger>
                                             <SelectContent>
                                                 {formData?.proveedores.map(p => (
@@ -390,10 +375,7 @@ const ProductosPage: FC<ProductosPageProps> = ({ onChange }) => {
                                     <Button
                                         size="sm"
                                         variant="destructive"
-                                        onClick={() => {
-                                            setProductoAEliminar(prod);
-                                            setDeleteDialogOpen(true);
-                                        }}
+                                        onClick={() => deleteProducto.mutate(prod.pro_id)}
                                     >
                                         <Trash2 />
                                     </Button>
@@ -500,8 +482,8 @@ const ProductosPage: FC<ProductosPageProps> = ({ onChange }) => {
                                     </div>
                                 </div>
                                 <div>
-                                    <Label>Proveedor</Label>
-                                    <Select name="prov_id" defaultValue={selected.proveedores[0]?.prov_id}>
+                                    <Label>Proveedor *</Label>
+                                    <Select name="prov_id" defaultValue={selected.proveedores[0]?.prov_id} required>
                                         <SelectTrigger><SelectValue/></SelectTrigger>
                                         <SelectContent>
                                             {formData?.proveedores.map(p => (
@@ -543,38 +525,6 @@ const ProductosPage: FC<ProductosPageProps> = ({ onChange }) => {
                             </DialogFooter>
                         </form>
                     )}
-                </DialogContent>
-            </Dialog>
-
-            {/* Modal de confirmación de eliminación */}
-            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>¿Eliminar producto?</DialogTitle>
-                        <DialogDescription>
-                            ¿Estás seguro de que deseas eliminar el producto{' '}
-                            <span className="font-semibold">{productoAEliminar?.pro_nombre}</span>? Esta acción no se puede deshacer.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                        <DialogClose asChild>
-                            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-                                Cancelar
-                            </Button>
-                        </DialogClose>
-                        <Button
-                            variant="destructive"
-                            onClick={() => {
-                                if (productoAEliminar) {
-                                    deleteProducto.mutate(productoAEliminar.pro_id);
-                                }
-                                setDeleteDialogOpen(false);
-                                setProductoAEliminar(null);
-                            }}
-                        >
-                            Eliminar
-                        </Button>
-                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </>

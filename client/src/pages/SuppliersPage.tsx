@@ -30,9 +30,9 @@ import {
   Phone,
   Building,
   XCircle,
+  BadgeDollarSign,
 } from "lucide-react";
 import { API_URL } from "@/config";
-import { useNotifications } from "@/hooks/useNotifications";
 
 interface Categoria {
   prov_cat_id: string;
@@ -67,19 +67,24 @@ const defaultForm = {
 };
 
 const SuppliersPage: React.FC = () => {
-  const { showSuccess, showError } = useNotifications();
   const [suppliers, setSuppliers] = useState<Proveedor[]>([]);
   const [categories, setCategories] = useState<Categoria[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
-  const [currentTab, setCurrentTab] = useState<string>("todos");
+  const [currentTab, setCurrentTab] = useState<"todos" | "inactivos">("todos");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [newDialog, setNewDialog] = useState(false);
   const [editDialog, setEditDialog] = useState(false);
   const [form, setForm] = useState<any>({ ...defaultForm });
   const [editingId, setEditingId] = useState<string>("");
+  const [successMessage, setSuccessMessage] = useState<string>("");
 
-
+  // Auto-clear success message after 3s
+  useEffect(() => {
+    if (!successMessage) return;
+    const t = setTimeout(() => setSuccessMessage(""), 3000);
+    return () => clearTimeout(t);
+  }, [successMessage]);
 
   const fetchAll = useCallback(async () => {
     const [r1, r2] = await Promise.all([
@@ -105,25 +110,64 @@ const SuppliersPage: React.FC = () => {
 
   const filtered = suppliers.filter(p => {
     if (
-        searchQuery &&
-        !p.prov_nombre.toLowerCase().includes(searchQuery.toLowerCase()) &&
-        !(p.prov_contacto || "")
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase()) &&
-        !(p.prov_email || "")
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase())
+      searchQuery &&
+      !p.prov_nombre.toLowerCase().includes(searchQuery.toLowerCase()) &&
+      !(p.prov_contacto || "")
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase()) &&
+      !(p.prov_email || "")
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase())
     ) return false;
     if (
-        categoryFilter &&
-        !(p.categorias || []).some(c => c.prov_cat_nombre === categoryFilter)
+      categoryFilter &&
+      !(p.categorias || []).some(c => c.prov_cat_nombre === categoryFilter)
     ) return false;
     if (currentTab === "inactivos" && p.prov_estado === "Activo") return false;
     return true;
   });
 
   const handleCreate = async () => {
-    const payload = { ...form, categorias: form.categoria ? [form.categoria] : [] };
+    // Validar campos obligatorios
+    if (!form.prov_nombre.trim()) {
+      alert("El nombre es obligatorio");
+      return;
+    }
+    if (!form.prov_contacto.trim()) {
+      alert("El contacto es obligatorio");
+      return;
+    }
+    if (!form.prov_email.trim()) {
+      alert("El email es obligatorio");
+      return;
+    }
+    if (!form.prov_telefono.trim()) {
+      alert("El teléfono es obligatorio");
+      return;
+    }
+    if (!form.prov_direccion.trim()) {
+      alert("La dirección es obligatoria");
+      return;
+    }
+    if (!form.categoria.trim()) {
+      alert("La categoría es obligatoria");
+      return;
+    }
+    if (!form.prov_rfc.trim()) {
+      alert("El RUC es obligatorio");
+      return;
+    }
+    if (form.prov_rfc.length !== 11 || !/^\d{11}$/.test(form.prov_rfc)) {
+      alert("El RUC debe tener exactamente 11 dígitos numéricos");
+      return;
+    }
+
+    // Encontrar el nombre de la categoría por su ID
+    const categoria = categories.find(c => c.prov_cat_id === form.categoria);
+    const categoriaNombre = categoria?.prov_cat_nombre || "";
+    console.log("Creating with categoria nombre:", categoriaNombre, "for ID:", form.categoria);
+    
+    const payload = { ...form, categorias: categoriaNombre ? [categoriaNombre] : [] };
     const res = await fetch(`${API_URL}/api/proveedores`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
@@ -133,15 +177,26 @@ const SuppliersPage: React.FC = () => {
     if (res.ok) {
       setNewDialog(false);
       setForm({ ...defaultForm });
-      showSuccess("Proveedor creado correctamente");
+      setSuccessMessage("Proveedor creado con éxito");
       fetchAll();
-    } else {
-      const errorData = await res.json();
-      showError(errorData.message || "Error desconocido", "No se pudo crear el proveedor");
     }
   };
 
   const openEdit = (p: Proveedor) => {
+    console.log("=== DEBUGGING EDIT ===");
+    console.log("Full provider object:", JSON.stringify(p, null, 2));
+    console.log("Provider categories:", p.categorias);
+    console.log("First category:", p.categorias?.[0]);
+    console.log("Available categories list:", categories);
+    
+    // Manejar el caso cuando el proveedor no tiene categorías asignadas
+    const categoriaId = (p.categorias && p.categorias.length > 0) 
+      ? p.categorias[0].prov_cat_id?.toString() || ""
+      : "";
+    
+    console.log("Extracted categoria ID:", categoriaId, typeof categoriaId);
+    console.log("Will this ID be found in dropdown?", categories.find(c => c.prov_cat_id === categoriaId));
+
     setEditingId(p.prov_id);
     setForm({
       prov_nombre: p.prov_nombre || "",
@@ -153,13 +208,52 @@ const SuppliersPage: React.FC = () => {
       prov_notas: p.prov_notas || "",
       prov_sitio_web: p.prov_sitio_web || "",
       prov_estado: p.prov_estado,
-      categoria: p.categorias?.[0]?.prov_cat_nombre || "",
+      categoria: categoriaId,
     });
     setEditDialog(true);
   };
 
   const handleEdit = async () => {
-    const payload = { ...form, categorias: form.categoria ? [form.categoria] : [] };
+    // Validar campos obligatorios
+    if (!form.prov_nombre.trim()) {
+      alert("El nombre es obligatorio");
+      return;
+    }
+    if (!form.prov_contacto.trim()) {
+      alert("El contacto es obligatorio");
+      return;
+    }
+    if (!form.prov_email.trim()) {
+      alert("El email es obligatorio");
+      return;
+    }
+    if (!form.prov_telefono.trim()) {
+      alert("El teléfono es obligatorio");
+      return;
+    }
+    if (!form.prov_direccion.trim()) {
+      alert("La dirección es obligatoria");
+      return;
+    }
+    if (!form.categoria.trim()) {
+      alert("La categoría es obligatoria");
+      return;
+    }
+    if (!form.prov_rfc.trim()) {
+      alert("El RUC es obligatorio");
+      return;
+    }
+    if (form.prov_rfc.length !== 11 || !/^\d{11}$/.test(form.prov_rfc)) {
+      alert("El RUC debe tener exactamente 11 dígitos numéricos");
+      return;
+    }
+
+    // Encontrar el nombre de la categoría por su ID
+    const categoria = categories.find(c => c.prov_cat_id === form.categoria);
+    const categoriaNombre = categoria?.prov_cat_nombre || "";
+    console.log("Updating with categoria nombre:", categoriaNombre, "for ID:", form.categoria);
+    
+    const payload = { ...form, categorias: categoriaNombre ? [categoriaNombre] : [] };
     const res = await fetch(`${API_URL}/api/proveedores/${editingId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
@@ -168,11 +262,8 @@ const SuppliersPage: React.FC = () => {
     });
     if (res.ok) {
       setEditDialog(false);
-      showSuccess("Proveedor actualizado correctamente");
+      setSuccessMessage("Proveedor actualizado correctamente");
       fetchAll();
-    } else {
-      const errorData = await res.json();
-      showError(errorData.message || "Error desconocido", "No se pudo actualizar el proveedor");
     }
   };
 
@@ -184,338 +275,121 @@ const SuppliersPage: React.FC = () => {
       credentials: "include",
     });
     if (res.ok) {
-      showSuccess("Proveedor eliminado correctamente");
+      setSuccessMessage("Proveedor eliminado");
       fetchAll();
-    } else {
-      const errorData = await res.json();
-      showError(errorData.message || "Error desconocido", "No se pudo eliminar el proveedor");
     }
   };
 
   return (
-      <MainLayout>
-        <div className="relative container mx-auto px-4 py-6">
+    <MainLayout>
+      <div className="relative container mx-auto px-4 py-6">
 
-          {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-            <div>
-              <h1 className="text-3xl font-bold">PROVEEDORES</h1>
-              <p className="text-sm text-gray-500">Administra tus proveedores</p>
-            </div>
-            <Dialog
-                open={newDialog}
-                onOpenChange={open => {
-                  if (open) setForm({ ...defaultForm });
-                  setNewDialog(open);
-                }}
-            >
-              <DialogTrigger asChild>
-                <Button className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white">
-                  <PlusCircle /> Nuevo Proveedor
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl grid grid-cols-2 gap-6">
-                <DialogHeader className="col-span-2">
-                  <DialogTitle>Crear Proveedor</DialogTitle>
-                  <DialogDescription>
-                    Completa los datos del proveedor
-                  </DialogDescription>
-                </DialogHeader>
-
-                {/* Left Column */}
-                <div className="space-y-4">
-                  <div>
-                    <label htmlFor="prov_nombre" className="block text-sm font-medium">
-                      Nombre *
-                    </label>
-                    <Input
-                        id="prov_nombre"
-                        value={form.prov_nombre}
-                        onChange={e => setForm({ ...form, prov_nombre: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="prov_contacto" className="block text-sm font-medium">
-                      Contacto
-                    </label>
-                    <Input
-                        id="prov_contacto"
-                        value={form.prov_contacto}
-                        onChange={e => setForm({ ...form, prov_contacto: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="prov_email" className="block text-sm font-medium">
-                      Email
-                    </label>
-                    <Input
-                        id="prov_email"
-                        type="email"
-                        value={form.prov_email}
-                        onChange={e => setForm({ ...form, prov_email: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="prov_telefono" className="block text-sm font-medium">
-                      Teléfono
-                    </label>
-                    <Input
-                        id="prov_telefono"
-                        value={form.prov_telefono}
-                        onChange={e => setForm({ ...form, prov_telefono: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="prov_direccion" className="block text-sm font-medium">
-                      Dirección
-                    </label>
-                    <Input
-                        id="prov_direccion"
-                        value={form.prov_direccion}
-                        onChange={e => setForm({ ...form, prov_direccion: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                {/* Right Column */}
-                <div className="space-y-4">
-                  <div>
-                    <label htmlFor="categoria" className="block text-sm font-medium">
-                      Categoría
-                    </label>
-                    <select
-                        id="categoria"
-                        className="w-full border rounded p-2"
-                        value={form.categoria}
-                        onChange={e => setForm({ ...form, categoria: e.target.value })}
-                    >
-                      <option value="">Seleccionar categoría</option>
-                      {categories.map(c => (
-                          <option key={c.prov_cat_id} value={c.prov_cat_nombre}>
-                            {c.prov_cat_nombre}
-                          </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label htmlFor="prov_estado" className="block text-sm font-medium">
-                      Estado *
-                    </label>
-                    <select
-                        id="prov_estado"
-                        className="w-full border rounded p-2"
-                        value={form.prov_estado}
-                        onChange={e => setForm({ ...form, prov_estado: e.target.value })}
-                    >
-                      <option value="Activo">Activo</option>
-                      <option value="Inactivo">Inactivo</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label htmlFor="prov_rfc" className="block text-sm font-medium">
-                      RFC
-                    </label>
-                    <Input
-                        id="prov_rfc"
-                        value={form.prov_rfc}
-                        onChange={e => setForm({ ...form, prov_rfc: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="prov_sitio_web" className="block text-sm font-medium">
-                      Sitio web
-                    </label>
-                    <Input
-                        id="prov_sitio_web"
-                        value={form.prov_sitio_web}
-                        onChange={e => setForm({ ...form, prov_sitio_web: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="prov_notas" className="block text-sm font-medium">
-                      Notas
-                    </label>
-                    <Input
-                        id="prov_notas"
-                        value={form.prov_notas}
-                        onChange={e => setForm({ ...form, prov_notas: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="col-span-2 flex justify-end">
-                  <Button onClick={handleCreate}>Crear Proveedor</Button>
-                </div>
-              </DialogContent>
-            </Dialog>
+        {/* Success Toast */}
+        {successMessage && (
+          <div className="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg z-50">
+            {successMessage}
           </div>
+        )}
 
-          {/* Filters */}
-          <div className="mb-6">
-            <Tabs value={currentTab} onValueChange={setCurrentTab}>
-              <TabsList className="mb-4">
-                <TabsTrigger value="todos">Todos</TabsTrigger>
-                <TabsTrigger value="inactivos">Inactivos</TabsTrigger>
-              </TabsList>
-            </Tabs>
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-500 h-5 w-5" />
-                <Input
-                    className="pl-10"
-                    placeholder="Buscar por nombre, contacto o email..."
-                    value={searchQuery}
-                    onChange={e => setSearchQuery(e.target.value)}
-                />
-              </div>
-              <select
-                  className="px-3 py-2 border rounded"
-                  value={categoryFilter}
-                  onChange={e => setCategoryFilter(e.target.value)}
-              >
-                <option value="">Todas las categorías</option>
-                {categories.map(c => (
-                    <option key={c.prov_cat_id} value={c.prov_cat_nombre}>
-                      {c.prov_cat_nombre}
-                    </option>
-                ))}
-              </select>
-              <Button
-                  variant="outline"
-                  className="flex items-center gap-2"
-                  onClick={() => {
-                    setSearchQuery("");
-                    setCategoryFilter("");
-                    setCurrentTab("todos");
-                  }}
-              >
-                <RefreshCcw /> Limpiar
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-bold">PROVEEDORES</h1>
+            <p className="text-sm text-gray-500">Administra tus proveedores</p>
+          </div>
+          <Dialog
+            open={newDialog}
+            onOpenChange={open => {
+              if (open) setForm({ ...defaultForm });
+              setNewDialog(open);
+            }}
+          >
+            <DialogTrigger asChild>
+              <Button className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white">
+                <PlusCircle /> Nuevo Proveedor
               </Button>
-            </div>
-          </div>
-
-          {/* Supplier Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filtered.map(p => (
-                <Card key={p.prov_id} className="hover:shadow-lg transition">
-                  <CardHeader className="flex justify-between items-center">
-                    <CardTitle>{p.prov_nombre}</CardTitle>
-                    <Badge variant="outline">{p.prov_estado}</Badge>
-                  </CardHeader>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2 mb-2 text-blue-600">
-                      <Mail className="h-4 w-4" /> {p.prov_email}
-                    </div>
-                    <div className="flex items-center gap-2 mb-2 text-green-600">
-                      <Phone className="h-4 w-4" /> {p.prov_telefono}
-                    </div>
-                    <div className="flex items-center gap-2 mb-4 text-purple-600">
-                      <Building className="h-4 w-4" /> {p.prov_direccion}
-                    </div>
-                    <Separator className="my-2" />
-                    <div className="flex justify-between items-center">
-                      <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                              setExpandedId(expandedId === p.prov_id ? null : p.prov_id)
-                          }
-                      >
-                        {expandedId === p.prov_id ? (
-                            <><ChevronUp /> Ocultar</>
-                        ) : (
-                            <><ChevronDown /> Detalles</>
-                        )}
-                      </Button>
-                      <div className="flex gap-2">
-                        <Button
-                            className="bg-blue-500 hover:bg-blue-600 text-white text-sm"
-                            onClick={() => openEdit(p)}
-                        >
-                          Editar
-                        </Button>
-                        <Button
-                            className="bg-red-500 hover:bg-red-600 text-white text-sm"
-                            onClick={() => handleDelete(p.prov_id)}
-                        >
-                          <XCircle className="inline h-4 w-4 mr-1" />Eliminar
-                        </Button>
-                      </div>
-                    </div>
-                    {expandedId === p.prov_id && (
-                        <div className="mt-4 space-y-1">
-                          <strong>Categorías:</strong>{" "}
-                          {(p.categorias || [])
-                              .map(c => c.prov_cat_nombre)
-                              .join(", ")}
-                        </div>
-                    )}
-                  </CardContent>
-                </Card>
-            ))}
-          </div>
-
-          {/* Edit Dialog */}
-          <Dialog open={editDialog} onOpenChange={setEditDialog}>
+            </DialogTrigger>
             <DialogContent className="max-w-2xl grid grid-cols-2 gap-6">
               <DialogHeader className="col-span-2">
-                <DialogTitle>Editar Proveedor</DialogTitle>
+                <DialogTitle>Crear Proveedor</DialogTitle>
                 <DialogDescription>
-                  Modifica los datos del proveedor
+                  Completa los datos del proveedor
                 </DialogDescription>
               </DialogHeader>
 
               {/* Left Column */}
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="edit_prov_nombre" className="block text-sm font-medium">
+                  <label htmlFor="prov_rfc" className="block text-sm font-medium">
+                    RUC *
+                  </label>
+                  <Input
+                    id="prov_rfc"
+                    value={form.prov_rfc}
+                    onChange={e => setForm({ ...form, prov_rfc: e.target.value })}
+                    pattern="[0-9]{11}"
+                    maxLength={11}
+                    placeholder="11 dígitos"
+                    required
+                  />
+                  {form.prov_rfc && form.prov_rfc.length !== 11 && (
+                    <p className="text-red-500 text-xs mt-1">El RUC debe tener exactamente 11 dígitos</p>
+                  )}
+                </div>
+                <div>
+                  <label htmlFor="prov_nombre" className="block text-sm font-medium">
                     Nombre *
                   </label>
                   <Input
-                      id="edit_prov_nombre"
-                      value={form.prov_nombre}
-                      onChange={e => setForm({ ...form, prov_nombre: e.target.value })}
+                    id="prov_nombre"
+                    value={form.prov_nombre}
+                    onChange={e => setForm({ ...form, prov_nombre: e.target.value })}
+                    required
                   />
                 </div>
                 <div>
-                  <label htmlFor="edit_prov_contacto" className="block text-sm font-medium">
-                    Contacto
+                  <label htmlFor="prov_contacto" className="block text-sm font-medium">
+                    Contacto *
                   </label>
                   <Input
-                      id="edit_prov_contacto"
-                      value={form.prov_contacto}
-                      onChange={e => setForm({ ...form, prov_contacto: e.target.value })}
+                    id="prov_contacto"
+                    value={form.prov_contacto}
+                    onChange={e => setForm({ ...form, prov_contacto: e.target.value })}
+                    required
                   />
                 </div>
                 <div>
-                  <label htmlFor="edit_prov_email" className="block text-sm font-medium">
-                    Email
+                  <label htmlFor="prov_email" className="block text-sm font-medium">
+                    Email *
                   </label>
                   <Input
-                      id="edit_prov_email"
-                      type="email"
-                      value={form.prov_email}
-                      onChange={e => setForm({ ...form, prov_email: e.target.value })}
+                    id="prov_email"
+                    type="email"
+                    value={form.prov_email}
+                    onChange={e => setForm({ ...form, prov_email: e.target.value })}
+                    required
                   />
                 </div>
                 <div>
-                  <label htmlFor="edit_prov_telefono" className="block text-sm font-medium">
-                    Teléfono
+                  <label htmlFor="prov_telefono" className="block text-sm font-medium">
+                    Teléfono *
                   </label>
                   <Input
-                      id="edit_prov_telefono"
-                      value={form.prov_telefono}
-                      onChange={e => setForm({ ...form, prov_telefono: e.target.value })}
+                    id="prov_telefono"
+                    value={form.prov_telefono}
+                    onChange={e => setForm({ ...form, prov_telefono: e.target.value })}
+                    required
                   />
                 </div>
                 <div>
-                  <label htmlFor="edit_prov_direccion" className="block text-sm font-medium">
-                    Dirección
+                  <label htmlFor="prov_direccion" className="block text-sm font-medium">
+                    Dirección *
                   </label>
                   <Input
-                      id="edit_prov_direccion"
-                      value={form.prov_direccion}
-                      onChange={e => setForm({ ...form, prov_direccion: e.target.value })}
+                    id="prov_direccion"
+                    value={form.prov_direccion}
+                    onChange={e => setForm({ ...form, prov_direccion: e.target.value })}
+                    required
                   />
                 </div>
               </div>
@@ -523,76 +397,329 @@ const SuppliersPage: React.FC = () => {
               {/* Right Column */}
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="edit_categoria" className="block text-sm font-medium">
-                    Categoría
+                  <label htmlFor="categoria" className="block text-sm font-medium">
+                    Categoría *
                   </label>
                   <select
-                      id="edit_categoria"
-                      className="w-full border rounded p-2"
-                      value={form.categoria}
-                      onChange={e => setForm({ ...form, categoria: e.target.value })}
+                    id="categoria"
+                    className="w-full border rounded p-2"
+                    value={form.categoria}
+                    onChange={e => setForm({ ...form, categoria: e.target.value })}
+                    required
                   >
                     <option value="">Seleccionar categoría</option>
                     {categories.map(c => (
-                        <option key={c.prov_cat_id} value={c.prov_cat_nombre}>
-                          {c.prov_cat_nombre}
-                        </option>
+                      <option key={c.prov_cat_id} value={c.prov_cat_id}>
+                        {c.prov_cat_nombre}
+                      </option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label htmlFor="edit_prov_estado" className="block text-sm font-medium">
+                  <label htmlFor="prov_estado" className="block text-sm font-medium">
                     Estado *
                   </label>
                   <select
-                      id="edit_prov_estado"
-                      className="w-full border rounded p-2"
-                      value={form.prov_estado}
-                      onChange={e => setForm({ ...form, prov_estado: e.target.value })}
+                    id="prov_estado"
+                    className="w-full border rounded p-2"
+                    value={form.prov_estado}
+                    onChange={e => setForm({ ...form, prov_estado: e.target.value })}
+                    required
                   >
                     <option value="Activo">Activo</option>
                     <option value="Inactivo">Inactivo</option>
                   </select>
                 </div>
+                
                 <div>
-                  <label htmlFor="edit_prov_rfc" className="block text-sm font-medium">
-                    RFC
-                  </label>
-                  <Input
-                      id="edit_prov_rfc"
-                      value={form.prov_rfc}
-                      onChange={e => setForm({ ...form, prov_rfc: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="edit_prov_sitio_web" className="block text-sm font-medium">
+                  <label htmlFor="prov_sitio_web" className="block text-sm font-medium">
                     Sitio web
                   </label>
                   <Input
-                      id="edit_prov_sitio_web"
-                      value={form.prov_sitio_web}
-                      onChange={e => setForm({ ...form, prov_sitio_web: e.target.value })}
+                    id="prov_sitio_web"
+                    value={form.prov_sitio_web}
+                    onChange={e => setForm({ ...form, prov_sitio_web: e.target.value })}
                   />
                 </div>
                 <div>
-                  <label htmlFor="edit_prov_notas" className="block text-sm font-medium">
+                  <label htmlFor="prov_notas" className="block text-sm font-medium">
                     Notas
                   </label>
                   <Input
-                      id="edit_prov_notas"
-                      value={form.prov_notas}
-                      onChange={e => setForm({ ...form, prov_notas: e.target.value })}
+                    id="prov_notas"
+                    value={form.prov_notas}
+                    onChange={e => setForm({ ...form, prov_notas: e.target.value })}
                   />
                 </div>
               </div>
 
               <div className="col-span-2 flex justify-end">
-                <Button onClick={handleEdit}>Guardar Cambios</Button>
+                <Button onClick={handleCreate}>Crear Proveedor</Button>
               </div>
             </DialogContent>
           </Dialog>
         </div>
-      </MainLayout>
+
+        {/* Filters */}
+        <div className="mb-6">
+          <Tabs value={currentTab} onValueChange={v => setCurrentTab(v as "todos" | "inactivos")}>
+            <TabsList className="mb-4">
+              <TabsTrigger value="todos">Todos</TabsTrigger>
+              <TabsTrigger value="inactivos">Inactivos</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-500 h-5 w-5" />
+              <Input
+                className="pl-10"
+                placeholder="Buscar por nombre, contacto o email..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <select
+              className="px-3 py-2 border rounded"
+              value={categoryFilter}
+              onChange={e => setCategoryFilter(e.target.value)}
+            >
+              <option value="">Todas las categorías</option>
+              {categories.map(c => (
+                <option key={c.prov_cat_id} value={c.prov_cat_nombre}>
+                  {c.prov_cat_nombre}
+                </option>
+              ))}
+            </select>
+            <Button
+              variant="outline"
+              className="flex items-center gap-2"
+              onClick={() => {
+                setSearchQuery("");
+                setCategoryFilter("");
+                setCurrentTab("todos");
+              }}
+            >
+              <RefreshCcw /> Limpiar
+            </Button>
+          </div>
+        </div>
+
+        {/* Supplier Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filtered.map(p => (
+            <Card key={p.prov_id} className="hover:shadow-lg transition">
+              <CardHeader className="flex justify-between items-center">
+                <CardTitle>{p.prov_nombre}</CardTitle>
+                <Badge variant="outline">{p.prov_estado}</Badge>
+              </CardHeader>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-2 text-black-600">
+                  <BadgeDollarSign className="h-4 w-4" /> RUC: {p.prov_rfc}
+                </div>
+                <div className="flex items-center gap-2 mb-2 text-blue-600">
+                  <Mail className="h-4 w-4" /> {p.prov_email}
+                </div>
+                <div className="flex items-center gap-2 mb-2 text-green-600">
+                  <Phone className="h-4 w-4" /> {p.prov_telefono}
+                </div>
+                <div className="flex items-center gap-2 mb-4 text-purple-600">
+                  <Building className="h-4 w-4" /> {p.prov_direccion}
+                </div>
+                <Separator className="my-2" />
+                <div className="flex justify-between items-center">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      setExpandedId(expandedId === p.prov_id ? null : p.prov_id)
+                    }
+                  >
+                    {expandedId === p.prov_id ? (
+                      <><ChevronUp /> Ocultar</>
+                    ) : (
+                      <><ChevronDown /> Detalles</>
+                    )}
+                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      className="bg-blue-500 hover:bg-blue-600 text-white text-sm"
+                      onClick={() => openEdit(p)}
+                    >
+                      Editar
+                    </Button>
+                    <Button
+                      className="bg-red-500 hover:bg-red-600 text-white text-sm"
+                      onClick={() => handleDelete(p.prov_id)}
+                    >
+                      <XCircle className="inline h-4 w-4 mr-1" />Eliminar
+                    </Button>
+                  </div>
+                </div>
+                {expandedId === p.prov_id && (
+                  <div className="mt-4 space-y-1">
+                    <strong>Categorías:</strong>{" "}
+                    {(p.categorias || [])
+                      .map(c => c.prov_cat_nombre)
+                      .join(", ")}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Edit Dialog */}
+        <Dialog open={editDialog} onOpenChange={setEditDialog}>
+          <DialogContent className="max-w-2xl grid grid-cols-2 gap-6">
+            <DialogHeader className="col-span-2">
+              <DialogTitle>Editar Proveedor</DialogTitle>
+              <DialogDescription>
+                Modifica los datos del proveedor
+              </DialogDescription>
+            </DialogHeader>
+
+            {/* Left Column */}
+            <div className="space-y-4">
+              <div>
+                  <label htmlFor="prov_rfc" className="block text-sm font-medium">
+                    RUC *
+                  </label>
+                  <Input
+                    id="prov_rfc"
+                    value={form.prov_rfc}
+                    onChange={e => setForm({ ...form, prov_rfc: e.target.value })}
+                    pattern="[0-9]{11}"
+                    maxLength={11}
+                    placeholder="11 dígitos"
+                    required
+                  />
+                  {form.prov_rfc && form.prov_rfc.length !== 11 && (
+                    <p className="text-red-500 text-xs mt-1">El RUC debe tener exactamente 11 dígitos</p>
+                  )}
+                </div>
+              <div>
+                <label htmlFor="edit_prov_nombre" className="block text-sm font-medium">
+                  Nombre *
+                </label>
+                <Input
+                  id="edit_prov_nombre"
+                  value={form.prov_nombre}
+                  onChange={e => setForm({ ...form, prov_nombre: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="edit_prov_contacto" className="block text-sm font-medium">
+                  Contacto *
+                </label>
+                <Input
+                  id="edit_prov_contacto"
+                  value={form.prov_contacto}
+                  onChange={e => setForm({ ...form, prov_contacto: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="edit_prov_email" className="block text-sm font-medium">
+                  Email *
+                </label>
+                <Input
+                  id="edit_prov_email"
+                  type="email"
+                  value={form.prov_email}
+                  onChange={e => setForm({ ...form, prov_email: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="edit_prov_telefono" className="block text-sm font-medium">
+                  Teléfono *
+                </label>
+                <Input
+                  id="edit_prov_telefono"
+                  value={form.prov_telefono}
+                  onChange={e => setForm({ ...form, prov_telefono: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <label htmlFor="edit_prov_direccion" className="block text-sm font-medium">
+                  Dirección *
+                </label>
+                <Input
+                  id="edit_prov_direccion"
+                  value={form.prov_direccion}
+                  onChange={e => setForm({ ...form, prov_direccion: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Right Column */}
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="edit_categoria" className="block text-sm font-medium">
+                  Categoría *
+                </label>
+                <select
+                  id="edit_categoria"
+                  className="w-full border rounded p-2"
+                  value={form.categoria}
+                  onChange={e => setForm({ ...form, categoria: e.target.value })}
+                  required
+                >
+                  <option value="">Seleccionar categoría</option>
+                  {categories.map(c => (
+                    <option key={c.prov_cat_id} value={c.prov_cat_id}>
+                      {c.prov_cat_nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="edit_prov_estado" className="block text-sm font-medium">
+                  Estado *
+                </label>
+                <select
+                  id="edit_prov_estado"
+                  className="w-full border rounded p-2"
+                  value={form.prov_estado}
+                  onChange={e => setForm({ ...form, prov_estado: e.target.value })}
+                  required
+                >
+                  <option value="Activo">Activo</option>
+                  <option value="Inactivo">Inactivo</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="edit_prov_sitio_web" className="block text-sm font-medium">
+                  Sitio web
+                </label>
+                <Input
+                  id="edit_prov_sitio_web"
+                  value={form.prov_sitio_web}
+                  onChange={e => setForm({ ...form, prov_sitio_web: e.target.value })}
+                />
+              </div>
+              <div>
+                <label htmlFor="edit_prov_notas" className="block text-sm font-medium">
+                  Notas
+                </label>
+                <Input
+                  id="edit_prov_notas"
+                  value={form.prov_notas}
+                  onChange={e => setForm({ ...form, prov_notas: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="col-span-2 flex justify-end">
+              <Button onClick={handleEdit}>Guardar Cambios</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </MainLayout>
   );
 };
 

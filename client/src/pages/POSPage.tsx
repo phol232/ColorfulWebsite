@@ -74,6 +74,7 @@ interface CartItem {
 interface Cliente {
   cli_id: string;
   cli_nombre: string;
+  cli_apellido?: string;
   cli_email?: string;
   cli_telefono?: string;
 }
@@ -86,6 +87,7 @@ const POSPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [clienteSearch, setClienteSearch] = useState("");
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
+  const [debouncedClienteSearch, setDebouncedClienteSearch] = useState("");
   const [formaEntrega, setFormaEntrega] = useState("Mostrador");
   const [notas, setNotas] = useState("");
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
@@ -133,17 +135,37 @@ const POSPage: React.FC = () => {
     staleTime: 10000,
   });
 
-  // Search clients
+  // Debounce effect for client search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedClienteSearch(clienteSearch);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [clienteSearch]);
+
+  // Search clients using new search route
   const { data: clientes = [] } = useQuery<Cliente[]>({
-    queryKey: ['/api/clientes', clienteSearch],
+    queryKey: ['/api/clientes/search', debouncedClienteSearch],
     queryFn: async () => {
-      if (!clienteSearch.trim()) return [];
-      const response = await fetch(`${API_URL}/api/clientes?search=${encodeURIComponent(clienteSearch)}`);
+      if (!debouncedClienteSearch.trim() || debouncedClienteSearch.trim().length < 2) {
+        return [];
+      }
+      const token = localStorage.getItem("token");
+      const response = await fetch(
+        `${API_URL}/api/clientes/search?q=${encodeURIComponent(debouncedClienteSearch.trim())}&limit=10`,
+        {
+          headers: {
+            'Authorization': token ? `Bearer ${token}` : '',
+            'Content-Type': 'application/json',
+          }
+        }
+      );
       if (!response.ok) return [];
       const data = await response.json();
-      return data.data || data;
+      return data || [];
     },
-    enabled: clienteSearch.trim().length > 0
+    enabled: debouncedClienteSearch.trim().length >= 2
   });
 
   // Filter products
@@ -247,7 +269,7 @@ const POSPage: React.FC = () => {
     try {
       const token = localStorage.getItem("token");
       const orderData = {
-        cliente_nombre: selectedCliente?.cli_nombre || clienteSearch.trim(),
+        cliente_nombre: selectedCliente ? `${selectedCliente.cli_nombre} ${selectedCliente.cli_apellido || ''}`.trim() : clienteSearch.trim(),
         usr_id: userId,
         forma_entrega: formaEntrega,
         notas: notas.trim() || null,
@@ -691,49 +713,66 @@ const POSPage: React.FC = () => {
                         <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                         <Input
                             id="cliente"
-                            placeholder="Buscar cliente..."
-                            value={selectedCliente ? selectedCliente.cli_nombre : clienteSearch}
+                            placeholder="Escriba al menos 2 caracteres para buscar..."
+                            value={selectedCliente ? `${selectedCliente.cli_nombre} ${selectedCliente.cli_apellido || ''}`.trim() : clienteSearch}
                             onChange={(e) => {
                               setClienteSearch(e.target.value);
-                              setSelectedCliente(null);
+                              if (selectedCliente) {
+                                setSelectedCliente(null);
+                              }
                             }}
                             className="pl-10 h-10 text-sm"
                         />
                       </div>
 
                       {/* Dropdown de clientes */}
-                      {clientes.length > 0 && !selectedCliente && clienteSearch.trim() && (
+                      {clientes.length > 0 && !selectedCliente && debouncedClienteSearch.trim().length >= 2 && (
                           <>
                             <div
                                 className="fixed inset-0 z-40"
-                                onClick={() => setClienteSearch("")}
+                                onClick={() => {
+                                  setClienteSearch("");
+                                  setSelectedCliente(null);
+                                }}
                             />
                             <div className="absolute z-50 mt-1 bg-white border rounded-md shadow-lg max-h-40 overflow-y-auto w-full">
                               <div className="p-2 bg-gray-50 border-b">
-                                <div className="text-sm text-gray-600 font-medium">Clientes encontrados:</div>
+                                <div className="text-sm text-gray-600 font-medium">
+                                  Clientes encontrados ({clientes.length}):
+                                </div>
                               </div>
                               {clientes.map((cliente) => (
                                   <button
                                       key={cliente.cli_id}
-                                      className="w-full text-left px-3 py-2 hover:bg-gray-100 border-b last:border-b-0 flex items-center gap-3"
+                                      className="w-full text-left px-3 py-2 hover:bg-gray-100 border-b last:border-b-0 flex items-center gap-3 transition-colors"
                                       onClick={() => {
                                         setSelectedCliente(cliente);
-                                        setClienteSearch(cliente.cli_nombre);
+                                        setClienteSearch(`${cliente.cli_nombre} ${cliente.cli_apellido || ''}`.trim());
                                       }}
                                   >
                                     <div className="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center text-sm font-medium">
                                       {cliente.cli_nombre.charAt(0).toUpperCase()}
                                     </div>
                                     <div className="flex-1">
-                                      <div className="font-medium text-sm">{cliente.cli_nombre}</div>
+                                      <div className="font-medium text-sm">{cliente.cli_nombre} {cliente.cli_apellido || ''}</div>
                                       {cliente.cli_email && (
                                           <div className="text-sm text-gray-500">{cliente.cli_email}</div>
+                                      )}
+                                      {cliente.cli_telefono && (
+                                          <div className="text-xs text-gray-400">{cliente.cli_telefono}</div>
                                       )}
                                     </div>
                                   </button>
                               ))}
                             </div>
                           </>
+                      )}
+
+                      {/* Mensaje cuando no hay resultados */}
+                      {debouncedClienteSearch.trim().length >= 2 && clientes.length === 0 && !selectedCliente && (
+                          <div className="absolute z-50 mt-1 bg-white border rounded-md shadow-lg w-full p-3 text-center text-gray-500 text-sm">
+                            No se encontraron clientes que coincidan con "{debouncedClienteSearch}"
+                          </div>
                       )}
                     </div>
 
@@ -885,14 +924,14 @@ const POSPage: React.FC = () => {
                                         </div>
                                         <div className="flex items-center border rounded">
                                           <button
-                                              className="px-2 py-1 text-gray-500 hover:bg-gray-100 transition-colors"
+                                              className="px-2 py-1 text-gray-500"
                                               onClick={() => updateQuantity(item.prod_id, item.cantidad - 1)}
                                           >
                                             <Minus className="h-3 w-3" />
                                           </button>
                                           <span className="px-3 py-1 font-medium text-sm min-w-[40px] text-center">{item.cantidad}</span>
                                           <button
-                                              className="px-2 py-1 text-gray-500 hover:bg-gray-100 transition-colors"
+                                              className="px-2 py-1 text-gray-500"
                                               onClick={() => updateQuantity(item.prod_id, item.cantidad + 1)}
                                           >
                                             <Plus className="h-3 w-3" />
@@ -964,7 +1003,7 @@ const POSPage: React.FC = () => {
                       <div className="text-sm space-y-2">
                         <div className="flex justify-between">
                           <span className="text-gray-600 font-medium">Cliente:</span>
-                          <span className="font-semibold text-xs">{selectedCliente?.cli_nombre || clienteSearch || 'No seleccionado'}</span>
+                          <span className="font-semibold text-xs">{selectedCliente ? `${selectedCliente.cli_nombre} ${selectedCliente.cli_apellido || ''}`.trim() : (clienteSearch || 'No seleccionado')}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-600 font-medium">Entrega:</span>
