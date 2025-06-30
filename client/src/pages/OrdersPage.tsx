@@ -1883,24 +1883,25 @@ const OrdersPage: React.FC = () => {
                                     </div>
 
                                     {/* Botones de acción - Fijos en la parte inferior */}
-                                    <div className="p-4 border-t border-green-200 bg-white rounded-b-lg space-y-2">
-                                        <Button
-                                            onClick={handleUpdatePedido}
-                                            disabled={updatePedidoMutation.isPending || cartItems.length === 0}
-                                            className="w-full h-11 text-sm bg-green-600 hover:bg-green-700 font-bold"
-                                        >
-                                            {updatePedidoMutation.isPending ? "Guardando..." : "Guardar Cambios"}
-                                        </Button>
+                                    <div className="p-4 border-t border-green-200 bg-white rounded-b-lg flex gap-2">
                                         <Button
                                             variant="outline"
                                             onClick={() => {
                                                 setIsEditDialogOpen(false);
                                                 resetEditForm();
                                             }}
-                                            className="w-full h-9 text-sm"
+                                            className="flex-1 h-9 text-sm"
                                         >
                                             Cancelar
                                         </Button>
+                                        <Button
+                                            onClick={handleUpdatePedido}
+                                            disabled={updatePedidoMutation.isPending || cartItems.length === 0}
+                                            className="flex-1 h-11 text-sm bg-green-600 hover:bg-green-700 font-bold"
+                                        >
+                                            {updatePedidoMutation.isPending ? "Guardando..." : "Guardar Cambios"}
+                                        </Button>
+                                        
                                     </div>
                                 </div>
                             </div>
