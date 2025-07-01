@@ -40,7 +40,8 @@ import {
   Building,
   XCircle,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  IdCard
 } from "lucide-react";
 import { API_URL } from "@/config";
 
@@ -552,7 +553,7 @@ const SuppliersPage: React.FC = () => {
               </CardHeader>
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-2 text-black-600">
-                  <Mail className="h-4 w-4" /> {p.prov_rfc}
+                  <IdCard className="h-4 w-4" /> {p.prov_rfc}
                 </div>
                 <div className="flex items-center gap-2 mb-2 text-blue-600">
                   <Mail className="h-4 w-4" /> {p.prov_email}
