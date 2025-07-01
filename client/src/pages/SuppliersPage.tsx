@@ -358,6 +358,23 @@ const SuppliersPage: React.FC = () => {
               {/* Left Column */}
               <div className="space-y-4">
                 <div>
+                  <label htmlFor="prov_rfc" className="block text-sm font-medium">
+                    RUC *
+                  </label>
+                  <Input
+                    id="prov_rfc"
+                    value={form.prov_rfc}
+                    onChange={e => setForm({ ...form, prov_rfc: e.target.value })}
+                    pattern="[0-9]{11}"
+                    maxLength={11}
+                    placeholder="11 dígitos"
+                    required
+                  />
+                  {form.prov_rfc && form.prov_rfc.length !== 11 && (
+                    <p className="text-red-500 text-xs mt-1">El RUC debe tener exactamente 11 dígitos</p>
+                  )}
+                </div>
+                <div>
                   <label htmlFor="prov_nombre" className="block text-sm font-medium">
                     Nombre *
                   </label>
@@ -451,23 +468,7 @@ const SuppliersPage: React.FC = () => {
                     <option value="Inactivo">Inactivo</option>
                   </select>
                 </div>
-                <div>
-                  <label htmlFor="prov_rfc" className="block text-sm font-medium">
-                    RUC *
-                  </label>
-                  <Input
-                    id="prov_rfc"
-                    value={form.prov_rfc}
-                    onChange={e => setForm({ ...form, prov_rfc: e.target.value })}
-                    pattern="[0-9]{11}"
-                    maxLength={11}
-                    placeholder="11 dígitos"
-                    required
-                  />
-                  {form.prov_rfc && form.prov_rfc.length !== 11 && (
-                    <p className="text-red-500 text-xs mt-1">El RUC debe tener exactamente 11 dígitos</p>
-                  )}
-                </div>
+                
                 <div>
                   <label htmlFor="prov_sitio_web" className="block text-sm font-medium">
                     Sitio web
@@ -550,6 +551,9 @@ const SuppliersPage: React.FC = () => {
                 <Badge variant="outline">{p.prov_estado}</Badge>
               </CardHeader>
               <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-2 text-black-600">
+                  <Mail className="h-4 w-4" /> {p.prov_rfc}
+                </div>
                 <div className="flex items-center gap-2 mb-2 text-blue-600">
                   <Mail className="h-4 w-4" /> {p.prov_email}
                 </div>
@@ -668,6 +672,23 @@ const SuppliersPage: React.FC = () => {
             {/* Left Column */}
             <div className="space-y-4">
               <div>
+                  <label htmlFor="prov_rfc" className="block text-sm font-medium">
+                    RUC *
+                  </label>
+                  <Input
+                    id="prov_rfc"
+                    value={form.prov_rfc}
+                    onChange={e => setForm({ ...form, prov_rfc: e.target.value })}
+                    pattern="[0-9]{11}"
+                    maxLength={11}
+                    placeholder="11 dígitos"
+                    required
+                  />
+                  {form.prov_rfc && form.prov_rfc.length !== 11 && (
+                    <p className="text-red-500 text-xs mt-1">El RUC debe tener exactamente 11 dígitos</p>
+                  )}
+                </div>
+              <div>
                 <label htmlFor="edit_prov_nombre" className="block text-sm font-medium">
                   Nombre *
                 </label>
@@ -760,23 +781,6 @@ const SuppliersPage: React.FC = () => {
                   <option value="Activo">Activo</option>
                   <option value="Inactivo">Inactivo</option>
                 </select>
-              </div>
-              <div>
-                <label htmlFor="edit_prov_rfc" className="block text-sm font-medium">
-                  RUC *
-                </label>
-                <Input
-                  id="edit_prov_rfc"
-                  value={form.prov_rfc}
-                  onChange={e => setForm({ ...form, prov_rfc: e.target.value })}
-                  pattern="[0-9]{11}"
-                  maxLength={11}
-                  placeholder="11 dígitos"
-                  required
-                />
-                {form.prov_rfc && form.prov_rfc.length !== 11 && (
-                  <p className="text-red-500 text-xs mt-1">El RUC debe tener exactamente 11 dígitos</p>
-                )}
               </div>
               <div>
                 <label htmlFor="edit_prov_sitio_web" className="block text-sm font-medium">
