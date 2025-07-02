@@ -1,4 +1,4 @@
-// src/components/layouts/MainLayout.tsx
+
 import React, { ReactNode, useState } from "react";
 import { useLocation } from "wouter";
 import Sidebar from "./Sidebar";
@@ -26,6 +26,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { API_URL } from "@/config";
+import { ChatbotButton } from "@/components/ui/chatbot-button";
+import { ChatbotModal } from "@/components/ui/chatbot-modal";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -37,6 +39,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { userProfile, logout } = useAuth();
+  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
 
   const toggleSidebar = () => setSidebarOpen((v) => !v);
   const toggleMobileMenu = () => setMobileMenuOpen((v) => !v);
@@ -149,12 +152,12 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                     </div>
                     <Avatar className="h-8 w-8 border border-gray-300">
                       <AvatarImage
-                          src={
-                            userProfile?.perfil?.usrp_imagen
-                                ? `${API_URL}/storage/${userProfile.perfil.usrp_imagen}`
-                                : userProfile?.avatar || ""
-                          }
-                          alt="User avatar"
+                        src={
+                          userProfile?.perfil?.usrp_imagen 
+                            ? `${API_URL}/storage/${userProfile.perfil.usrp_imagen}`
+                            : userProfile?.avatar || ""
+                        }
+                        alt="User avatar"
                       />
                       <AvatarFallback>
                         {getInitials() || <UserIcon className="h-4 w-4" />}
@@ -165,17 +168,17 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel>Mi Cuenta</DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                      onClick={() => setLocation('/settings')}
-                      className="cursor-pointer"
+                  <DropdownMenuItem 
+                    onClick={() => setLocation('/settings')}
+                    className="cursor-pointer"
                   >
                     <Settings className="mr-2 h-4 w-4" />
                     <span>Configuración</span>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                      onClick={() => logout()}
-                      className="cursor-pointer text-red-600"
+                  <DropdownMenuItem 
+                    onClick={() => logout()}
+                    className="cursor-pointer text-red-600"
                   >
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Cerrar Sesión</span>
@@ -187,6 +190,13 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
           <main className="flex-grow p-6 overflow-y-auto">{children}</main>
         </div>
+
+        {/* Chatbot Components */}
+        <ChatbotButton onClick={() => setIsChatbotOpen(true)} />
+        <ChatbotModal 
+          isOpen={isChatbotOpen} 
+          onClose={() => setIsChatbotOpen(false)} 
+        />
       </div>
   );
 };
