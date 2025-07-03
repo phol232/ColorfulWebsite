@@ -130,6 +130,9 @@ const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
     const { userProfile } = useAuth();
     const userId = useUserId() || "DEV-USR-001"; // Asegurarse de que siempre haya un ID disponible
 
+    // Estado para el tipo de movimiento al crear
+    const [tipoMovimientoNuevo, setTipoMovimientoNuevo] = useState("");
+
     // Consulta para obtener movimientos del backend
     const { data: movimientos = [], isLoading } = useQuery<Movimiento[], Error>({
         queryKey: ["movimientos"],
@@ -449,7 +452,7 @@ const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
 
         // Construir el objeto de datos según el formato exacto esperado por el backend
         const data = {
-            tipmov_nombre: formData.get('tipmov_nombre'),
+            tipmov_nombre: editando ? formData.get('tipmov_nombre') : tipoMovimientoNuevo,
             mov_fecha: formData.get('mov_fecha') + " 23:00:00", // Añadir la hora para el formato correcto
             mov_referencia: formData.get('mov_referencia'),
             mov_notas: formData.get('mov_notas'),
@@ -575,6 +578,7 @@ const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
                     <Button size="sm" className="flex items-center gap-1" onClick={() => {
                         setEditando(null);
                         limpiarFormulario();
+                        setTipoMovimientoNuevo(""); // Reset al abrir modal de nuevo
                         setIsDialogOpen(true);
                     }}>
                         <PlusCircle className="h-4 w-4" />
@@ -811,7 +815,7 @@ const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
                                         <Select
                                             name="tipmov_nombre"
                                             required
-                                            value={editando?.tipoMovimiento?.tipmov_nombre || ""}
+                                            value={editando ? (editando.tipoMovimiento?.tipmov_nombre || "") : tipoMovimientoNuevo}
                                             onValueChange={value => {
                                                 if (editando) {
                                                     setEditando({
@@ -821,6 +825,8 @@ const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
                                                             tipmov_nombre: value
                                                         }
                                                     });
+                                                } else {
+                                                    setTipoMovimientoNuevo(value);
                                                 }
                                             }}
                                         >
