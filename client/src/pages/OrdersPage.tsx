@@ -1171,22 +1171,23 @@ const OrdersPage: React.FC = () => {
                                 {currentOrders.map((pedido) => (
                                     <Card 
                                         key={pedido.ped_id} 
-                                        className={`hover:shadow-md transition-shadow ${
+                                        className={`hover:shadow-md transition-shadow bg-card border-border ${
                                             pedido.ped_estado.toLowerCase() === "anulado" 
-                                                ? "bg-red-50 border-red-200 opacity-80" 
+                                                ? "ring-2 ring-destructive/30 opacity-90" 
                                                 : ""
                                         }`}
                                     >
-                                        <CardHeader className="pb-2 flex flex-row items-start justify-between space-y-0">
+                                        <CardHeader className={`pb-2 flex flex-row items-start justify-between space-y-0 ${
+                                            pedido.ped_estado.toLowerCase() === "anulado" ? "text-destructive" : ""}`}>
                                             <div className="space-y-1">
                                                 <CardTitle className={`text-base ${
                                                     pedido.ped_estado.toLowerCase() === "anulado" 
-                                                        ? "text-red-700" 
-                                                        : ""
+                                                        ? "text-destructive" 
+                                                        : "text-foreground"
                                                 }`}>
                                                     {pedido.ped_id}
                                                     {pedido.ped_estado.toLowerCase() === "anulado" && (
-                                                        <span className="ml-2 text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">
+                                                        <span className="ml-2 text-xs bg-destructive/10 text-destructive px-2 py-1 rounded-full">
                                                             PEDIDO ANULADO
                                                         </span>
                                                     )}
@@ -1194,7 +1195,7 @@ const OrdersPage: React.FC = () => {
                                                 <CardDescription>
                                                     {formatDate(pedido.ped_fecha)}
                                                     {pedido.ped_estado.toLowerCase() === "anulado" && (
-                                                        <div className="text-xs text-red-600 mt-1">
+                                                        <div className="text-xs text-destructive mt-1">
                                                             Stock restaurado 
                                                         </div>
                                                     )}
@@ -1206,7 +1207,7 @@ const OrdersPage: React.FC = () => {
                                             <div className="flex items-center gap-2">
                                                 <User className="h-4 w-4 text-gray-400" />
                                                 <div>
-                                                    <p className="font-medium">{pedido.cli_nombre}</p>
+                                                    <p className="font-medium text-foreground">{pedido.cli_nombre}</p>
                                                     <p className="text-sm text-muted-foreground">{pedido.ped_forma_entrega}</p>
                                                 </div>
                                             </div>
@@ -1214,7 +1215,7 @@ const OrdersPage: React.FC = () => {
                                             <div className="flex justify-between items-center">
                                                 <div>
                                                     <p className="text-sm text-muted-foreground">Total</p>
-                                                    <p className="font-bold text-lg">{formatCurrency(Number(pedido.ped_total))}</p>
+                                                    <p className="font-bold text-lg text-foreground">{formatCurrency(Number(pedido.ped_total))}</p>
                                                 </div>
                                                 <div className="text-right">
                                                     <p className="text-sm text-muted-foreground">Items</p>
@@ -1224,15 +1225,15 @@ const OrdersPage: React.FC = () => {
 
                                             <div className="space-y-2">
                                                 <div className="flex justify-between text-sm">
-                                                    <span>Subtotal:</span>
-                                                    <span>{formatCurrency(Number(pedido.ped_subtotal))}</span>
+                                                    <span className="text-muted-foreground">Subtotal:</span>
+                                                    <span className="text-muted-foreground">{formatCurrency(Number(pedido.ped_subtotal))}</span>
                                                 </div>
                                                 <div className="flex justify-between text-sm">
-                                                    <span>Impuestos:</span>
-                                                    <span>{formatCurrency(Number(pedido.ped_impuestos))}</span>
+                                                    <span className="text-muted-foreground">Impuestos:</span>
+                                                    <span className="text-muted-foreground">{formatCurrency(Number(pedido.ped_impuestos))}</span>
                                                 </div>
                                                 {Number(pedido.ped_descuento) > 0 && (
-                                                    <div className="flex justify-between text-sm text-red-600">
+                                                    <div className="flex justify-between text-sm text-destructive">
                                                         <span>Descuento:</span>
                                                         <span>-{formatCurrency(Number(pedido.ped_descuento))}</span>
                                                     </div>
@@ -1241,8 +1242,8 @@ const OrdersPage: React.FC = () => {
 
                                             {pedido.ped_notas && (
                                                 <div className="text-sm">
-                                                    <span className="text-gray-500">Notas: </span>
-                                                    <span>{pedido.ped_notas}</span>
+                                                    <span className="text-muted-foreground">Notas: </span>
+                                                    <span className="text-foreground">{pedido.ped_notas}</span>
                                                 </div>
                                             )}
 
@@ -1640,7 +1641,7 @@ const OrdersPage: React.FC = () => {
                             {/* Primera columna - Información del cliente y notas */}
                             <div className="flex flex-col space-y-4">
                                 {/* Información del cliente */}
-                                <div className="bg-white border rounded-lg p-4 shadow-sm">
+                                <div className="bg-card border-border border rounded-lg p-4 shadow-sm">
                                     <h4 className="font-semibold text-base mb-3 flex items-center gap-2">
                                         <User className="h-5 w-5 text-primary" />
                                         Información del Cliente
@@ -1754,7 +1755,7 @@ const OrdersPage: React.FC = () => {
 
                             {/* Segunda columna - Productos del carrito */}
                             <div className="flex flex-col">
-                                <div className="bg-white border rounded-lg shadow-sm h-full flex flex-col">
+                                <div className="bg-card border-border border rounded-lg shadow-sm h-full flex flex-col">
                                     {/* Buscador de productos */}
                                     <div className="p-3 border-b">
                                         <h4 className="font-semibold text-base mb-3 flex items-center gap-2">
@@ -1836,7 +1837,7 @@ const OrdersPage: React.FC = () => {
                                                     cartItems.map((item) => {
                                                         const producto = productos.find(p => p.pro_id === item.prod_id);
                                                         return (
-                                                            <div key={item.prod_id} className="flex items-center gap-3 bg-gray-50 border rounded-lg p-3 hover:shadow-sm transition-shadow">
+                                                            <div key={item.prod_id} className="flex items-center gap-3 bg-muted border rounded-lg p-3 hover:shadow-sm transition-shadow">
                                                                 <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center flex-shrink-0">
                                                                     {producto?.detalles?.prod_imagen ? (
                                                                         <img
@@ -1896,8 +1897,8 @@ const OrdersPage: React.FC = () => {
 
                             {/* Tercera columna - Resumen del pedido */}
                             <div className="flex flex-col h-full">
-                                <div className="bg-gradient-to-br from-green-50 to-blue-50 border border-green-200 rounded-lg shadow-sm flex-1 flex flex-col">
-                                    <div className="p-4 border-b border-green-200">
+                                <div className="bg-card border border-border rounded-lg shadow-sm flex-1 flex flex-col">
+                                    <div className="p-4 border-b border-border">
                                         <h4 className="font-semibold text-base flex items-center gap-2">
                                             <Receipt className="h-5 w-5 text-green-600" />
                                             Resumen del Pedido
@@ -1922,7 +1923,7 @@ const OrdersPage: React.FC = () => {
                                         </div>
 
                                         {/* Totales */}
-                                        <div className="bg-white rounded-lg border p-3 space-y-2">
+                                        <div className="bg-card rounded-lg border p-3 space-y-2">
                                             <div className="flex justify-between text-sm">
                                                 <span className="text-gray-600">Subtotal:</span>
                                                 <span className="font-semibold">{formatCurrency(subtotalEdit)}</span>
@@ -1932,14 +1933,14 @@ const OrdersPage: React.FC = () => {
                                                 <span className="font-semibold">{formatCurrency(taxEdit)}</span>
                                             </div>
                                             <Separator />
-                                            <div className="flex justify-between font-bold text-lg p-2 bg-green-100 rounded border-green-300 border">
+                                            <div className="flex justify-between font-bold text-lg p-2 bg-success/10 rounded border-success border">
                                                 <span>Total:</span>
-                                                <span className="text-green-600">{formatCurrency(totalEdit)}</span>
+                                                <span className="text-success">{formatCurrency(totalEdit)}</span>
                                             </div>
                                         </div>
 
                                         {/* Información del pedido */}
-                                        <div className="bg-white rounded-lg border p-3">
+                                        <div className="bg-card rounded-lg border p-3">
                                             <div className="text-sm space-y-2">
                                                 <div className="flex justify-between">
                                                     <span className="text-gray-600 font-medium">Cliente:</span>
@@ -1952,7 +1953,7 @@ const OrdersPage: React.FC = () => {
                                                 {notas && (
                                                     <div className="pt-2 border-t">
                                                         <span className="text-gray-600 font-medium text-xs">Notas:</span>
-                                                        <p className="text-xs mt-1 bg-gray-50 p-2 rounded italic line-clamp-2">{notas}</p>
+                                                        <p className="text-xs mt-1 bg-muted p-2 rounded italic line-clamp-2">{notas}</p>
                                                     </div>
                                                 )}
                                             </div>
@@ -1960,7 +1961,7 @@ const OrdersPage: React.FC = () => {
                                     </div>
 
                                     {/* Botones de acción - Fijos en la parte inferior */}
-                                    <div className="p-4 border-t border-green-200 bg-white rounded-b-lg flex gap-2">
+                                    <div className="p-4 border-t border-border bg-card rounded-b-lg flex gap-2">
                                         <Button
                                             variant="outline"
                                             onClick={() => {

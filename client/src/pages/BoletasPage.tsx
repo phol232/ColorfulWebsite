@@ -727,10 +727,10 @@ const BoletasPage: React.FC = () => {
 {currentBoletas.map((boleta) => (
     <Card
         key={boleta.boleta_id}
-        className={`hover:shadow-md transition-shadow ${
-            isBoletaEmitida(boleta.boleta_estado) ? "bg-green-50 relative" : ""
+        className={`hover:shadow-md transition-shadow bg-card border-border ${
+            isBoletaEmitida(boleta.boleta_estado) ? "ring-2 ring-success/30 relative" : ""
         } ${
-            isBoletaCancelada(boleta.boleta_estado) ? "opacity-75 bg-red-50" : ""
+            isBoletaCancelada(boleta.boleta_estado) ? "opacity-75" : ""
         }`}
     >
         {isBoletaEmitida(boleta.boleta_estado) && (
@@ -742,7 +742,7 @@ const BoletasPage: React.FC = () => {
         <CardHeader className="pb-2">
             <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                    <span className="text-lg font-bold text-gray-800"># {boleta.boleta_numero}</span>
+                    <span className="text-lg font-bold text-foreground"># {boleta.boleta_numero}</span>
                     {isBoletaEmitida(boleta.boleta_estado) && (
                         <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
                             <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -762,16 +762,16 @@ const BoletasPage: React.FC = () => {
                     </svg>
                 </Button>
             </div>
-            <div className="text-sm text-gray-600 mb-3">
+            <div className="text-sm text-muted-foreground mb-3">
                 {formatDateCompact(boleta.boleta_fecha)}
             </div>
         </CardHeader>
 
         <CardContent className="space-y-3">
             <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-gray-400" />
+                <User className="h-4 w-4 text-muted-foreground" />
                 <div>
-                    <p className="font-medium">{getClienteName(boleta.pedido?.cli_id)}</p>
+                    <p className="font-medium text-foreground">{getClienteName(boleta.pedido?.cli_id)}</p>
                     <p className="text-sm text-muted-foreground">Pedido: {boleta.ped_id}</p>
                 </div>
             </div>
@@ -779,7 +779,7 @@ const BoletasPage: React.FC = () => {
             <div className="flex justify-between items-center">
                 <div>
                     <p className="text-sm text-muted-foreground">Total</p>
-                    <p className="font-bold text-lg">{formatCurrency(Number(boleta.boleta_total))}</p>
+                    <p className="font-bold text-lg text-foreground">{formatCurrency(Number(boleta.boleta_total))}</p>
                 </div>
                 <div className="text-right">
                     <p className="text-sm text-muted-foreground">Estado</p>
@@ -797,7 +797,7 @@ const BoletasPage: React.FC = () => {
                     <span>{formatCurrency(Number(boleta.boleta_impuestos))}</span>
                 </div>
                 {Number(boleta.boleta_descuento) > 0 && (
-                    <div className="flex justify-between text-sm text-red-600">
+                    <div className="flex justify-between text-sm text-destructive">
                         <span>Descuento:</span>
                         <span>-{formatCurrency(Number(boleta.boleta_descuento))}</span>
                     </div>
@@ -806,14 +806,14 @@ const BoletasPage: React.FC = () => {
 
             {boleta.boleta_notas && (
                 <div className="text-sm">
-                    <span className="text-gray-500">Notas: </span>
-                    <span>{boleta.boleta_notas}</span>
+                    <span className="text-muted-foreground">Notas: </span>
+                    <span className="text-foreground">{boleta.boleta_notas}</span>
                 </div>
             )}
 
             {boleta.metodos_pago && boleta.metodos_pago.length > 0 && (
                 <div className="text-sm">
-                    <span className="text-gray-500">Métodos de pago: </span>
+                    <span className="text-muted-foreground">Métodos de pago: </span>
                     <div className="flex flex-wrap gap-1 mt-1">
                         {boleta.metodos_pago.map((metodo, index) => (
                             <Badge key={index} variant="outline" className="text-xs">
@@ -825,7 +825,7 @@ const BoletasPage: React.FC = () => {
             )}
         </CardContent>
 
-        <CardFooter className="pt-3 border-t bg-gray-50 rounded-b-lg">
+        <CardFooter className="pt-3 border-t bg-muted rounded-b-lg">
             <div className="w-full flex justify-between items-center">
                 <Button
                     variant="ghost"
@@ -939,7 +939,7 @@ const BoletasPage: React.FC = () => {
             {/* Modal de Detalles de la Boleta */}
             {selectedBoleta && (
                 <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
-                    <DialogContent className="sm:max-w-3xl max-h-[95vh] overflow-hidden">
+                    <DialogContent className="sm:max-w-3xl max-h-[95vh] overflow-hidden bg-background border-border">
                         <DialogHeader className="pb-2">
                             <DialogTitle className="flex items-center gap-2 text-lg">
                                 <Receipt className="h-4 w-4" />
@@ -952,7 +952,7 @@ const BoletasPage: React.FC = () => {
 
                         <div className="space-y-3 py-2 overflow-y-auto max-h-[78vh]">
                             {/* Header compacto */}
-                            <div className="bg-blue-50 border rounded-lg p-3">
+                            <div className="bg-muted border-border border rounded-lg p-3">
                                 <div className="flex items-center justify-between mb-2">
                                     <div className="flex items-center gap-2">
                                         <div className="bg-blue-600 p-1.5 rounded">
@@ -970,7 +970,7 @@ const BoletasPage: React.FC = () => {
 
                                 <div className="grid grid-cols-3 gap-3 text-xs">
                                     {/* Cliente */}
-                                    <div className="bg-white p-2 rounded border">
+                                    <div className="bg-card p-2 rounded border border-border">
                                         <div className="flex items-center gap-1 mb-1">
                                             <User className="h-3 w-3 text-blue-600" />
                                             <span className="font-medium text-gray-700">Cliente</span>
@@ -980,7 +980,7 @@ const BoletasPage: React.FC = () => {
                                     </div>
 
                                     {/* Pedido */}
-                                    <div className="bg-white p-2 rounded border">
+                                    <div className="bg-card p-2 rounded border border-border">
                                         <div className="flex items-center gap-1 mb-1">
                                             <Hash className="h-3 w-3 text-green-600" />
                                             <span className="font-medium text-gray-700">Pedido</span>
@@ -990,7 +990,7 @@ const BoletasPage: React.FC = () => {
                                     </div>
 
                                     {/* Totales */}
-                                    <div className="bg-white p-2 rounded border">
+                                    <div className="bg-card p-2 rounded border border-border">
                                         <div className="flex items-center gap-1 mb-1">
                                             <DollarSign className="h-3 w-3 text-green-600" />
                                             <span className="font-medium text-gray-700">Totales</span>
@@ -1021,26 +1021,26 @@ const BoletasPage: React.FC = () => {
                                 <div>
                                     <div className="flex items-center gap-1 mb-2">
                                         <Package className="h-4 w-4 text-primary" />
-                                        <h3 className="text-sm font-semibold">Productos</h3>
+                                        <h3 className="text-sm font-semibold text-foreground">Productos</h3>
                                     </div>
 
                                     {selectedBoleta.pedido?.detalles && selectedBoleta.pedido.detalles.length > 0 ? (
                                         <div className="border rounded divide-y max-h-48 overflow-y-auto">
                                             {selectedBoleta.pedido.detalles.map((detalle, index) => (
                                                 <div key={index} className="p-2 flex items-center gap-2 text-xs">
-                                                    <div className="w-6 h-6 bg-gray-200 rounded flex items-center justify-center flex-shrink-0">
+                                                    <div className="w-6 h-6 bg-muted rounded flex items-center justify-center flex-shrink-0">
                                                         <Package className="h-3 w-3 text-gray-400" />
                                                     </div>
                                                     <div className="flex-1 min-w-0">
-                                                        <p className="font-medium truncate text-xs">
+                                                        <p className="font-medium truncate text-xs text-foreground">
                                                             {getProductoName(detalle.prod_id)}
                                                         </p>
-                                                        <p className="text-xs text-gray-500">
+                                                        <p className="text-xs text-muted-foreground">
                                                             {formatCurrency(Number(detalle.det_precio_unitario))} × {detalle.det_cantidad}
                                                         </p>
                                                     </div>
                                                     <div className="text-right">
-                                                        <p className="font-medium text-xs">{formatCurrency(Number(detalle.det_subtotal))}</p>
+                                                        <p className="font-medium text-xs text-foreground">{formatCurrency(Number(detalle.det_subtotal))}</p>
                                                     </div>
                                                 </div>
                                             ))}
@@ -1057,28 +1057,28 @@ const BoletasPage: React.FC = () => {
                                 <div>
                                     <div className="flex items-center gap-1 mb-2">
                                         <CreditCard className="h-4 w-4 text-primary" />
-                                        <h3 className="text-sm font-semibold">Métodos de Pago</h3>
+                                        <h3 className="text-sm font-semibold text-foreground">Métodos de Pago</h3>
                                     </div>
 
                                     {selectedBoleta.metodos_pago && selectedBoleta.metodos_pago.length > 0 ? (
                                         <div className="space-y-2 max-h-48 overflow-y-auto">
                                             {selectedBoleta.metodos_pago.map((metodo, index) => (
-                                                <div key={index} className="border rounded p-2">
+                                                <div key={index} className="border rounded p-2 border-border bg-card">
                                                     <div className="flex justify-between items-start mb-1">
                                                         <div>
-                                                            <p className="font-medium text-xs">{metodo.met_nombre}</p>
-                                                            <p className="text-xs text-gray-500">{metodo.met_tipo}</p>
+                                                            <p className="font-medium text-xs text-foreground">{metodo.met_nombre}</p>
+                                                            <p className="text-xs text-muted-foreground">{metodo.met_tipo}</p>
                                                             {metodo.met_banco && (
                                                                 <p className="text-xs text-gray-400">{metodo.met_banco}</p>
                                                             )}
                                                         </div>
-                                                        <p className="font-bold text-green-600 text-sm">
+                                                        <p className="font-bold text-success text-sm">
                                                             {formatCurrency(Number(metodo.pivot.monto))}
                                                         </p>
                                                     </div>
 
                                                     {metodo.pivot.referencia && (
-                                                        <div className="text-xs text-gray-500">
+                                                        <div className="text-xs text-muted-foreground">
                                                             <span className="font-medium">Ref:</span> {metodo.pivot.referencia}
                                                         </div>
                                                     )}
@@ -1096,19 +1096,15 @@ const BoletasPage: React.FC = () => {
 
                         </div>
 
-                        <DialogFooter className="flex flex-col gap-2 border-t pt-3">
+                        <DialogFooter className="flex flex-col gap-2 border-t pt-3 bg-background">
                             {/* Notas compactas en el footer */}
-                            {selectedBoleta.boleta_notas && (
-                                <div className="w-full">
-                                    <div className="flex items-center gap-1 mb-2">
-                                        <FileText className="h-3 w-3 text-amber-600" />
-                                        <span className="font-medium text-xs text-gray-700">Notas:</span>
-                                        <span className="text-xs text-gray-600 bg-amber-50 px-2 py-1 rounded border border-amber-200">
-                      {selectedBoleta.boleta_notas}
-                    </span>
-                                    </div>
-                                </div>
-                            )}
+                            <div className="flex items-center gap-1 mb-2">
+                                <FileText className="h-3 w-3 text-amber-600" />
+                                <span className="font-medium text-xs text-muted-foreground">Notas:</span>
+                                <span className="text-xs text-muted-foreground bg-amber-50 px-2 py-1 rounded border border-amber-200">
+                                    {selectedBoleta.boleta_notas}
+                                </span>
+                            </div>
 
                             {/* Botones de acción */}
                             <div className="flex gap-2 justify-end">
@@ -1154,7 +1150,7 @@ const BoletasPage: React.FC = () => {
 
             {/* Modal de Confirmación para Anular Boleta */}
             <Dialog open={anularBoletaId !== null} onOpenChange={() => setAnularBoletaId(null)}>
-                <DialogContent className="sm:max-w-md">
+                <DialogContent className="sm:max-w-md bg-background border-border">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <AlertCircle className="h-5 w-5 text-red-500" />
@@ -1166,7 +1162,7 @@ const BoletasPage: React.FC = () => {
                     </DialogHeader>
 
                     <div className="py-4">
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
+                        <div className="bg-muted border border-blue-200 rounded-lg p-3 mb-3">
                             <div className="flex items-center gap-2 mb-2">
                                 <Info className="h-4 w-4 text-blue-600" />
                                 <span className="font-medium text-blue-800">Proceso Automático Optimizado</span>

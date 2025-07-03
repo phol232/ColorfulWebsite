@@ -1,12 +1,10 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, Bot, User, Loader2, Trash2 } from "lucide-react";
-import { useAuth } from "@/context/AuthContext";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { API_URL } from "@/config";
 
 interface ChatMessage {
   id: string;
@@ -37,7 +35,6 @@ export const ChatbotModal: React.FC<ChatbotModalProps> = ({ isOpen, onClose }) =
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollViewportRef = useRef<HTMLDivElement>(null);
-  const { userProfile } = useAuth();
 
   // Función para hacer scroll automático al final
   const scrollToBottom = () => {
@@ -141,32 +138,6 @@ export const ChatbotModal: React.FC<ChatbotModalProps> = ({ isOpen, onClose }) =
     });
   };
 
-  // Función para obtener la imagen de perfil
-  const getProfileImage = () => {
-    if (userProfile?.perfil?.usrp_imagen) {
-      return `${API_URL}/storage/${userProfile.perfil.usrp_imagen}`;
-    }
-    if (userProfile?.avatar) return userProfile.avatar;
-    return "";
-  };
-
-  // Función para obtener iniciales
-  const getInitials = () => {
-    if (userProfile?.perfil?.usrp_nombre) {
-      const nombre = userProfile.perfil.usrp_nombre;
-      const apellido = userProfile.perfil.usrp_apellido || "";
-      return `${nombre[0] || ""}${apellido[0] || ""}`.toUpperCase();
-    } else if (userProfile?.name) {
-      return userProfile.name
-        .split(" ")
-        .map((n: string) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2);
-    }
-    return "AI";
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px] h-[600px] flex flex-col">
@@ -191,7 +162,7 @@ export const ChatbotModal: React.FC<ChatbotModalProps> = ({ isOpen, onClose }) =
         <div className="flex-1 flex flex-col gap-4">
           <div 
             ref={scrollViewportRef}
-            className="flex-1 border rounded-lg p-4 bg-gray-50 overflow-y-auto"
+            className="flex-1 border rounded-lg p-4 bg-gray-50 dark:bg-gray-900 dark:border-gray-700 overflow-y-auto"
             style={{ maxHeight: '400px' }}
           >
             <div className="space-y-4">
@@ -202,18 +173,17 @@ export const ChatbotModal: React.FC<ChatbotModalProps> = ({ isOpen, onClose }) =
                     message.type === 'user' ? 'flex-row-reverse' : ''
                   }`}
                 >
-                  {message.type === 'user' ? (
-                    <Avatar className="w-8 h-8 border-2 border-white/20">
-                      <AvatarImage src={getProfileImage()} alt="Tu foto de perfil" />
-                      <AvatarFallback className="bg-blue-600 text-white text-xs">
-                        {getInitials()}
-                      </AvatarFallback>
-                    </Avatar>
-                  ) : (
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-gray-200 text-gray-600">
+                  <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                    message.type === 'user' 
+                      ? 'bg-blue-600 text-white' 
+                      : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                  }`}>
+                    {message.type === 'user' ? (
+                      <User className="h-4 w-4" />
+                    ) : (
                       <Bot className="h-4 w-4" />
-                    </div>
-                  )}
+                    )}
+                  </div>
                   
                   <div className={`flex-1 max-w-[80%] ${
                     message.type === 'user' ? 'text-right' : ''
@@ -221,11 +191,11 @@ export const ChatbotModal: React.FC<ChatbotModalProps> = ({ isOpen, onClose }) =
                     <div className={`inline-block p-3 rounded-lg ${
                       message.type === 'user'
                         ? 'bg-blue-600 text-white'
-                        : 'bg-white border shadow-sm'
+                        : 'bg-white dark:bg-gray-800 border shadow-sm dark:border-gray-600'
                     }`}>
                       <p className="text-sm whitespace-pre-wrap">{message.message}</p>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                       {formatTime(message.timestamp)}
                     </p>
                   </div>
@@ -234,14 +204,14 @@ export const ChatbotModal: React.FC<ChatbotModalProps> = ({ isOpen, onClose }) =
               
               {isLoading && (
                 <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center">
                     <Bot className="h-4 w-4" />
                   </div>
                   <div className="flex-1">
-                    <div className="inline-block p-3 rounded-lg bg-white border shadow-sm">
+                    <div className="inline-block p-3 rounded-lg bg-white dark:bg-gray-800 border shadow-sm dark:border-gray-600">
                       <div className="flex items-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        <span className="text-sm text-gray-500">Procesando...</span>
+                        <span className="text-sm text-gray-500 dark:text-gray-400">Procesando...</span>
                       </div>
                     </div>
                   </div>
@@ -273,11 +243,11 @@ export const ChatbotModal: React.FC<ChatbotModalProps> = ({ isOpen, onClose }) =
               </Button>
             </div>
             
-            <div className="text-xs text-gray-500 text-center">
+            <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
               Ejemplos: "¿Cuánto venderé mañana?", "¿Qué productos necesitan stock?", "Cliente top"
             </div>
             
-            <div className="text-xs text-gray-400 text-center">
+            <div className="text-xs text-gray-400 dark:text-gray-500 text-center">
               {messages.length > 1 && `${messages.length - 1} mensajes en el historial`}
             </div>
           </div>

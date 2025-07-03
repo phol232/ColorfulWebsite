@@ -1,4 +1,3 @@
-
 import React, { useState, FC } from "react";
 import axios from "axios";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -286,7 +285,7 @@ const ProductosPage: FC<ProductosPageProps> = ({ onChange }) => {
                                         <textarea
                                             name="descripcion"
                                             rows={4}
-                                            className="w-full px-3 py-2 border rounded"
+                                            className="w-full px-3 py-2 border rounded bg-background text-foreground border-border focus:outline-none focus:ring-2 focus:ring-primary"
                                             placeholder="Descripción detallada"
                                         />
                                     </div>
@@ -514,7 +513,7 @@ const ProductosPage: FC<ProductosPageProps> = ({ onChange }) => {
                                     <textarea
                                         name="descripcion"
                                         rows={4}
-                                        className="w-full px-3 py-2 border rounded"
+                                        className="w-full px-3 py-2 border rounded bg-background text-foreground border-border focus:outline-none focus:ring-2 focus:ring-primary"
                                         defaultValue={selected.detalles.prod_descripcion || ""}
                                     />
                                 </div>

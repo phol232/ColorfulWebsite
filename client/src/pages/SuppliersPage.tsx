@@ -441,7 +441,7 @@ const SuppliersPage: React.FC = () => {
                   </label>
                   <select
                     id="categoria"
-                    className="w-full border rounded p-2"
+                    className="w-full border rounded p-2 bg-background text-foreground border-border"
                     value={form.categoria}
                     onChange={e => setForm({ ...form, categoria: e.target.value })}
                     required
@@ -460,7 +460,7 @@ const SuppliersPage: React.FC = () => {
                   </label>
                   <select
                     id="prov_estado"
-                    className="w-full border rounded p-2"
+                    className="w-full border rounded p-2 bg-background text-foreground border-border"
                     value={form.prov_estado}
                     onChange={e => setForm({ ...form, prov_estado: e.target.value })}
                     required
@@ -518,13 +518,13 @@ const SuppliersPage: React.FC = () => {
               />
             </div>
             <select
-              className="px-3 py-2 border rounded"
+              className="px-3 py-2 border rounded bg-background text-foreground border-border"
               value={categoryFilter}
               onChange={e => setCategoryFilter(e.target.value)}
             >
-              <option value="">Todas las categorías</option>
+              <option value="" className="bg-background text-foreground">Todas las categorías</option>
               {categories.map(c => (
-                <option key={c.prov_cat_id} value={c.prov_cat_nombre}>
+                <option key={c.prov_cat_id} value={c.prov_cat_nombre} className="bg-background text-foreground">
                   {c.prov_cat_nombre}
                 </option>
               ))}
@@ -546,7 +546,7 @@ const SuppliersPage: React.FC = () => {
         {/* Supplier Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {currentSuppliers.map(p => (
-            <Card key={p.prov_id} className="hover:shadow-lg transition">
+            <Card key={p.prov_id} className="hover:shadow-lg transition bg-card border-border">
               <CardHeader className="flex justify-between items-center">
                 <CardTitle>{p.prov_nombre}</CardTitle>
                 <Badge variant="outline">{p.prov_estado}</Badge>
@@ -662,7 +662,7 @@ const SuppliersPage: React.FC = () => {
 
         {/* Edit Dialog */}
         <Dialog open={editDialog} onOpenChange={setEditDialog}>
-          <DialogContent className="max-w-2xl grid grid-cols-2 gap-6">
+          <DialogContent className="max-w-2xl grid grid-cols-2 gap-6 bg-card border-border">
             <DialogHeader className="col-span-2">
               <DialogTitle>Editar Proveedor</DialogTitle>
               <DialogDescription>
@@ -755,7 +755,7 @@ const SuppliersPage: React.FC = () => {
                 </label>
                 <select
                   id="edit_categoria"
-                  className="w-full border rounded p-2"
+                  className="w-full border rounded p-2 bg-background text-foreground border-border"
                   value={form.categoria}
                   onChange={e => setForm({ ...form, categoria: e.target.value })}
                   required
@@ -774,7 +774,7 @@ const SuppliersPage: React.FC = () => {
                 </label>
                 <select
                   id="edit_prov_estado"
-                  className="w-full border rounded p-2"
+                  className="w-full border rounded p-2 bg-background text-foreground border-border"
                   value={form.prov_estado}
                   onChange={e => setForm({ ...form, prov_estado: e.target.value })}
                   required

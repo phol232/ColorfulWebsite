@@ -302,11 +302,11 @@ const CategoriasProductosPage: React.FC<Props> = ({ onChange }) => {
         {/* Buscador y acciones */}
         <div className="flex flex-col md:flex-row gap-4 mb-6">
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
                 type="text"
                 placeholder="Buscar categoría de productos..."
-                className="pl-9"
+                className="pl-9 bg-background border-border text-foreground"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -326,7 +326,7 @@ const CategoriasProductosPage: React.FC<Props> = ({ onChange }) => {
         {/* Lista de categorías */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {currentCategories.map((categoria) => (
-              <Card key={categoria.cat_id} className="overflow-hidden hover:shadow-md transition-shadow">
+              <Card key={categoria.cat_id} className="overflow-hidden hover:shadow-md transition-shadow bg-card border-border">
                 <CardContent className="p-0">
                   {categoria.cat_imagen && (
                       <div className="w-full flex justify-center items-center pt-4">
@@ -354,22 +354,22 @@ const CategoriasProductosPage: React.FC<Props> = ({ onChange }) => {
                       <Badge variant="outline" className={categoria.cat_color}>
                         {categoria.cat_nombre}
                       </Badge>
-                      <span className="text-xs text-gray-500">{formatDate(categoria.creado)}</span>
+                      <span className="text-xs text-muted-foreground">{formatDate(categoria.creado)}</span>
                     </div>
-                    <p className="text-sm text-gray-600 line-clamp-2">
+                    <p className="text-sm text-muted-foreground line-clamp-2">
                       {categoria.cat_descripcion}
                     </p>
                   </div>
                   <div className="p-4 flex justify-between items-center">
                     <div className="flex items-center gap-2">
-                      <Package className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm text-gray-500">{categoria.productos ?? 0} productos</span>
+                      <Package className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">{categoria.productos ?? 0} productos</span>
                     </div>
                     <Badge variant="outline" className={categoria.cat_color}>
                       Activa
                     </Badge>
                   </div>
-                  <div className="p-3 bg-gray-50 border-t flex justify-between">
+                  <div className="p-3 bg-muted/50 border-t border-border flex justify-between">
                     <Button
                         variant="ghost"
                         size="sm"
@@ -395,7 +395,7 @@ const CategoriasProductosPage: React.FC<Props> = ({ onChange }) => {
         {/* Controles de Paginación */}
         {filteredCategories.length > 0 && (
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-muted-foreground">
               Mostrando {startIndex + 1} a {Math.min(endIndex, filteredCategories.length)} de {filteredCategories.length} categorías
             </div>
             
@@ -470,14 +470,14 @@ const CategoriasProductosPage: React.FC<Props> = ({ onChange }) => {
                     rows={3}
                     value={form.cat_descripcion}
                     onChange={handleInputChange}
-                    className="px-3 py-2 border border-gray-300 rounded-md w-full text-sm"
+                    className="px-3 py-2 border border-border rounded-md w-full text-sm bg-background text-foreground"
                 />
               </div>
               <div className="grid gap-2">
                 <label htmlFor="cat_color" className="text-sm font-medium">
                   Color
                 </label>
-                <select id="cat_color" value={form.cat_color} onChange={handleInputChange} className="px-3 py-2 border border-gray-300 rounded-md" required>
+                <select id="cat_color" value={form.cat_color} onChange={handleInputChange} className="px-3 py-2 border border-border rounded-md bg-background text-foreground" required>
                   <option value="">Selecciona un color</option>
                   <option value="bg-blue-100 text-blue-800 border-blue-400">Azul</option>
                   <option value="bg-green-100 text-green-800 border-green-400">Verde</option>
@@ -530,14 +530,14 @@ const CategoriasProductosPage: React.FC<Props> = ({ onChange }) => {
                     rows={3}
                     value={editForm.cat_descripcion}
                     onChange={handleEditInputChange}
-                    className="px-3 py-2 border border-gray-300 rounded-md w-full text-sm"
+                    className="px-3 py-2 border border-border rounded-md w-full text-sm bg-background text-foreground"
                 />
               </div>
               <div className="grid gap-2">
                 <label htmlFor="cat_color" className="text-sm font-medium">
                   Color
                 </label>
-                <select id="cat_color" value={editForm.cat_color} onChange={handleEditInputChange} className="px-3 py-2 border border-gray-300 rounded-md" required>
+                <select id="cat_color" value={editForm.cat_color} onChange={handleEditInputChange} className="px-3 py-2 border border-border rounded-md bg-background text-foreground" required>
                   <option value="">Selecciona un color</option>
                   <option value="bg-blue-100 text-blue-800 border-blue-400">Azul</option>
                   <option value="bg-green-100 text-green-800 border-green-400">Verde</option>
@@ -572,7 +572,7 @@ const CategoriasProductosPage: React.FC<Props> = ({ onChange }) => {
                             (e.target as HTMLImageElement).src = "/img/default-category.png";
                           }}
                       />
-                      <span className="block text-xs text-gray-500">Imagen actual</span>
+                      <span className="block text-xs text-muted-foreground">Imagen actual</span>
                     </div>
                 )}
                 <Input id="imagen" type="file" accept="image/*" onChange={handleEditFileChange} />

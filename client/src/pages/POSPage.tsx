@@ -362,7 +362,7 @@ const POSPage: React.FC = () => {
       <MainLayout>
         <div className="flex h-[calc(100vh-64px)]">
           {/* Columna izquierda - Productos */}
-          <div className="flex-1 overflow-auto bg-gray-50 p-4">
+          <div className="flex-1 overflow-auto bg-background p-4">
             {/* Barra superior con búsqueda */}
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
               <div className="flex-1 relative">
@@ -402,11 +402,11 @@ const POSPage: React.FC = () => {
             {/* Categorías */}
             <div className="grid grid-cols-3 sm:grid-cols-6 md:grid-cols-8 gap-2 mb-4">
               <Card
-                  className={`cursor-pointer hover:bg-gray-100 transition-colors ${!activeCategory ? 'border-primary' : ''}`}
+                  className={`cursor-pointer hover:bg-muted transition-colors ${!activeCategory ? 'border-primary' : ''}`}
                   onClick={() => setActiveCategory("")}
               >
                 <CardContent className="flex flex-col items-center justify-center p-2 text-center">
-                  <div className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 mb-1">
+                  <div className="w-8 h-8 flex items-center justify-center rounded-full bg-muted mb-1">
                     <Grid3X3 className="h-4 w-4 text-gray-600" />
                   </div>
                   <div className="font-medium text-xs">Todos</div>
@@ -417,11 +417,11 @@ const POSPage: React.FC = () => {
               {categories.map(cat => (
                   <Card
                       key={cat.cat_id}
-                      className={`cursor-pointer hover:bg-gray-100 transition-colors ${activeCategory === cat.cat_nombre ? 'border-primary' : ''}`}
+                      className={`cursor-pointer hover:bg-muted transition-colors ${activeCategory === cat.cat_nombre ? 'border-primary' : ''}`}
                       onClick={() => setActiveCategory(cat.cat_nombre)}
                   >
                     <CardContent className="flex flex-col items-center justify-center p-2 text-center">
-                      <div className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 mb-1">
+                      <div className="w-8 h-8 flex items-center justify-center rounded-full bg-muted mb-1">
                         <Package className="h-4 w-4 text-gray-600" />
                       </div>
                       <div className="font-medium text-xs truncate w-full">{cat.cat_nombre}</div>
@@ -449,7 +449,7 @@ const POSPage: React.FC = () => {
                 return (
                     <Card
                         key={producto.pro_id}
-                        className="overflow-hidden hover:shadow-lg transition-all border border-gray-200 cursor-pointer hover:border-primary/30 flex flex-col"
+                        className="overflow-hidden hover:shadow-lg transition-all border border-border cursor-pointer hover:border-primary/30 flex flex-col bg-card"
                     >
                       <div className="flex flex-col items-center p-2">
                         <div className="relative mb-2">
@@ -546,9 +546,9 @@ const POSPage: React.FC = () => {
           </div>
 
           {/* Columna derecha - Carrito */}
-          <div className="w-[360px] border-l border-gray-200 bg-white flex flex-col h-full">
+          <div className="w-[360px] border-l border-border bg-card flex flex-col h-full">
             {/* Encabezado del ticket */}
-            <div className="border-b border-gray-200 p-4">
+            <div className="border-b border-border p-4">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="font-bold">Punto de Venta</h2>
                 <Badge variant="outline" className="bg-green-100 text-green-800">
@@ -557,7 +557,7 @@ const POSPage: React.FC = () => {
               </div>
 
               {/* Pestañas de tipo de orden */}
-              <div className="bg-gray-100 rounded-lg p-1 flex">
+              <div className="bg-muted rounded-lg p-1 flex">
                 <Button
                     variant={activeOrderTab === "dineIn" ? "default" : "ghost"}
                     className="flex-1 rounded-md text-xs"
@@ -595,17 +595,17 @@ const POSPage: React.FC = () => {
             <div className="flex-1 overflow-auto p-4">
               {cart.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full py-6 text-center">
-                    <ShoppingBag className="h-12 w-12 text-gray-300 mb-3" />
-                    <p className="text-gray-500">El carrito está vacío</p>
-                    <p className="text-sm text-gray-400">Agrega productos para iniciar la venta</p>
+                    <ShoppingBag className="h-12 w-12 text-muted-foreground mb-3" />
+                    <p className="text-muted-foreground">El carrito está vacío</p>
+                    <p className="text-sm text-muted-foreground/70">Agrega productos para iniciar la venta</p>
                   </div>
               ) : (
                   <div className="space-y-3">
                     {cart.map((item) => {
                       const producto = productos.find(p => p.pro_id === item.prod_id);
                       return (
-                          <div key={item.prod_id} className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg">
-                            <div className="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
+                          <div key={item.prod_id} className="flex items-center gap-3 bg-muted p-3 rounded-lg">
+                            <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center">
                               {producto?.detalles?.prod_imagen ? (
                                   <img
                                       src={producto.detalles.prod_imagen}
@@ -657,7 +657,7 @@ const POSPage: React.FC = () => {
             </div>
 
             {/* Resumen y total */}
-            <div className="p-4 border-t border-gray-200">
+            <div className="p-4 border-t border-border">
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
@@ -688,7 +688,7 @@ const POSPage: React.FC = () => {
         </div>
 
         <Dialog open={isOrderDialogOpen} onOpenChange={setIsOrderDialogOpen}>
-          <DialogContent className="sm:max-w-5xl max-h-[95vh] overflow-hidden">
+          <DialogContent className="sm:max-w-5xl max-h-[95vh] overflow-hidden bg-card border-border">
             <DialogHeader>
               <DialogTitle className="text-lg font-bold">Crear Nuevo Pedido</DialogTitle>
               <DialogDescription className="text-sm">
@@ -700,7 +700,7 @@ const POSPage: React.FC = () => {
               {/* Primera columna - Información del cliente y notas */}
               <div className="flex flex-col space-y-4">
                 {/* Información del cliente */}
-                <div className="bg-white border rounded-lg p-4 shadow-sm">
+                <div className="bg-card border rounded-lg p-4 shadow-sm">
                   <h4 className="font-semibold text-base mb-3 flex items-center gap-2">
                     <User className="h-5 w-5 text-primary" />
                     Información del Cliente
@@ -735,7 +735,7 @@ const POSPage: React.FC = () => {
                                   setSelectedCliente(null);
                                 }}
                             />
-                            <div className="absolute z-50 mt-1 bg-white border rounded-md shadow-lg max-h-40 overflow-y-auto w-full">
+                            <div className="absolute z-50 mt-1 bg-card border rounded-md shadow-lg max-h-40 overflow-y-auto w-full">
                               <div className="p-2 bg-gray-50 border-b">
                                 <div className="text-sm text-gray-600 font-medium">
                                   Clientes encontrados ({clientes.length}):
@@ -770,7 +770,7 @@ const POSPage: React.FC = () => {
 
                       {/* Mensaje cuando no hay resultados */}
                       {debouncedClienteSearch.trim().length >= 2 && clientes.length === 0 && !selectedCliente && (
-                          <div className="absolute z-50 mt-1 bg-white border rounded-md shadow-lg w-full p-3 text-center text-gray-500 text-sm">
+                          <div className="absolute z-50 mt-1 bg-card border rounded-md shadow-lg w-full p-3 text-center text-muted-foreground text-sm">
                             No se encontraron clientes que coincidan con "{debouncedClienteSearch}"
                           </div>
                       )}
@@ -793,7 +793,7 @@ const POSPage: React.FC = () => {
                 </div>
 
                 {/* Notas */}
-                <div className="bg-white border rounded-lg p-4 shadow-sm flex-1">
+                <div className="bg-card border rounded-lg p-4 shadow-sm flex-1">
                   <h4 className="font-semibold text-base mb-3 flex items-center gap-2">
                     <FileText className="h-5 w-5 text-primary" />
                     Notas del Pedido
@@ -814,7 +814,7 @@ const POSPage: React.FC = () => {
 
               {/* Segunda columna - Productos del carrito */}
               <div className="flex flex-col">
-                <div className="bg-white border rounded-lg shadow-sm h-full flex flex-col">
+                <div className="bg-card border rounded-lg shadow-sm h-full flex flex-col">
                   {/* Buscador de productos */}
                   <div className="p-3 border-b">
                     <h4 className="font-semibold text-base mb-3 flex items-center gap-2">
@@ -878,7 +878,7 @@ const POSPage: React.FC = () => {
                   {/* Lista de productos en el carrito */}
                   <div className="flex-1 flex flex-col p-3">
                     <div className="flex justify-between items-center mb-3">
-                      <h5 className="font-medium text-sm text-gray-700">Productos en el Carrito</h5>
+                      <h5 className="font-medium text-sm text-foreground">Productos en el Carrito</h5>
                       <Badge variant="outline" className="bg-primary text-white px-2 py-1 text-xs">
                         {cart.length} {cart.length === 1 ? 'producto' : 'productos'}
                       </Badge>
@@ -888,16 +888,16 @@ const POSPage: React.FC = () => {
                       <div className="max-h-[360px] overflow-y-auto space-y-2 pr-1">
                         {cart.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-32 py-6 text-center">
-                              <ShoppingBag className="h-8 w-8 text-gray-300 mb-2" />
-                              <p className="text-gray-500 font-medium text-sm">El carrito está vacío</p>
-                              <p className="text-xs text-gray-400 mt-1">Busca productos arriba para agregarlos</p>
+                              <ShoppingBag className="h-8 w-8 text-muted-foreground mb-2" />
+                              <p className="text-muted-foreground font-medium text-sm">El carrito está vacío</p>
+                              <p className="text-xs text-muted-foreground/70 mt-1">Busca productos arriba para agregarlos</p>
                             </div>
                         ) : (
                             cart.map((item) => {
                               const producto = productos.find(p => p.pro_id === item.prod_id);
                               return (
-                                  <div key={item.prod_id} className="flex items-center gap-3 bg-gray-50 border rounded-lg p-3 hover:shadow-sm transition-shadow">
-                                    <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center flex-shrink-0">
+                                  <div key={item.prod_id} className="flex items-center gap-3 bg-muted border rounded-lg p-3 hover:shadow-sm transition-shadow">
+                                    <div className="w-12 h-12 bg-muted rounded flex items-center justify-center flex-shrink-0">
                                       {producto?.detalles?.prod_imagen ? (
                                           <img
                                               src={producto.detalles.prod_imagen}
@@ -956,63 +956,62 @@ const POSPage: React.FC = () => {
 
               {/* Tercera columna - Resumen del pedido */}
               <div className="flex flex-col h-full">
-                <div className="bg-gradient-to-br from-green-50 to-blue-50 border border-green-200 rounded-lg shadow-sm flex-1 flex flex-col">
-                  <div className="p-4 border-b border-green-200">
-                    <h4 className="font-semibold text-base flex items-center gap-2">
+                <div className="bg-card border border-border rounded-lg shadow-sm flex-1 flex flex-col">
+                  <div className="p-4 border-b border-border">
+                    <h4 className="font-semibold text-base flex items-center gap-2 text-foreground">
                       <Receipt className="h-5 w-5 text-green-600" />
                       Resumen del Pedido
                     </h4>
                   </div>
-
                   <div className="flex-1 p-4 space-y-3 overflow-y-auto">
                     {/* Estadísticas rápidas */}
                     <div className="grid grid-cols-3 gap-2">
-                      <div className="text-center p-2 bg-white rounded border shadow-sm">
+                      <div className="text-center p-2 bg-card rounded border shadow-sm">
                         <div className="text-xl font-bold text-primary">{cart.length}</div>
-                        <div className="text-xs text-gray-600">Items</div>
+                        <div className="text-xs text-muted-foreground">Items</div>
                       </div>
-                      <div className="text-center p-2 bg-white rounded border shadow-sm">
+                      <div className="text-center p-2 bg-card rounded border shadow-sm">
                         <div className="text-xl font-bold text-blue-600">{cart.reduce((sum, item) => sum + item.cantidad, 0)}</div>
-                        <div className="text-xs text-gray-600">Unidades</div>
+                        <div className="text-xs text-muted-foreground">Unidades</div>
                       </div>
-                      <div className="text-center p-2 bg-white rounded border shadow-sm">
+                      <div className="text-center p-2 bg-card rounded border shadow-sm">
                         <div className="text-sm font-bold text-orange-600">{formaEntrega}</div>
-                        <div className="text-xs text-gray-600">Entrega</div>
+                        <div className="text-xs text-muted-foreground">Entrega</div>
                       </div>
                     </div>
 
                     {/* Totales */}
-                    <div className="bg-white rounded-lg border p-3 space-y-2">
+                    <div className="bg-card rounded-lg border p-3 space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Subtotal:</span>
+                        <span className="text-muted-foreground">Subtotal:</span>
                         <span className="font-semibold">{formatCurrency(subtotal)}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Impuestos (18%):</span>
+                        <span className="text-muted-foreground">Impuestos (18%):</span>
                         <span className="font-semibold">{formatCurrency(tax)}</span>
                       </div>
                       <Separator />
-                      <div className="flex justify-between font-bold text-lg p-2 bg-green-100 rounded border-green-300 border">
+                      <div className="flex justify-between font-bold text-lg p-2 bg-green-100 dark:bg-green-900/20 rounded border-green-300 border">
                         <span>Total:</span>
                         <span className="text-green-600">{formatCurrency(total)}</span>
                       </div>
                     </div>
 
                     {/* Información del pedido */}
-                    <div className="bg-white rounded-lg border p-3">
+                    <div className="bg-card rounded-lg border p-3">
                       <div className="text-sm space-y-2">
                         <div className="flex justify-between">
-                          <span className="text-gray-600 font-medium">Cliente:</span>
+                          <span className="text-muted-foreground font-medium">Cliente:</span>
                           <span className="font-semibold text-xs">{selectedCliente ? `${selectedCliente.cli_nombre} ${selectedCliente.cli_apellido || ''}`.trim() : (clienteSearch || 'No seleccionado')}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-gray-600 font-medium">Entrega:</span>
+                          <span className="text-muted-foreground font-medium">Entrega:</span>
                           <span className="font-semibold text-xs">{formaEntrega}</span>
                         </div>
                         {notas && (
-                            <div className="pt-2 border-t">
-                              <span className="text-gray-600 font-medium text-xs">Notas:</span>
-                              <p className="text-xs mt-1 bg-gray-50 p-2 rounded italic line-clamp-2">{notas}</p>
+                            <div className="pt-2 border-t border-border">
+                              <span className="text-muted-foreground font-medium text-xs">Notas:</span>
+                              <p className="text-xs mt-1 bg-muted p-2 rounded italic line-clamp-2">{notas}</p>
                             </div>
                         )}
                       </div>
@@ -1020,7 +1019,7 @@ const POSPage: React.FC = () => {
                   </div>
 
                   {/* Botones de acción - Fijos en la parte inferior */}
-                  <div className="p-4 border-t border-green-200 bg-white rounded-b-lg flex gap-2">
+                  <div className="p-4 border-t border-border bg-card rounded-b-lg flex gap-2">
                     <Button
                         variant="outline"
                         onClick={() => setIsOrderDialogOpen(false)}
@@ -1035,7 +1034,6 @@ const POSPage: React.FC = () => {
                     >
                       {isCreatingOrder ? "Procesando..." : "Confirmar Pedido"}
                     </Button>
-
                   </div>
                 </div>
               </div>

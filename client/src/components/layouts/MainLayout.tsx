@@ -1,4 +1,4 @@
-
+// src/components/layouts/MainLayout.tsx
 import React, { ReactNode, useState } from "react";
 import { useLocation } from "wouter";
 import Sidebar from "./Sidebar";
@@ -15,6 +15,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useAuth } from "@/context/AuthContext";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -69,7 +70,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   };
 
   return (
-      <div className="min-h-screen flex bg-[#F5F7FA]">
+      <div className="min-h-screen flex bg-background">
         {!isMobile && sidebarOpen && <Sidebar className="sidebar-visible" />}
 
         {isMobile && mobileMenuOpen && (
@@ -117,17 +118,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                   </div>
               )}
 
-              {/* Search bar */}
-              <div className="relative">
-                <div className="flex items-center bg-gray-100 rounded-md pl-2 pr-4 py-1">
-                  <Search className="h-4 w-4 text-gray-500 mr-2" />
-                  <input
-                      type="text"
-                      placeholder="Buscar producto..."
-                      className="bg-transparent border-none outline-none text-sm w-60"
-                  />
-                </div>
-              </div>
+              
             </div>
 
             <div className="flex items-center space-x-4">
@@ -140,6 +131,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
                 <ShoppingBasket className="h-5 w-5" />
                 <span className="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full"></span>
               </button>
+
+              <ThemeToggle />
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -188,7 +181,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
             </div>
           </header>
 
-          <main className="flex-grow p-6 overflow-y-auto">{children}</main>
+          <main className="flex-grow p-6 overflow-y-auto bg-background">{children}</main>
         </div>
 
         {/* Chatbot Components */}

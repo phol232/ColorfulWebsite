@@ -384,89 +384,89 @@ const DashboardPage: React.FC = () => {
 
   return (
     <MainLayout>
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-4 py-6 bg-background dark:bg-background">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Panel de Control</h1>
-          <p className="text-gray-500">Administra tu negocio, analiza métricas y toma decisiones estratégicas</p>
+          <h1 className="text-3xl font-bold mb-2 text-gray-900 dark:text-white">Panel de Control</h1>
+          <p className="text-gray-500 dark:text-gray-400">Administra tu negocio, analiza métricas y toma decisiones estratégicas</p>
         </div>
 
         {/* Título de Vista General */}
         <div className="mb-6 pb-3 border-b">
-          <h2 className="text-xl font-semibold">Vista General</h2>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Vista General</h2>
         </div>
 
         {/* Resumen de Métricas */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-          <Card>
+          <Card className="bg-card dark:bg-card border-gray-200 dark:border-gray-700">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Ventas Totales</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-900 dark:text-white">Ventas Totales</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center">
                 <WalletIcon className="mr-2 h-4 w-4 text-primary" />
-                <div className="text-2xl font-bold">{formatCurrency(metrics.ventasTotales)}</div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(metrics.ventasTotales)}</div>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">
+              <p className="text-xs text-muted-foreground dark:text-gray-400 mt-2">
                 <span className="text-green-500">↑ Total</span> de todas las boletas emitidas
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-card dark:bg-card border-gray-200 dark:border-gray-700">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Órdenes Completadas</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-900 dark:text-white">Órdenes Completadas</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center">
                 <Package2Icon className="mr-2 h-4 w-4 text-primary" />
-                <div className="text-2xl font-bold">{metrics.ordenesCompletadas}</div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">{metrics.ordenesCompletadas}</div>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">
+              <p className="text-xs text-muted-foreground dark:text-gray-400 mt-2">
                 <span className="text-green-500">↑ Total</span> de pedidos completados
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-card dark:bg-card border-gray-200 dark:border-gray-700">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Ticket Promedio</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-900 dark:text-white">Ticket Promedio</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center">
                 <TrendingUpIcon className="mr-2 h-4 w-4 text-primary" />
-                <div className="text-2xl font-bold">{formatCurrency(metrics.ticketPromedio)}</div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(metrics.ticketPromedio)}</div>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">
+              <p className="text-xs text-muted-foreground dark:text-gray-400 mt-2">
                 <span className="text-blue-500">→ Promedio</span> por venta realizada
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-card dark:bg-card border-gray-200 dark:border-gray-700">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Clientes Recurrentes</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-900 dark:text-white">Clientes Recurrentes</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center">
                 <Users className="mr-2 h-4 w-4 text-primary" />
-                <div className="text-2xl font-bold">{metrics.clientesRecurrentes.toFixed(1)}%</div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">{metrics.clientesRecurrentes.toFixed(1)}%</div>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">
+              <p className="text-xs text-muted-foreground dark:text-gray-400 mt-2">
                 <span className="text-purple-500">→ Porcentaje</span> de clientes que repiten
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-card dark:bg-card border-gray-200 dark:border-gray-700">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Boletas Emitidas</CardTitle>
+              <CardTitle className="text-sm font-medium text-gray-900 dark:text-white">Boletas Emitidas</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center">
                 <DollarSign className="mr-2 h-4 w-4 text-primary" />
-                <div className="text-2xl font-bold">{metrics.boletasEmitidas}</div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">{metrics.boletasEmitidas}</div>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">
+              <p className="text-xs text-muted-foreground dark:text-gray-400 mt-2">
                 <span className="text-blue-500">→ Total</span> de boletas emitidas
               </p>
             </CardContent>
@@ -475,20 +475,28 @@ const DashboardPage: React.FC = () => {
 
         {/* Gráficos y Análisis */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <Card>
+          <Card className="bg-card dark:bg-card border border-border">
             <CardHeader>
-              <CardTitle>Ventas por Semana</CardTitle>
-              <CardDescription>Resumen de ventas de las últimas 5 semanas</CardDescription>
+              <CardTitle className="text-foreground">Ventas por Semana</CardTitle>
+              <CardDescription className="text-muted-foreground">Resumen de ventas de las últimas 5 semanas</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={ventasPorSemana}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="nombre" />
-                    <YAxis />
-                    <Tooltip formatter={(value) => [`$${value}`, 'Ventas']} />
-                    <Legend />
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="nombre" tick={{ fill: 'hsl(var(--foreground))' }} />
+                    <YAxis tick={{ fill: 'hsl(var(--foreground))' }} />
+                    <Tooltip 
+                      formatter={(value) => [`$${value}`, 'Ventas']}
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--popover))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '6px',
+                        color: 'hsl(var(--foreground))'
+                      }}
+                    />
+                    <Legend wrapperStyle={{ color: 'hsl(var(--foreground))' }} />
                     <Bar dataKey="ventas" fill="#60A5FA" name="Ventas ($)" />
                   </BarChart>
                 </ResponsiveContainer>
@@ -496,20 +504,28 @@ const DashboardPage: React.FC = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-card dark:bg-card border border-border">
             <CardHeader>
-              <CardTitle>Tendencia de Ganancias</CardTitle>
-              <CardDescription>Ganancias mensuales de los últimos meses</CardDescription>
+              <CardTitle className="text-foreground">Tendencia de Ganancias</CardTitle>
+              <CardDescription className="text-muted-foreground">Ganancias mensuales de los últimos meses</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={gananciasPorMes}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="mes" />
-                    <YAxis />
-                    <Tooltip formatter={(value) => [`$${value}`, 'Ganancias']} />
-                    <Legend />
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="mes" tick={{ fill: 'hsl(var(--foreground))' }} />
+                    <YAxis tick={{ fill: 'hsl(var(--foreground))' }} />
+                    <Tooltip 
+                      formatter={(value) => [`$${value}`, 'Ganancias']}
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--popover))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '6px',
+                        color: 'hsl(var(--foreground))'
+                      }}
+                    />
+                    <Legend wrapperStyle={{ color: 'hsl(var(--foreground))' }} />
                     <Line 
                       type="monotone" 
                       dataKey="ganancias" 
@@ -526,30 +542,30 @@ const DashboardPage: React.FC = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           {/* Productos Más Vendidos */}
-          <Card className="col-span-2">
+          <Card className="col-span-2 bg-card dark:bg-card border border-border">
             <CardHeader>
-              <CardTitle>Productos Más Vendidos</CardTitle>
-              <CardDescription>Top 5 productos con mayor cantidad de ventas</CardDescription>
+              <CardTitle className="text-foreground">Productos Más Vendidos</CardTitle>
+              <CardDescription className="text-muted-foreground">Top 5 productos con mayor cantidad de ventas</CardDescription>
             </CardHeader>
             <CardContent>
               {productosMasVendidos.length > 0 ? (
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-3 font-medium">Producto</th>
-                        <th className="text-left py-3 font-medium">Unidades Vendidas</th>
-                        <th className="text-left py-3 font-medium">Ingresos</th>
-                        <th className="text-left py-3 font-medium">Stock</th>
-                        <th className="text-left py-3 font-medium">Acciones</th>
+                      <tr className="border-b border-border">
+                        <th className="text-left py-3 font-medium text-foreground">Producto</th>
+                        <th className="text-left py-3 font-medium text-foreground">Unidades Vendidas</th>
+                        <th className="text-left py-3 font-medium text-foreground">Ingresos</th>
+                        <th className="text-left py-3 font-medium text-foreground">Stock</th>
+                        <th className="text-left py-3 font-medium text-foreground">Acciones</th>
                       </tr>
                     </thead>
                     <tbody>
                       {productosMasVendidos.map((producto, index) => (
-                        <tr key={`producto-vendido-${producto.id}-${index}`} className="border-b hover:bg-muted/50">
+                        <tr key={`producto-vendido-${producto.id}-${index}`} className="border-b border-border hover:bg-muted/50">
                           <td className="py-3">
                             <div className="flex items-center">
-                              <div className="w-12 h-12 rounded-lg bg-gray-200 mr-3 flex items-center justify-center overflow-hidden border">
+                              <div className="w-12 h-12 rounded-lg bg-muted dark:bg-muted mr-3 flex items-center justify-center overflow-hidden border border-border">
                                 {(() => {
                                   // Si tenemos imagen del reporte, la usamos directamente
                                   const imagenDelReporte = topProductosReporte.find(p => p.pro_id === producto.id)?.prod_imagen;
@@ -573,21 +589,21 @@ const DashboardPage: React.FC = () => {
                                       className="w-full h-full object-cover"
                                     />
                                   ) : (
-                                    <Package className="h-6 w-6 text-gray-400" />
+                                    <Package className="h-6 w-6 text-muted-foreground" />
                                   );
                                 })()}
                               </div>
                               <div>
-                                <div className="font-medium">{producto.nombre}</div>
+                                <div className="font-medium text-foreground">{producto.nombre}</div>
                                 <div className="text-xs text-muted-foreground">SKU: {producto.sku}</div>
                               </div>
                             </div>
                           </td>
-                          <td className="py-3">{producto.ventas} unidades</td>
-                          <td className="py-3">{formatCurrency(producto.ingreso)}</td>
+                          <td className="py-3 text-foreground">{producto.ventas} unidades</td>
+                          <td className="py-3 text-foreground">{formatCurrency(producto.ingreso)}</td>
                           <td className="py-3">
                             <Badge variant={producto.stock < 10 ? "outline" : "default"} 
-                              className={producto.stock < 10 ? "bg-yellow-100 hover:bg-yellow-100 text-yellow-800 border-yellow-400" : ""}>
+                              className={producto.stock < 10 ? "bg-yellow-100 hover:bg-yellow-100 text-yellow-800 border-yellow-400 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-700" : ""}>
                               {producto.stock}
                             </Badge>
                           </td>
@@ -602,8 +618,8 @@ const DashboardPage: React.FC = () => {
                   </table>
                 </div>
               ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <Package className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                <div className="text-center py-8 text-muted-foreground">
+                  <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                   <p>No hay productos vendidos</p>
                 </div>
               )}
@@ -611,10 +627,10 @@ const DashboardPage: React.FC = () => {
           </Card>
 
           {/* Distribución de Ventas por Categoría */}
-          <Card>
+          <Card className="bg-card dark:bg-card border border-border">
             <CardHeader>
-              <CardTitle>Ventas por Categoría</CardTitle>
-              <CardDescription>Distribución de ventas por tipo de producto</CardDescription>
+              <CardTitle className="text-foreground">Ventas por Categoría</CardTitle>
+              <CardDescription className="text-muted-foreground">Distribución de ventas por tipo de producto</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="h-64">
@@ -634,7 +650,15 @@ const DashboardPage: React.FC = () => {
                         <Cell key={`cell-categoria-${index}-${entry.name}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value) => [`${value}%`, 'Porcentaje']} />
+                    <Tooltip 
+                      formatter={(value) => [`${value}%`, 'Porcentaje']}
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--popover))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '6px',
+                        color: 'hsl(var(--foreground))'
+                      }}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -642,14 +666,14 @@ const DashboardPage: React.FC = () => {
                 {ventasPorCategoria.length > 0 ? (
                   <ul className="space-y-1">
                     {ventasPorCategoria.map((item, index) => (
-                      <li key={`categoria-legend-${index}-${item.name}`} className="flex items-center text-sm">
+                      <li key={`categoria-legend-${index}-${item.name}`} className="flex items-center text-sm text-foreground">
                         <span className="h-3 w-3 rounded-full mr-2" style={{ backgroundColor: COLORS[index % COLORS.length] }}></span>
                         {item.name}: {item.value}%
                       </li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-center text-gray-500 text-sm">No hay datos de categorías</p>
+                  <p className="text-center text-muted-foreground text-sm">No hay datos de categorías</p>
                 )}
               </div>
             </CardContent>
@@ -659,11 +683,11 @@ const DashboardPage: React.FC = () => {
         {/* Inventario y Pedidos Recientes */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* Inventario Bajo */}
-          <Card>
+          <Card className="bg-card dark:bg-card border border-border">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>Inventario Bajo</CardTitle>
-                <CardDescription>Productos que necesitan reabastecimiento</CardDescription>
+                <CardTitle className="text-foreground">Inventario Bajo</CardTitle>
+                <CardDescription className="text-muted-foreground">Productos que necesitan reabastecimiento</CardDescription>
               </div>
               <Button variant="outline" size="sm">
                 Ver todos
@@ -674,26 +698,26 @@ const DashboardPage: React.FC = () => {
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-3 font-medium">Producto</th>
-                        <th className="text-left py-3 font-medium">Stock Actual</th>
-                        <th className="text-left py-3 font-medium">Estado</th>
-                        <th className="text-left py-3 font-medium">Acciones</th>
+                      <tr className="border-b border-border">
+                        <th className="text-left py-3 font-medium text-foreground">Producto</th>
+                        <th className="text-left py-3 font-medium text-foreground">Stock Actual</th>
+                        <th className="text-left py-3 font-medium text-foreground">Estado</th>
+                        <th className="text-left py-3 font-medium text-foreground">Acciones</th>
                       </tr>
                     </thead>
                     <tbody>
                       {inventarioBajo.map((item, index) => (
-                        <tr key={`inventario-bajo-${item.id}-${index}`} className="border-b hover:bg-muted/50">
+                        <tr key={`inventario-bajo-${item.id}-${index}`} className="border-b border-border hover:bg-muted/50">
                           <td className="py-3">
                             <div>
-                              <div className="font-medium">{item.nombre}</div>
+                              <div className="font-medium text-foreground">{item.nombre}</div>
                               <div className="text-xs text-muted-foreground">SKU: {item.sku}</div>
                             </div>
                           </td>
-                          <td className="py-3">{item.actual} / {item.minimo}</td>
+                          <td className="py-3 text-foreground">{item.actual} / {item.minimo}</td>
                           <td className="py-3">
                             <Badge variant={item.actual < item.minimo * 0.5 ? "destructive" : "outline"} 
-                              className={item.actual < item.minimo * 0.5 ? "" : "bg-yellow-100 hover:bg-yellow-100 text-yellow-800 border-yellow-400"}>
+                              className={item.actual < item.minimo * 0.5 ? "" : "bg-yellow-100 hover:bg-yellow-100 text-yellow-800 border-yellow-400 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-700"}>
                               {item.actual < item.minimo * 0.5 ? "Crítico" : "Bajo"}
                             </Badge>
                           </td>
@@ -706,8 +730,8 @@ const DashboardPage: React.FC = () => {
                   </table>
                 </div>
               ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <AlertCircle className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                <div className="text-center py-8 text-muted-foreground">
+                  <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                   <p>No hay productos con stock bajo</p>
                 </div>
               )}
@@ -715,11 +739,11 @@ const DashboardPage: React.FC = () => {
           </Card>
 
           {/* Pedidos Recientes */}
-          <Card>
+          <Card className="bg-card dark:bg-card border border-border">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>Pedidos Recientes</CardTitle>
-                <CardDescription>Últimas boletas emitidas</CardDescription>
+                <CardTitle className="text-foreground">Pedidos Recientes</CardTitle>
+                <CardDescription className="text-muted-foreground">Últimas boletas emitidas</CardDescription>
               </div>
               <Button variant="outline" size="sm">
                 Ver todos
@@ -730,23 +754,23 @@ const DashboardPage: React.FC = () => {
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-3 font-medium">ID</th>
-                        <th className="text-left py-3 font-medium">Cliente</th>
-                        <th className="text-left py-3 font-medium">Fecha</th>
-                        <th className="text-left py-3 font-medium">Estado</th>
-                        <th className="text-left py-3 font-medium">Total</th>
+                      <tr className="border-b border-border">
+                        <th className="text-left py-3 font-medium text-foreground">ID</th>
+                        <th className="text-left py-3 font-medium text-foreground">Cliente</th>
+                        <th className="text-left py-3 font-medium text-foreground">Fecha</th>
+                        <th className="text-left py-3 font-medium text-foreground">Estado</th>
+                        <th className="text-left py-3 font-medium text-foreground">Total</th>
                       </tr>
                     </thead>
                     <tbody>
                       {ultimosPedidos.map((pedido, index) => (
-                        <tr key={`pedido-reciente-${pedido.id}-${index}`} className="border-b hover:bg-muted/50">
+                        <tr key={`pedido-reciente-${pedido.id}-${index}`} className="border-b border-border hover:bg-muted/50">
                           <td className="py-3">
-                            <div className="font-medium">{pedido.id}</div>
+                            <div className="font-medium text-foreground">{pedido.id}</div>
                             <div className="text-xs text-muted-foreground">{pedido.items} items</div>
                           </td>
-                          <td className="py-3">{pedido.cliente}</td>
-                          <td className="py-3">{pedido.fecha}</td>
+                          <td className="py-3 text-foreground">{pedido.cliente}</td>
+                          <td className="py-3 text-foreground">{pedido.fecha}</td>
                           <td className="py-3">
                             <Badge
                               variant={
@@ -755,22 +779,22 @@ const DashboardPage: React.FC = () => {
                                 pedido.estado === "Pendiente" ? "secondary" : "destructive"
                               }
                               className={
-                                pedido.estado === "En proceso" ? "bg-blue-100 hover:bg-blue-100 text-blue-800 border-blue-400" :
-                                pedido.estado === "Pendiente" ? "bg-yellow-100 hover:bg-yellow-100 text-yellow-800 border-yellow-400" : ""
+                                pedido.estado === "En proceso" ? "bg-blue-100 hover:bg-blue-100 text-blue-800 border-blue-400 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-700" :
+                                pedido.estado === "Pendiente" ? "bg-yellow-100 hover:bg-yellow-100 text-yellow-800 border-yellow-400 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-700" : ""
                               }
                             >
                               {pedido.estado}
                             </Badge>
                           </td>
-                          <td className="py-3">{formatCurrency(pedido.total)}</td>
+                          <td className="py-3 text-foreground">{formatCurrency(pedido.total)}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
               ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <ShoppingCart className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                <div className="text-center py-8 text-muted-foreground">
+                  <ShoppingCart className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                   <p>No hay pedidos recientes</p>
                 </div>
               )}

@@ -80,7 +80,8 @@ const ReportsPage: React.FC = () => {
         }
       });
       if (!response.ok) throw new Error('Error fetching boletas');
-      return await response.json();
+      const data = await response.json();
+      return data.data || data;
     }
   });
 
@@ -96,7 +97,8 @@ const ReportsPage: React.FC = () => {
         }
       });
       if (!response.ok) throw new Error('Error fetching productos');
-      return await response.json();
+      const data = await response.json();
+      return data.data || data;
     }
   });
 
@@ -112,7 +114,8 @@ const ReportsPage: React.FC = () => {
         }
       });
       if (!response.ok) throw new Error('Error fetching pedidos');
-      return await response.json();
+      const data = await response.json();
+      return data.data || data;
     }
   });
 
@@ -166,7 +169,7 @@ const ReportsPage: React.FC = () => {
 
   // Calcular KPIs de ventas
   const calculateKPIs = () => {
-    const boletasActivas = boletas.filter(b => b.boleta_estado === 'Emitido');
+    const boletasActivas = boletas.filter(b => b.boleta_estado === 'EMITIDA');
     const totalVentas = boletasActivas.reduce((sum, b) => sum + parseFloat(b.boleta_total || 0), 0);
     const totalPedidos = boletasActivas.length;
     const ticketPromedio = totalPedidos > 0 ? totalVentas / totalPedidos : 0;
@@ -195,7 +198,7 @@ const ReportsPage: React.FC = () => {
 
       const ventasPeriodo = boletas
         .filter(b => {
-          if (b.boleta_estado !== 'Emitido') return false;
+          if (b.boleta_estado !== 'EMITIDA') return false;
           const fechaBoleta = new Date(b.boleta_fecha);
           const inicioSemana = new Date(fecha);
           const finSemana = new Date(fecha);
@@ -218,14 +221,14 @@ const ReportsPage: React.FC = () => {
     const productosConVentas = productos.map(producto => {
       // Contar ventas del producto en boletas emitidas
       const ventasCount = boletas
-        .filter(b => b.boleta_estado === 'Emitido' && b.pedido?.detalles)
+        .filter(b => b.boleta_estado === 'EMITIDA' && b.pedido?.detalles)
         .reduce((count, boleta) => {
           const detalle = boleta.pedido.detalles.find((d: any) => d.prod_id === producto.prod_id);
           return count + (detalle ? detalle.det_cantidad : 0);
         }, 0);
 
       const ingresos = boletas
-        .filter(b => b.boleta_estado === 'Emitido' && b.pedido?.detalles)
+        .filter(b => b.boleta_estado === 'EMITIDA' && b.pedido?.detalles)
         .reduce((total, boleta) => {
           const detalle = boleta.pedido.detalles.find((d: any) => d.prod_id === producto.prod_id);
           return total + (detalle ? detalle.det_cantidad * detalle.det_precio : 0);
@@ -267,7 +270,7 @@ const ReportsPage: React.FC = () => {
     const clientesMap = new Map();
 
     boletas
-      .filter(b => b.boleta_estado === 'Emitido' && b.pedido)
+      .filter(b => b.boleta_estado === 'EMITIDA' && b.pedido)
       .forEach(boleta => {
         const clienteId = boleta.pedido.cli_id;
         const clienteNombre = boleta.pedido.cli_nombre || `Cliente ${clienteId}`;
@@ -300,7 +303,7 @@ const ReportsPage: React.FC = () => {
     let totalVentas = 0;
 
     boletas
-      .filter(b => b.boleta_estado === 'Emitido' && b.pedido?.detalles)
+      .filter(b => b.boleta_estado === 'EMITIDA' && b.pedido?.detalles)
       .forEach(boleta => {
         boleta.pedido.detalles.forEach((detalle: any) => {
           const producto = productos.find(p => p.prod_id === detalle.prod_id);

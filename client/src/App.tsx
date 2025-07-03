@@ -20,6 +20,7 @@ import HomePage from "./pages/HomePage";
 import NotFoundPage from "./pages/not-found";
 import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
+import { ThemeProvider } from "./context/ThemeContext";
 import { Toaster } from "./components/ui/toaster";
 import { queryClient } from "./lib/queryClient";
 import PaymentMethodsPage from "./pages/PaymentMethodsPage";
@@ -29,10 +30,11 @@ import SettingsPage from "./pages/SettingsPage";
 const App: React.FC = () => {
     return (
         <QueryClientProvider client={queryClient}>
-            <AuthProvider>
-                <CartProvider>
+            <ThemeProvider>
+                <AuthProvider>
+                    <CartProvider>
                     <Switch>
-                        <Route path="/" component={LoginPage} />
+                        <Route path="/" component={HomePage} />
                         <Route path="/login" component={LoginPage} />
                         <Route path="/register" component={RegisterPage} />
                         <Route path="/pending-approval" component={PendingApprovalPage} />
@@ -67,8 +69,9 @@ const App: React.FC = () => {
                         <Route path="/:rest*" component={NotFoundPage} />
                     </Switch>
                 </CartProvider>
-                <Toaster />
-            </AuthProvider>
+                    <Toaster />
+                </AuthProvider>
+            </ThemeProvider>
         </QueryClientProvider>
     );
 };

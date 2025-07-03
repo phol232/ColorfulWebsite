@@ -593,11 +593,11 @@ const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {currentMovimientos.length > 0 ? (
                         currentMovimientos.map(movimiento => (
-                            <Card key={movimiento.mov_id} className="overflow-hidden">
+                            <Card key={movimiento.mov_id} className="overflow-hidden bg-card border-border">
                                 <CardHeader className={`pb-2 ${
                                     movimiento.tipoMovimiento?.tipmov_nombre === 'Entrada'
-                                        ? 'bg-green-50 border-b border-green-100'
-                                        : 'bg-red-50 border-b border-red-100'
+                                        ? 'bg-success/10 border-b border-success'
+                                        : 'bg-destructive/10 border-b border-destructive'
                                 }`}>
                                     <div className="flex justify-between items-center">
                                         {(() => {
@@ -653,8 +653,8 @@ const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
                                             return (
                                                 <Badge className={
                                                     esEntrada
-                                                        ? 'bg-green-100 text-green-800 border-green-300'
-                                                        : 'bg-red-100 text-red-800 border-red-300'
+                                                        ? 'bg-success/20 text-success border-success'
+                                                        : 'bg-destructive/20 text-destructive border-destructive'
                                                 }>
                                                     {esEntrada ? (
                                                         <ArrowDownLeft className="mr-1 h-3 w-3" />
@@ -665,7 +665,7 @@ const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
                                                 </Badge>
                                             );
                                         })()}
-                                        <span className="text-xs text-gray-500">{formatDate(movimiento.mov_fecha)}</span>
+                                        <span className="text-xs text-muted-foreground">{formatDate(movimiento.mov_fecha)}</span>
                                     </div>
                                     <CardTitle className="text-lg mt-2">
                                         {movimiento.mov_referencia || 'Sin referencia'}
@@ -675,10 +675,10 @@ const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
                                 <CardContent className="pt-3">
                                     <div className="space-y-3">
                                         <div>
-                                            <h4 className="text-sm font-medium text-gray-500 mb-1">Productos:</h4>
+                                            <h4 className="text-sm font-medium text-muted-foreground mb-1">Productos:</h4>
                                             <ul className="space-y-2">
                                                 {movimiento.productos.map((producto, idx) => (
-                                                    <li key={idx} className="flex justify-between items-center text-sm border-b border-gray-100 pb-1">
+                                                    <li key={idx} className="flex justify-between items-center text-sm border-b border-border pb-1">
                                                         <span className="font-medium">{producto.pro_nombre}</span>
                                                         <span>
                               {producto.pivot.movprod_cantidad} x {formatCurrency(producto.pivot.movprod_costo_unitario)}
@@ -689,24 +689,24 @@ const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
                                         </div>
 
                                         <div>
-                                            <h4 className="text-sm font-medium text-gray-500 mb-1">Proveedor:</h4>
-                                            <p className="text-sm">{movimiento.proveedor?.prov_nombre || 'No especificado'}</p>
+                                            <h4 className="text-sm font-medium text-muted-foreground mb-1">Proveedor:</h4>
+                                            <p className="text-sm text-foreground">{movimiento.proveedor?.prov_nombre || 'No especificado'}</p>
                                         </div>
 
                                         {movimiento.mov_notas && (
                                             <div>
-                                                <h4 className="text-sm font-medium text-gray-500 mb-1">Notas:</h4>
-                                                <p className="text-sm text-gray-700">{movimiento.mov_notas}</p>
+                                                <h4 className="text-sm font-medium text-muted-foreground mb-1">Notas:</h4>
+                                                <p className="text-sm text-foreground">{movimiento.mov_notas}</p>
                                             </div>
                                         )}
                                     </div>
                                 </CardContent>
 
-                                <CardFooter className="border-t bg-gray-50 flex justify-between pt-3 pb-3">
+                                <CardFooter className="border-t bg-background flex justify-between pt-3 pb-3">
                                     <Button
                                         variant="ghost"
                                         size="sm"
-                                        className="text-blue-600 hover:text-blue-800"
+                                        className="text-primary hover:text-primary/80"
                                         onClick={() => prepararEdicion(movimiento)}
                                     >
                                         <Edit className="h-4 w-4 mr-1" /> Editar
@@ -714,7 +714,7 @@ const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
                                     <Button
                                         variant="ghost"
                                         size="sm"
-                                        className="text-red-600 hover:text-red-800"
+                                        className="text-destructive hover:text-destructive/80"
                                         onClick={() => {
                                             setMovimientoAEliminar(movimiento.mov_id);
                                             setIsDeleteDialogOpen(true);
@@ -798,7 +798,7 @@ const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
                     <form onSubmit={handleSubmit} className="py-2">
                         {/* Mostrar error si existe */}
                         {error && (
-                            <div className="mb-4 p-3 bg-red-100 border border-red-300 text-red-800 rounded">
+                            <div className="mb-4 p-3 bg-destructive/10 border border-destructive text-destructive rounded">
                                 {error}
                             </div>
                         )}
@@ -808,50 +808,40 @@ const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="space-y-2">
                                         <Label>Tipo de Movimiento *</Label>
-                                        {editando ? (
-                                            <>
-                                                <input
-                                                    type="hidden"
-                                                    name="tipmov_nombre"
-                                                    value={editando.tipoMovimiento?.tipmov_nombre || ""}
-                                                />
-                                                <div className={`flex items-center px-3 py-2 border rounded-md ${
-                                                    editando.tipoMovimiento?.tipmov_nombre === 'Entrada'
-                                                        ? 'bg-green-50 border-green-200 text-green-800'
-                                                        : 'bg-red-50 border-red-200 text-red-800'
-                                                }`}>
-                                                    {editando.tipoMovimiento?.tipmov_nombre === 'Entrada' ? (
-                                                        <ArrowDownLeft className="mr-2 h-4 w-4" />
-                                                    ) : (
-                                                        <ArrowUpRight className="mr-2 h-4 w-4" />
-                                                    )}
-                                                    <span>{editando.tipoMovimiento?.tipmov_nombre || "No especificado"}</span>
-                                                </div>
-                                            </>
-                                        ) : (
-                                            <Select
-                                                name="tipmov_nombre"
-                                                required
-                                            >
-                                                <SelectTrigger className="w-full text-left">
-                                                    <SelectValue placeholder="Seleccionar tipo" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {tiposMovimiento.length > 0 ? (
-                                                        tiposMovimiento.map(tipo => (
-                                                            <SelectItem key={tipo.tipmov_id} value={tipo.tipmov_nombre}>
-                                                                {tipo.tipmov_nombre}
-                                                            </SelectItem>
-                                                        ))
-                                                    ) : (
-                                                        <>
-                                                            <SelectItem value="Entrada">Entrada</SelectItem>
-                                                            <SelectItem value="Salida">Salida</SelectItem>
-                                                        </>
-                                                    )}
-                                                </SelectContent>
-                                            </Select>
-                                        )}
+                                        <Select
+                                            name="tipmov_nombre"
+                                            required
+                                            value={editando?.tipoMovimiento?.tipmov_nombre || ""}
+                                            onValueChange={value => {
+                                                if (editando) {
+                                                    setEditando({
+                                                        ...editando,
+                                                        tipoMovimiento: {
+                                                            ...editando.tipoMovimiento,
+                                                            tipmov_nombre: value
+                                                        }
+                                                    });
+                                                }
+                                            }}
+                                        >
+                                            <SelectTrigger className="w-full text-left">
+                                                <SelectValue placeholder="Seleccionar tipo" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {tiposMovimiento.length > 0 ? (
+                                                    tiposMovimiento.map(tipo => (
+                                                        <SelectItem key={tipo.tipmov_id} value={tipo.tipmov_nombre}>
+                                                            {tipo.tipmov_nombre}
+                                                        </SelectItem>
+                                                    ))
+                                                ) : (
+                                                    <>
+                                                        <SelectItem value="Entrada">Entrada</SelectItem>
+                                                        <SelectItem value="Salida">Salida</SelectItem>
+                                                    </>
+                                                )}
+                                            </SelectContent>
+                                        </Select>
                                     </div>
 
                                     <div className="space-y-2">
@@ -898,7 +888,7 @@ const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
                                         name="mov_notas"
                                         placeholder="Descripción o motivo del movimiento"
                                         defaultValue={editando?.mov_notas || ''}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                        className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                                         rows={4}
                                     ></textarea>
                                 </div>
@@ -922,7 +912,7 @@ const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
                                 {/* Lista de productos seleccionados */}
                                 <div className="space-y-3 overflow-y-auto max-h-[340px] pr-1">
                                     {productosSeleccionados.map((prod, index) => (
-                                        <div key={index} className="p-3 border rounded-md bg-gray-50">
+                                        <div key={index} className="p-3 border rounded-md bg-muted">
                                             <div className="flex justify-between items-center mb-2">
                                                 <h4 className="text-sm font-medium">Producto #{index + 1}</h4>
                                                 {productosSeleccionados.length > 1 && (
@@ -931,7 +921,7 @@ const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
                                                         variant="ghost"
                                                         size="sm"
                                                         onClick={() => eliminarProducto(index)}
-                                                        className="h-6 w-6 p-0 text-red-600"
+                                                        className="h-6 w-6 p-0 text-destructive"
                                                     >
                                                         <X className="h-4 w-4" />
                                                     </Button>
@@ -1023,7 +1013,7 @@ const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
                         </DialogDescription>
                     </DialogHeader>
                     <div className="py-4">
-                        <div className="bg-red-50 border border-red-200 text-red-800 p-3 mb-4 rounded-md text-sm">
+                        <div className="bg-destructive/10 border border-destructive text-destructive p-3 mb-4 rounded-md text-sm">
                             <p className="font-medium">⚠️ Advertencia:</p>
                             <p>Al eliminar este movimiento, se actualizará el stock de los productos asociados.</p>
                         </div>

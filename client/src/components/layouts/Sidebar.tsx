@@ -77,7 +77,6 @@ const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
   const toolsItems = [
     { name: "Categorías", icon: <Tags className="h-5 w-5" />, path: "/categories" },
     { name: "Pagos", icon: <CreditCard className="h-5 w-5" />, path: "/payment-methods" },
-    { name: "Configuración", icon: <Settings className="h-5 w-5" />, path: "/settings" },
   ];
 
   const renderMenuItem = (item: any) => {
@@ -87,9 +86,9 @@ const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
           <div className={`flex items-center p-2.5 rounded-md transition-colors cursor-pointer ${
               active
                   ? 'bg-primary/10 text-primary'
-                  : 'text-gray-700 hover:bg-gray-100'
+                  : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
           }`}>
-          <span className={`${active ? 'text-primary' : 'text-gray-500'}`}>
+          <span className={`${active ? 'text-primary' : 'text-gray-500 dark:text-gray-400'}`}>
             {item.icon}
           </span>
             <span className="ml-3 text-sm">{item.name}</span>
@@ -104,16 +103,16 @@ const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
   };
 
   return (
-      <aside className={`w-64 bg-white border-r border-gray-200 flex flex-col h-screen ${className}`}>
+      <aside className="w-64 bg-card border-r border-border min-h-screen sticky top-0 h-screen z-30">
         {/* Logo */}
         <div className="flex px-5 py-5">
           <Logo />
         </div>
 
 
-        <div className="flex-grow px-3 oveow-y-auto">
+        <div className="flex-grow px-3 overflow-y-auto">
           <div className="mb-6">
-            <h3 className="text-gray-500 font-medium text-xs uppercase tracking-wider px-3 mb-3">Menú Principal</h3>
+            <h3 className="text-gray-500 dark:text-gray-400 font-medium text-xs uppercase tracking-wider px-3 mb-3">Menú Principal</h3>
             <ul className="space-y-1">
               {menuItems.map((item) => (
                   <li key={item.name}>
@@ -124,7 +123,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
           </div>
 
           <div className="mb-6">
-            <h3 className="text-gray-500 font-medium text-xs uppercase tracking-wider px-3 mb-3">Gestión de Ventas</h3>
+            <h3 className="text-gray-500 dark:text-gray-400 font-medium text-xs uppercase tracking-wider px-3 mb-3">Gestión de Ventas</h3>
             <ul className="space-y-1">
               {salesItems.map((item) => (
                   <li key={item.name}>
@@ -135,14 +134,14 @@ const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
           </div>
 
           <div className="mb-6">
-            <h3 className="text-gray-500 font-medium text-xs uppercase tracking-wider px-3 mb-3">Comprobantes</h3>
+            <h3 className="text-gray-500 dark:text-gray-400 font-medium text-xs uppercase tracking-wider px-3 mb-3">Comprobantes</h3>
             <ul className="space-y-1">
               <li>
                 {renderMenuItem({ name: "Boletas", icon: <Receipt className="h-5 w-5" />, path: "/boletas" })}
               </li>
               <Link href="/invoices">
-                <div className="flex items-center p-2.5 rounded-md transition-colors cursor-pointer text-gray-700 hover:bg-gray-100">
-                  <span className="text-gray-500">
+                <div className="flex items-center p-2.5 rounded-md transition-colors cursor-pointer text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800">
+                  <span className="text-gray-500 dark:text-gray-400">
                     <FileText className="h-5 w-5" />
                   </span>
                   <span className="ml-3 text-sm">Facturas</span>
@@ -152,7 +151,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
           </div>
 
           <div className="mb-6">
-            <h3 className="text-gray-500 font-medium text-xs uppercase tracking-wider px-3 mb-3">Herramientas</h3>
+            <h3 className="text-gray-500 dark:text-gray-400 font-medium text-xs uppercase tracking-wider px-3 mb-3">Herramientas</h3>
             <ul className="space-y-1">
               {toolsItems.map((item) => (
                   <li key={item.name}>
@@ -160,13 +159,6 @@ const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
                   </li>
               ))}
             </ul>
-          </div>
-        </div>
-
-        <div className="px-3 pt-4 pb-5 border-t border-gray-200">
-          <div onClick={handleLogout} className="flex items-center p-2.5 text-red-500 hover:bg-red-50 rounded-md transition-colors cursor-pointer">
-            <LogOut className="h-5 w-5" />
-            <span className="ml-3 text-sm">Cerrar Sesión</span>
           </div>
         </div>
       </aside>

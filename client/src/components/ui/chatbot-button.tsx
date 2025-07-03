@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Bot, MessageCircle } from "lucide-react";
@@ -15,6 +16,7 @@ export const ChatbotButton: React.FC<ChatbotButtonProps> = ({ onClick }) => {
   // Obtener imagen de perfil
   const getProfileImage = () => {
     if (userProfile?.avatar) return userProfile.avatar;
+    if (userProfile?.perfil?.usrp_imagen) return `${API_URL}/storage/${userProfile.perfil.usrp_imagen}`;
     return "";
   };
 
@@ -69,9 +71,9 @@ export const ChatbotButton: React.FC<ChatbotButtonProps> = ({ onClick }) => {
       </Button>
       
       {/* Tooltip */}
-      <div className="absolute bottom-16 right-0 bg-gray-900 text-white px-3 py-2 rounded-lg text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+      <div className="absolute bottom-16 right-0 bg-popover border border-border text-popover-foreground px-3 py-2 rounded-lg text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none shadow-md">
         Asistente ML Inteligente
-        <div className="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+        <div className="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-popover"></div>
       </div>
     </div>
   );

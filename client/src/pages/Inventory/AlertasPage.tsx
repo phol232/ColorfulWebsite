@@ -349,29 +349,38 @@ const AlertasPage: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {currentAlertas.map((alerta) => (
-                    <Card key={alerta.alerta_stock_id} className="flex flex-col" style={{ backgroundColor: '#f0fdfa', borderColor: '#ccfbf1' }}>
+                    <Card key={alerta.alerta_stock_id} className="flex flex-col bg-card border-border">
                         <CardHeader>
                             <div className="flex justify-between items-start">
-                                <Badge className={`${getNivelAlertaBadgeColor(alerta.alerta_nivel_generado)} mb-2`}>{getNivelAlertaIcon(alerta.alerta_nivel_generado)} {alerta.alerta_nivel_generado}</Badge>
-                                <Badge className={`${getEstadoBadgeColor(alerta.estado_alerta)} mb-2`}>{getEstadoAlertaIcon(alerta.estado_alerta)} {alerta.estado_alerta}</Badge>
+                                <Badge className={`mb-2 ${
+                                    alerta.alerta_nivel_generado === 'INFO' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' :
+                                    alerta.alerta_nivel_generado === 'ADVERTENCIA' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300' :
+                                    alerta.alerta_nivel_generado === 'CRITICO' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300' : ''
+                                }`}>{getNivelAlertaIcon(alerta.alerta_nivel_generado)} {alerta.alerta_nivel_generado}</Badge>
+                                <Badge className={`mb-2 ${
+                                    alerta.estado_alerta === 'Activa' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' :
+                                    alerta.estado_alerta === 'En Revision' ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300' :
+                                    alerta.estado_alerta === 'Resuelta' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' :
+                                    alerta.estado_alerta === 'Ignorada' ? 'bg-muted text-muted-foreground' : ''
+                                }`}>{getEstadoAlertaIcon(alerta.estado_alerta)} {alerta.estado_alerta}</Badge>
                             </div>
-                            <CardTitle className="text-md" style={{ color: '#065f46' }}>{alerta.producto?.pro_nombre || `Alerta ID: ${alerta.alerta_stock_id}`}</CardTitle>
+                            <CardTitle className="text-md text-foreground">{alerta.producto?.pro_nombre || `Alerta ID: ${alerta.alerta_stock_id}`}</CardTitle>
                             <CardDescription className="text-xs">Generada: {new Date(alerta.fecha_generacion).toLocaleString()}</CardDescription>
                         </CardHeader>
-                        <CardContent className="flex-grow space-y-2 text-sm">
+                        <CardContent className="flex-grow space-y-2 text-sm text-foreground">
                             <p><strong>Mensaje:</strong> {alerta.mensaje_automatico}</p>
                             <p><strong>Tipo:</strong> {alerta.alerta_tipo_generada}</p>
-                            {alerta.producto && (<div className="text-xs p-2 rounded mt-2" style={{ backgroundColor: '#d1fae5' }}><p><strong>ID Prod:</strong> {alerta.prod_id}</p><p><strong>Stock Capturado:</strong> {alerta.stock_capturado}</p><p><strong>Umbral:</strong> {alerta.umbral_evaluado}</p><p className="font-semibold">Stock Actual: {alerta.producto.pro_stock}</p></div>)}
-                            {alerta.comentario_resolucion_actual && (<p className="text-xs text-gray-500 italic mt-1"><strong>Info:</strong> {alerta.comentario_resolucion_actual}</p>)}
+                            {alerta.producto && (<div className="text-xs p-2 rounded mt-2 bg-muted"><p><strong>ID Prod:</strong> {alerta.prod_id}</p><p><strong>Stock Capturado:</strong> {alerta.stock_capturado}</p><p><strong>Umbral:</strong> {alerta.umbral_evaluado}</p><p className="font-semibold">Stock Actual: {alerta.producto.pro_stock}</p></div>)}
+                            {alerta.comentario_resolucion_actual && (<p className="text-xs text-muted-foreground italic mt-1"><strong>Info:</strong> {alerta.comentario_resolucion_actual}</p>)}
                             {alerta.estado_alerta === 'Resuelta' && (
-                                <div className="mt-2 pt-2 border-t border-dashed">
+                                <div className="mt-2 pt-2 border-t border-dashed border-border">
                                     <p><strong>Resolución:</strong> {alerta.comentario_resolucion || "N/A"}</p>
                                     {alerta.resuelta_por && <p className="text-xs">Por: {alerta.resuelta_por.name || alerta.resuelta_por.usr_nombre || alerta.resuelta_por.usr_user || 'ID: ' + alerta.resuelta_por.usr_id}</p>}
                                     {alerta.fecha_resolucion && <p className="text-xs">Fecha: {new Date(alerta.fecha_resolucion).toLocaleDateString()}</p>}
                                 </div>
                             )}
                         </CardContent>
-                        <CardFooter className="flex gap-2 border-t pt-3 mt-auto">
+                        <CardFooter className="flex gap-2 border-t border-border pt-3 mt-auto">
                             <Button variant="outline" size="sm" onClick={() => handleEdit(alerta)}>
                                 <Edit className="h-4 w-4 mr-1" /> Editar
                             </Button>
@@ -489,7 +498,7 @@ const AlertasPage: React.FC = () => {
                                 </div>
                                 <div className="flex-1">
                                     <Label htmlFor="comentario_resolucion_edit" className="text-right">Comentario</Label>
-                                    <Textarea id="comentario_resolucion_edit" name="comentario_resolucion_edit" defaultValue={selectedAlerta.comentario_resolucion || ''} placeholder="Detalles de resolución..." />
+                                    <Textarea id="comentario_resolucion_edit" name="comentario_resolucion_edit" defaultValue={selectedAlerta.comentario_resolucion || ''} placeholder="Detalles de resolución..." className="bg-background text-foreground border-border" />
                                 </div>
                             </div>
                             <DialogFooter>
@@ -562,7 +571,7 @@ const AlertasPage: React.FC = () => {
                             </Select>
 
                             <Label htmlFor="mensaje_automatico_manual_create">Mensaje*</Label>
-                            <Textarea id="mensaje_automatico_manual_create" name="mensaje_automatico" value={manualAlertaForm.mensaje_automatico} onChange={handleManualAlertaFormChange} placeholder="Descripción detallada..." required />
+                            <Textarea id="mensaje_automatico_manual_create" name="mensaje_automatico" value={manualAlertaForm.mensaje_automatico} onChange={handleManualAlertaFormChange} placeholder="Descripción detallada..." required className="bg-background text-foreground border-border" />
                         </div>
                         <DialogFooter className="col-span-1 md:col-span-2">
                             <Button type="button" variant="outline" onClick={() => { setIsManualAlertaModalOpen(false); setManualAlertaForm(initialManualAlertaForm); }}>Cancelar</Button>
@@ -654,7 +663,7 @@ const AlertasPage: React.FC = () => {
                                     )}
                                     <div>
                                         <Label htmlFor="cfg_desc_create">Descripción</Label>
-                                        <Textarea id="cfg_desc_create" name="config_descripcion" value={configAlertaForm.config_descripcion || ''} onChange={handleConfigAlertaFormChange} placeholder="Detalles..." />
+                                        <Textarea id="cfg_desc_create" name="config_descripcion" value={configAlertaForm.config_descripcion || ''} onChange={handleConfigAlertaFormChange} placeholder="Detalles..." className="bg-background text-foreground border-border" />
                                     </div>
                                 </div>
                             </div>
