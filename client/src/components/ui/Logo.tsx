@@ -10,7 +10,7 @@ const Logo: React.FC = () => {
             Y
           </span>
           <span className="text-xl font-bold">
-            YAMI<span className="text-primary">CORP</span>
+            YAMY<span className="text-primary">CORP</span>
           </span>
         </div>
       </Link>
