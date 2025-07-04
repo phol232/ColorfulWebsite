@@ -9,7 +9,7 @@ const Logo: React.FC = () => {
           <span className="bg-primary rounded-full w-8 h-8 flex items-center justify-center text-white font-bold mr-2">
             Y
           </span>
-          <span className="text-xl font-bold">
+          <span className="text-sm font-bold">
             YAMY<span className="text-primary">CORP</span>
           </span>
         </div>
