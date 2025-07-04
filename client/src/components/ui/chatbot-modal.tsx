@@ -6,7 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, Bot, User, Loader2, Trash2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/context/AuthContext";
-import { API_URL } from "@/config";
+import { API_URL, ML_SERVICE_URL } from "@/config";
 
 interface ChatMessage {
   id: string;
@@ -34,10 +34,40 @@ export const ChatbotModal: React.FC<ChatbotModalProps> = ({ isOpen, onClose }) =
   const [messages, setMessages] = useState<ChatMessage[]>(globalMessages);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isServiceAvailable, setIsServiceAvailable] = useState(true);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollViewportRef = useRef<HTMLDivElement>(null);
   const { userProfile } = useAuth();
+
+  // Función para verificar la conectividad del servicio ML
+  const checkServiceAvailability = async () => {
+    try {
+      const response = await fetch(`${ML_SERVICE_URL}/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: 'test'
+        })
+      });
+      
+      setIsServiceAvailable(response.ok);
+      return response.ok;
+    } catch (error) {
+      console.error('Error verificando servicio ML:', error);
+      setIsServiceAvailable(false);
+      return false;
+    }
+  };
+
+  // Verificar disponibilidad del servicio al abrir el modal
+  useEffect(() => {
+    if (isOpen) {
+      checkServiceAvailability();
+    }
+  }, [isOpen]);
 
   // Función para hacer scroll automático al final
   const scrollToBottom = () => {
@@ -89,7 +119,7 @@ export const ChatbotModal: React.FC<ChatbotModalProps> = ({ isOpen, onClose }) =
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:6020/chat', {
+      const response = await fetch(`${ML_SERVICE_URL}/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -100,28 +130,44 @@ export const ChatbotModal: React.FC<ChatbotModalProps> = ({ isOpen, onClose }) =
       });
 
       if (!response.ok) {
-        throw new Error('Error en la respuesta del servidor');
+        const errorText = await response.text();
+        console.error('Error del servidor:', response.status, errorText);
+        throw new Error(`Error del servidor: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
+      console.log('Respuesta del servicio ML:', data);
       
       const botMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'bot',
-        message: data.respuesta_del_agente || data.respuesta_final || 'Lo siento, no pude procesar tu solicitud.',
+        message: data.respuesta_del_agente || data.respuesta_final || data.message || 'Lo siento, no pude procesar tu solicitud.',
         timestamp: new Date()
       };
 
       setMessages(prev => [...prev, botMessage]);
+      setIsServiceAvailable(true);
     } catch (error) {
       console.error('Error al enviar mensaje:', error);
-      const errorMessage: ChatMessage = {
+      setIsServiceAvailable(false);
+      
+      let errorMessage = 'Lo siento, hubo un error al conectar con el sistema ML.';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+          errorMessage = `No se pudo conectar al servicio ML en ${ML_SERVICE_URL}. Verifica que el servidor esté ejecutándose.`;
+        } else if (error.message.includes('Error del servidor')) {
+          errorMessage = `Error del servidor ML: ${error.message}`;
+        }
+      }
+      
+      const botMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'bot',
-        message: 'Lo siento, hubo un error al conectar con el sistema ML. Por favor, verifica que el servidor esté ejecutándose en el puerto 6020.',
+        message: errorMessage,
         timestamp: new Date()
       };
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages(prev => [...prev, botMessage]);
     } finally {
       setIsLoading(false);
     }
@@ -173,6 +219,8 @@ export const ChatbotModal: React.FC<ChatbotModalProps> = ({ isOpen, onClose }) =
             <div className="flex items-center gap-2">
               <Bot className="h-5 w-5 text-blue-600" />
               Asistente ML Inteligente
+              <div className={`w-2 h-2 rounded-full ${isServiceAvailable ? 'bg-green-500' : 'bg-red-500'}`} 
+                   title={isServiceAvailable ? 'Servicio ML disponible' : 'Servicio ML no disponible'} />
             </div>
             <Button
               variant="ghost"
@@ -256,19 +304,24 @@ export const ChatbotModal: React.FC<ChatbotModalProps> = ({ isOpen, onClose }) =
           </div>
           
           <div className="space-y-2">
+            {!isServiceAvailable && (
+              <div className="text-xs text-red-500 bg-red-50 dark:bg-red-900/20 p-2 rounded border border-red-200 dark:border-red-800">
+                ⚠️ Servicio ML no disponible en {ML_SERVICE_URL}. Verifica que el servidor esté ejecutándose.
+              </div>
+            )}
             <div className="flex gap-2">
               <Input
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Escribe tu mensaje aquí..."
-                disabled={isLoading}
+                placeholder={isServiceAvailable ? "Escribe tu mensaje aquí..." : "Servicio no disponible"}
+                disabled={isLoading || !isServiceAvailable}
                 className="flex-1"
                 autoFocus
               />
               <Button 
                 onClick={sendMessage} 
-                disabled={isLoading || !inputMessage.trim()}
+                disabled={isLoading || !inputMessage.trim() || !isServiceAvailable}
                 size="icon"
               >
                 <Send className="h-4 w-4" />

@@ -1341,7 +1341,7 @@ const OrdersPage: React.FC = () => {
 
                         {totalPages > 1 && (
                             <Pagination>
-                                <PaginationContent>
+                                <PaginationContent className="flex-wrap justify-center">
                                     <PaginationItem>
                                         <Button
                                             variant="outline"
