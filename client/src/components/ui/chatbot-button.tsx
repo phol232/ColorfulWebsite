@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Bot, MessageCircle } from "lucide-react";
@@ -45,23 +44,12 @@ export const ChatbotButton: React.FC<ChatbotButtonProps> = ({ onClick }) => {
         className="h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 bg-blue-600 hover:bg-blue-700 p-0 relative overflow-hidden"
       >
         <div className="relative w-full h-full flex items-center justify-center">
-          {/* Avatar del usuario o ícono bot */}
-          {getProfileImage() ? (
-            <Avatar className="w-10 h-10 border-2 border-white/20">
-              <AvatarImage src={getProfileImage()} alt="Tu foto de perfil" />
-              <AvatarFallback className="bg-blue-500 text-white text-xs">
-                {getInitials()}
-              </AvatarFallback>
-            </Avatar>
-          ) : (
-            <div className="relative">
-              <Bot className="h-6 w-6 text-white group-hover:scale-110 transition-transform duration-200" />
-            </div>
-          )}
-          
+          {/* Siempre mostrar el ícono del bot, nunca el avatar del usuario */}
+          <div className="relative">
+            <Bot className="h-6 w-6 text-white group-hover:scale-110 transition-transform duration-200" />
+          </div>
           {/* Indicador de estado online */}
           <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full animate-pulse border border-white"></div>
-          
           {/* Pequeño ícono ML en la esquina inferior */}
           <div className="absolute bottom-0 right-0 w-4 h-4 bg-white rounded-full flex items-center justify-center">
             <Bot className="h-2.5 w-2.5 text-blue-600" />

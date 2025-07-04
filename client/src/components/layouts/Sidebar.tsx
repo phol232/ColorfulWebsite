@@ -103,14 +103,14 @@ const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
   };
 
   return (
-      <aside className="w-64 bg-card border-r border-border min-h-screen sticky top-0 h-screen z-30">
+      <aside className="w-64 bg-card border-r border-border h-screen flex flex-col sticky top-0 z-30">
         {/* Logo */}
         <div className="flex px-5 py-5">
           <Logo />
         </div>
 
 
-        <div className="flex-grow px-3 overflow-y-auto">
+        <div className="flex-1 px-3 overflow-y-auto min-h-0">
           <div className="mb-6">
             <h3 className="text-gray-500 dark:text-gray-400 font-medium text-xs uppercase tracking-wider px-3 mb-3">Menú Principal</h3>
             <ul className="space-y-1">

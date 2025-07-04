@@ -1,10 +1,12 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, Bot, User, Loader2, Trash2 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuth } from "@/context/AuthContext";
+import { API_URL } from "@/config";
 
 interface ChatMessage {
   id: string;
@@ -35,6 +37,7 @@ export const ChatbotModal: React.FC<ChatbotModalProps> = ({ isOpen, onClose }) =
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollViewportRef = useRef<HTMLDivElement>(null);
+  const { userProfile } = useAuth();
 
   // Función para hacer scroll automático al final
   const scrollToBottom = () => {
@@ -138,6 +141,30 @@ export const ChatbotModal: React.FC<ChatbotModalProps> = ({ isOpen, onClose }) =
     });
   };
 
+  // Obtener imagen de perfil
+  const getProfileImage = () => {
+    if (userProfile?.avatar) return userProfile.avatar;
+    if (userProfile?.perfil?.usrp_imagen) return `${API_URL}/storage/${userProfile.perfil.usrp_imagen}`;
+    return "";
+  };
+
+  // Obtener iniciales del usuario
+  const getInitials = () => {
+    if (userProfile?.perfil?.usrp_nombre) {
+      const nombre = userProfile.perfil.usrp_nombre;
+      const apellido = userProfile.perfil.usrp_apellido || "";
+      return `${nombre[0] || ""}${apellido[0] || ""}`.toUpperCase();
+    } else if (userProfile?.name) {
+      return userProfile.name
+        .split(" ")
+        .map((n: string) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
+    }
+    return "AI";
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px] h-[600px] flex flex-col">
@@ -175,11 +202,16 @@ export const ChatbotModal: React.FC<ChatbotModalProps> = ({ isOpen, onClose }) =
                 >
                   <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
                     message.type === 'user' 
-                      ? 'bg-blue-600 text-white' 
+                      ? '' 
                       : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
                   }`}>
                     {message.type === 'user' ? (
-                      <User className="h-4 w-4" />
+                      <Avatar className="w-8 h-8 border-2 border-white/20">
+                        <AvatarImage src={getProfileImage()} alt="Tu foto de perfil" />
+                        <AvatarFallback className="bg-blue-500 text-white text-xs">
+                          {getInitials()}
+                        </AvatarFallback>
+                      </Avatar>
                     ) : (
                       <Bot className="h-4 w-4" />
                     )}

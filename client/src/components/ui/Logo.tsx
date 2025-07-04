@@ -6,7 +6,7 @@ const Logo: React.FC = () => {
     <div className="logo-container">
       <Link href="/">
         <div className="flex items-center cursor-pointer">
-          <span className="bg-primary rounded-full w-8 h-8 flex items-center justify-center text-white font-bold mr-2">
+          <span className="bg-primary rounded-full w-8 h-8 flex items-center justify-center text-white font-bold mr-2 text-sm">
             Y
           </span>
           <span className="text-sm font-bold">
