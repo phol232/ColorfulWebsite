@@ -167,6 +167,23 @@ const ReportsPage: React.FC = () => {
     }
   });
 
+  // Fetch dashboard data
+  const { data: dashboardData, isLoading: dashboardLoading } = useQuery({
+    queryKey: ['/api/reportes/consolidados'],
+    queryFn: async () => {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/reportes/consolidados`, {
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+          'Content-Type': 'application/json',
+        }
+      });
+      if (!response.ok) throw new Error('Error fetching dashboard report');
+      const data = await response.json();
+      return data.data;
+    }
+  });
+
   // Calcular KPIs de ventas
   const calculateKPIs = () => {
     const boletasActivas = boletas.filter(b => b.boleta_estado === 'EMITIDA');
@@ -544,6 +561,54 @@ const ReportsPage: React.FC = () => {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Dashboard data */}
+            {dashboardData && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="text-gray-500 text-sm">Ingresos Totales</p>
+                        <h3 className="text-3xl font-bold mt-1">{formatCurrency(Number(dashboardData.ingresos_totales?.ingresos_totales) || 0)}</h3>
+                        <p className="text-sm text-green-600 mt-1">Total de ventas emitidas</p>
+                      </div>
+                      <div className="bg-blue-100 p-3 rounded-full">
+                        <DollarSign className="h-6 w-6 text-blue-600" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="text-gray-500 text-sm">Valor Inventario</p>
+                        <h3 className="text-3xl font-bold mt-1">{formatCurrency(Number(dashboardData.valor_inventario?.valor_total_inventario) || 0)}</h3>
+                        <p className="text-sm text-green-600 mt-1">Valor total en stock</p>
+                      </div>
+                      <div className="bg-green-100 p-3 rounded-full">
+                        <Package className="h-6 w-6 text-green-600" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="text-gray-500 text-sm">Producto Más Vendido</p>
+                        <h3 className="text-xl font-bold mt-1">{dashboardData.producto_mas_vendido?.pro_nombre || 'Sin datos'}</h3>
+                        <p className="text-sm text-green-600 mt-1">{Number(dashboardData.producto_mas_vendido?.total_vendido) || 0} unidades vendidas</p>
+                      </div>
+                      <div className="bg-purple-100 p-3 rounded-full">
+                        <TrendingUp className="h-6 w-6 text-purple-600" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </TabsContent>
 
           {/* Contenido de pestaña Productos */}
@@ -570,12 +635,8 @@ const ReportsPage: React.FC = () => {
                   <div className="flex justify-between items-start">
                     <div>
                       <p className="text-gray-500 text-sm">Más Vendido</p>
-                      <h3 className="text-xl font-bold mt-1">
-                        {productosMasVendidos[0]?.nombre || 'Sin datos'}
-                      </h3>
-                      <p className="text-sm text-green-600 mt-1">
-                        {productosMasVendidos[0]?.ventas || 0} unidades vendidas
-                      </p>
+                      <h3 className="text-xl font-bold mt-1">{dashboardData?.producto_mas_vendido?.pro_nombre || 'Sin datos'}</h3>
+                      <p className="text-sm text-green-600 mt-1">{Number(dashboardData?.producto_mas_vendido?.total_vendido) || 0} unidades vendidas</p>
                     </div>
                     <div className="bg-green-100 p-3 rounded-full">
                       <TrendingUp className="h-6 w-6 text-green-600" />
@@ -589,9 +650,7 @@ const ReportsPage: React.FC = () => {
                   <div className="flex justify-between items-start">
                     <div>
                       <p className="text-gray-500 text-sm">Ingresos por Productos</p>
-                      <h3 className="text-3xl font-bold mt-1">
-                        {formatCurrency(productosMasVendidos.reduce((sum, p) => sum + p.ingresos, 0))}
-                      </h3>
+                      <h3 className="text-3xl font-bold mt-1">{formatCurrency(Number(dashboardData?.ingresos_totales?.ingresos_totales) || 0)}</h3>
                       <p className="text-sm text-green-600 mt-1">Total generado</p>
                     </div>
                     <div className="bg-purple-100 p-3 rounded-full">
@@ -724,9 +783,7 @@ const ReportsPage: React.FC = () => {
                   <div className="flex justify-between items-start">
                     <div>
                       <p className="text-gray-500 text-sm">Valor del Inventario</p>
-                      <h3 className="text-3xl font-bold mt-1">
-                        {formatCurrency(productos.reduce((sum, p) => sum + (parseFloat(p.pro_precio || 0) * parseFloat(p.pro_stock || 0)), 0))}
-                      </h3>
+                      <h3 className="text-3xl font-bold mt-1">{formatCurrency(Number(dashboardData?.valor_inventario?.valor_total_inventario) || 0)}</h3>
                       <p className="text-sm text-green-600 mt-1">Valor total en stock</p>
                     </div>
                     <div className="bg-blue-100 p-3 rounded-full">
@@ -741,9 +798,7 @@ const ReportsPage: React.FC = () => {
                   <div className="flex justify-between items-start">
                     <div>
                       <p className="text-gray-500 text-sm">Productos en Stock</p>
-                      <h3 className="text-3xl font-bold mt-1">
-                        {productos.filter(p => parseFloat(p.pro_stock || 0) > 0).length}
-                      </h3>
+                      <h3 className="text-3xl font-bold mt-1">{productos.filter(p => parseFloat(p.pro_stock || 0) > 0).length}</h3>
                       <p className="text-sm text-green-600 mt-1">Con existencias disponibles</p>
                     </div>
                     <div className="bg-green-100 p-3 rounded-full">
@@ -758,9 +813,7 @@ const ReportsPage: React.FC = () => {
                   <div className="flex justify-between items-start">
                     <div>
                       <p className="text-gray-500 text-sm">Stock Crítico</p>
-                      <h3 className="text-3xl font-bold mt-1">
-                        {productos.filter(p => parseFloat(p.pro_stock || 0) < 10 && parseFloat(p.pro_stock || 0) > 0).length}
-                      </h3>
+                      <h3 className="text-3xl font-bold mt-1">{productos.filter(p => parseFloat(p.pro_stock || 0) < 10 && parseFloat(p.pro_stock || 0) > 0).length}</h3>
                       <p className="text-sm text-amber-600 mt-1">Productos con stock bajo</p>
                     </div>
                     <div className="bg-amber-100 p-3 rounded-full">
