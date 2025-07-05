@@ -509,7 +509,7 @@ const DashboardPage: React.FC = () => {
                     <XAxis dataKey="nombre" tick={{ fill: 'hsl(var(--foreground))' }} />
                     <YAxis tick={{ fill: 'hsl(var(--foreground))' }} />
                     <Tooltip 
-                      formatter={(value) => [`$${value}`, 'Ventas']}
+                      formatter={(value) => [`S/ ${value}`, 'Ventas']}
                       contentStyle={{
                         backgroundColor: 'hsl(var(--popover))',
                         border: '1px solid hsl(var(--border))',
@@ -518,7 +518,7 @@ const DashboardPage: React.FC = () => {
                       }}
                     />
                     <Legend wrapperStyle={{ color: 'hsl(var(--foreground))' }} />
-                    <Bar dataKey="ventas" fill="#60A5FA" name="Ventas ($)" />
+                    <Bar dataKey="ventas" fill="#60A5FA" name="Ventas (S/)" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -538,7 +538,7 @@ const DashboardPage: React.FC = () => {
                     <XAxis dataKey="mes" tick={{ fill: 'hsl(var(--foreground))' }} />
                     <YAxis tick={{ fill: 'hsl(var(--foreground))' }} />
                     <Tooltip 
-                      formatter={(value) => [`$${value}`, 'Ganancias']}
+                      formatter={(value) => [`S/ ${value}`, 'Ganancias']}
                       contentStyle={{
                         backgroundColor: 'hsl(var(--popover))',
                         border: '1px solid hsl(var(--border))',
@@ -552,7 +552,7 @@ const DashboardPage: React.FC = () => {
                       dataKey="ganancias" 
                       stroke="#10B981" 
                       activeDot={{ r: 8 }} 
-                      name="Ganancias ($)"
+                      name="Ganancias (S/)"
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -662,7 +662,7 @@ const DashboardPage: React.FC = () => {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ name, value }) => `${name}: ${value}%`}
+                      label={({ name, value }) => `${name}: S/ ${value}`}
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="value"

@@ -197,9 +197,9 @@ const ReportsPage: React.FC = () => {
     ).size;
 
     return [
-      { nombre: "Ventas Totales", valor: totalVentas, anterior: totalVentas * 0.9, unidad: "$", crecimiento: 11.1 },
+      { nombre: "Ventas Totales", valor: totalVentas, anterior: totalVentas * 0.9, unidad: "S/", crecimiento: 11.1 },
       { nombre: "Pedidos", valor: totalPedidos, anterior: Math.floor(totalPedidos * 0.88), unidad: "", crecimiento: 13.6 },
-      { nombre: "Ticket Promedio", valor: ticketPromedio, anterior: ticketPromedio * 0.95, unidad: "$", crecimiento: 5.3 },
+      { nombre: "Ticket Promedio", valor: ticketPromedio, anterior: ticketPromedio * 0.95, unidad: "S/", crecimiento: 5.3 },
       { nombre: "Clientes Únicos", valor: clientesUnicos, anterior: Math.floor(clientesUnicos * 0.82), unidad: "", crecimiento: 22.0 },
     ];
   };
@@ -523,7 +523,7 @@ const ReportsPage: React.FC = () => {
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="periodo" />
                         <YAxis />
-                        <Tooltip formatter={(value) => [`$${value}`, 'Ventas']} />
+                        <Tooltip formatter={(value) => [`S/ ${value}`, 'Ventas']} />
                         <Legend />
                         <Bar dataKey="ventas" fill="#60A5FA" name="Ventas ($)" />
                       </BarChart>
@@ -545,7 +545,7 @@ const ReportsPage: React.FC = () => {
                           cx="50%"
                           cy="50%"
                           labelLine={false}
-                          label={({ name, value }) => `${name}: ${value}`}
+                          label={({ name, value }) => `${name}: S/ ${value}`}
                           outerRadius={100}
                           fill="#8884d8"
                           dataKey="value"
@@ -554,7 +554,7 @@ const ReportsPage: React.FC = () => {
                             <Cell key={`pie-cell-${entry.name}-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
                         </Pie>
-                        <Tooltip formatter={(value) => [`$${value}`, 'Ventas']} />
+                        <Tooltip formatter={(value) => [`S/ ${value}`, 'Ventas']} />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
@@ -713,7 +713,7 @@ const ReportsPage: React.FC = () => {
                             cx="50%"
                             cy="50%"
                             labelLine={false}
-                            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                            label={({ name, percent }) => `${name}: S/ ${(percent * 100).toFixed(0)}%`}
                             outerRadius={100}
                             fill="#8884d8"
                             dataKey="value"
@@ -722,7 +722,7 @@ const ReportsPage: React.FC = () => {
                               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                             ))}
                           </Pie>
-                          <Tooltip formatter={(value) => [`$${value.toLocaleString()}`, 'Ventas']} />
+                          <Tooltip formatter={(value) => [`S/ ${value.toLocaleString()}`, 'Ventas']} />
                         </PieChart>
                       </ResponsiveContainer>
                     ) : (
