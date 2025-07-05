@@ -58,6 +58,10 @@ interface Producto {
     pro_id: string;
     pro_nombre: string;
     pro_stock: number;
+    detalles?: {
+        prod_precio_compra?: string;
+    };
+    pro_precio_venta?: string;
 }
 
 interface TipoMovimiento {
@@ -350,14 +354,44 @@ const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
         }
     };
 
-    // Actualizar producto seleccionado
+    // 1. Nueva función para obtener el costo según tipo y producto
+    const getCostoProducto = (productoNombre: string) => {
+        const prod = productos.find(p => p.pro_nombre === productoNombre);
+        if (!prod) return 0;
+        if ((editando ? (editando.tipoMovimiento?.tipmov_nombre || "") : tipoMovimientoNuevo) === "Entrada") {
+            // Buscar en detalles
+            return prod.detalles?.prod_precio_compra ? parseFloat(prod.detalles?.prod_precio_compra) : 0;
+        } else if ((editando ? (editando.tipoMovimiento?.tipmov_nombre || "") : tipoMovimientoNuevo) === "Salida") {
+            return prod.pro_precio_venta ? parseFloat(prod.pro_precio_venta) : 0;
+        }
+        return 0;
+    };
+
+    // 2. Actualizar producto y costo automáticamente
     const actualizarProducto = (index: number, campo: keyof ProductoForm, valor: any) => {
         setProductosSeleccionados(prev => {
             const nuevos = [...prev];
-            nuevos[index] = { ...nuevos[index], [campo]: valor };
+            if (campo === 'producto') {
+                // Cuando se selecciona producto, autollenar costo
+                const costo = getCostoProducto(valor);
+                nuevos[index] = { ...nuevos[index], producto: valor, costo };
+            } else {
+                nuevos[index] = { ...nuevos[index], [campo]: valor };
+            }
             return nuevos;
         });
     };
+
+    // 3. Cuando cambia el tipo de movimiento, actualizar todos los costos
+    useEffect(() => {
+        setProductosSeleccionados(prev => prev.map(prod => {
+            if (prod.producto) {
+                return { ...prod, costo: getCostoProducto(prod.producto) };
+            }
+            return prod;
+        }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [tipoMovimientoNuevo, editando?.tipoMovimiento?.tipmov_nombre]);
 
     // Limpiar formulario
     const limpiarFormulario = () => {
@@ -978,8 +1012,8 @@ const MovimientosPage: FC<MovimientosPageProps> = ({ onChange }) => {
                                                         min="0"
                                                         step="0.01"
                                                         value={prod.costo}
-                                                        onChange={(e) => actualizarProducto(index, 'costo', parseFloat(e.target.value))}
                                                         className="mt-1"
+                                                        disabled={!!prod.producto}
                                                     />
                                                 </div>
                                             </div>
