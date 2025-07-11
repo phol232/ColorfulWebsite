@@ -905,7 +905,7 @@ const ReportsPage: React.FC = () => {
                     <div>
                       <p className="text-gray-500 text-sm">Cliente más Valioso</p>
                       <h3 className="text-xl font-bold mt-1">
-                        {clientesValiosos[0]?.nombre || 'Sin datos'}
+                        {clientesValiosos[0]?.nombre_cliente || 'Sin datos'}
                       </h3>
                       <p className="text-sm text-green-600 mt-1">
                         {clientesValiosos[0] ? formatCurrency(clientesValiosos[0].totalGastado) : 'N/A'}
@@ -960,7 +960,7 @@ const ReportsPage: React.FC = () => {
                       <tbody>
                         {clientesValiosos.map((cliente, index) => (
                           <tr key={`cliente-valioso-${cliente.id}-${index}`} className="border-b border-gray-100 hover:bg-gray-50">
-                            <td className="px-4 py-3 text-sm font-medium">{cliente.nombre}</td>
+                            <td className="px-4 py-3 text-sm font-medium">{cliente.nombre_cliente}</td>
                             <td className="px-4 py-3 text-center text-sm">{cliente.compras}</td>
                             <td className="px-4 py-3 text-right text-sm font-medium">{formatCurrency(cliente.totalGastado)}</td>
                             <td className="px-4 py-3 text-center text-sm">{formatDate(cliente.ultimaCompra)}</td>

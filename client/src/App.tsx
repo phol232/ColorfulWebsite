@@ -34,7 +34,7 @@ const App: React.FC = () => {
                 <AuthProvider>
                     <CartProvider>
                     <Switch>
-                        <Route path="/" component={HomePage} />
+                        <Route path="/" component={LoginPage} />
                         <Route path="/login" component={LoginPage} />
                         <Route path="/register" component={RegisterPage} />
                         <Route path="/pending-approval" component={PendingApprovalPage} />
